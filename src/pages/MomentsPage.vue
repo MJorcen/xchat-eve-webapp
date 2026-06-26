@@ -26,19 +26,19 @@ import { computed, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import MomentCard from "../components/MomentCard.vue";
 import { api } from "../services/api";
-import type { Moment } from "../types/eve";
+import { useMomentsStore } from "../stores";
 
 const router = useRouter();
 const tab = ref<"recommend" | "follow">("recommend");
-const allMoments = ref<Moment[]>([]);
+const momentsStore = useMomentsStore();
 
-// Following 标签展示已关注的子集，与 Discover 区分
+// 读 store(新发布的动态会 prepend 进来);Following 标签展示子集
 const moments = computed(() =>
-  tab.value === "recommend" ? allMoments.value : allMoments.value.filter((_, i) => i % 2 === 0)
+  tab.value === "recommend" ? momentsStore.list : momentsStore.list.filter((_, i) => i % 2 === 0)
 );
 
 onMounted(async () => {
-  allMoments.value = await api.getMoments();
+  momentsStore.seed(await api.getMoments());
 });
 </script>
 

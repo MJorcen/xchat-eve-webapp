@@ -25,11 +25,10 @@
         :src="a.avatar"
         lazy-load
       />
-      <p v-if="matching" class="searching">{{ matchType }} matching…</p>
     </div>
 
     <!-- 匹配按钮 -->
-    <div class="actions" v-if="!matching">
+    <div class="actions">
       <button class="match-btn random" @click="startMatch('Random')">
         <span class="t">Random</span>
         <small class="c">300 <img src="/assets/eve/matchHome/coin_20@2x.png" alt="" /> / match</small>
@@ -39,20 +38,18 @@
         <small class="c">500 <img src="/assets/eve/matchHome/coin_20@2x.png" alt="" /> / match</small>
       </button>
     </div>
-    <button v-else class="stop" @click="matching = false">Stop matching</button>
   </section>
 </template>
 
 <script setup lang="ts">
 import { onMounted, ref } from "vue";
+import { useRouter } from "vue-router";
 import { api } from "../services/api";
 import type { Anchor, CurrentUser } from "../types/eve";
 
+const router = useRouter();
 const user = ref<CurrentUser | null>(null);
 const floats = ref<Anchor[]>([]);
-
-const matching = ref(false);
-const matchType = ref("Random");
 
 onMounted(async () => {
   user.value = await api.getCurrentUser();
@@ -60,8 +57,7 @@ onMounted(async () => {
 });
 
 function startMatch(type: string) {
-  matchType.value = type;
-  matching.value = true;
+  router.push({ name: "MatchNew", query: { type } });
 }
 </script>
 
@@ -168,13 +164,6 @@ function startMatch(type: string) {
   50% { transform: translateY(-8px); }
 }
 
-.searching {
-  position: absolute;
-  bottom: -32px;
-  font-size: 14px;
-  color: #ffb38a;
-}
-
 .actions {
   display: flex;
   gap: 14px;
@@ -215,16 +204,5 @@ function startMatch(type: string) {
 .goddess {
   background: linear-gradient(135deg, #a85cff, #eb6300);
   box-shadow: 0 10px 24px rgba(168, 92, 255, 0.4);
-}
-
-.stop {
-  width: 100%;
-  max-width: 340px;
-  padding: 15px 0;
-  border-radius: 18px;
-  background: #3a2526;
-  color: #ffb0b0;
-  font-size: 15px;
-  font-weight: 600;
 }
 </style>

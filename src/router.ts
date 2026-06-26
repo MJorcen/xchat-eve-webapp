@@ -13,12 +13,23 @@ import WalletPage from "./pages/WalletPage.vue";
 import RechargePage from "./pages/RechargePage.vue";
 import PaymentPage from "./pages/PaymentPage.vue";
 import PaymentResultPage from "./pages/PaymentResultPage.vue";
-import ListPage from "./pages/ListPage.vue";
-import FormPage from "./pages/FormPage.vue";
 import UserDynamicListPage from "./pages/UserDynamicListPage.vue";
+import PostComposerPage from "./pages/PostComposerPage.vue";
 import MembershipPage from "./pages/MembershipPage.vue";
 import WalletDetailPage from "./pages/WalletDetailPage.vue";
 import SignInPage from "./pages/SignInPage.vue";
+import LoginPage from "./pages/LoginPage.vue";
+import VisitorPage from "./pages/VisitorPage.vue";
+import FollowAndFansPage from "./pages/FollowAndFansPage.vue";
+import BlockListPage from "./pages/BlockListPage.vue";
+import NotificationPage from "./pages/NotificationPage.vue";
+import BlockAndReportPage from "./pages/BlockAndReportPage.vue";
+import FeedbackPage from "./pages/FeedbackPage.vue";
+import EditProfilePage from "./pages/EditProfilePage.vue";
+import GameCatPage from "./pages/GameCatPage.vue";
+import NearbyPage from "./pages/NearbyPage.vue";
+import MatchNewPage from "./pages/MatchNewPage.vue";
+import MatchDetailPage from "./pages/MatchDetailPage.vue";
 
 export const tabRouteNames = ["Home", "Match", "Moments", "Messages", "Mine"];
 
@@ -39,17 +50,23 @@ export const router = createRouter({
     { path: "/recharge", name: "Recharge", component: RechargePage },
     { path: "/payment", name: "Payment", component: PaymentPage },
     { path: "/payment-result", name: "PaymentResult", component: PaymentResultPage },
-    { path: "/notifications", name: "Notifications", component: ListPage, meta: { listType: "notifications", title: "Notifications" } },
-    { path: "/visitors", name: "Visitors", component: ListPage, meta: { listType: "visitors", title: "Visitors" } },
-    { path: "/block-list", name: "BlockList", component: ListPage, meta: { listType: "blocked", title: "Block List" } },
-    { path: "/follow-and-fans", name: "FollowAndFans", component: ListPage, meta: { listType: "following", title: "Follow And Fans" } },
+    { path: "/login", name: "Login", component: LoginPage },
+    { path: "/notifications", name: "Notifications", component: NotificationPage },
+    { path: "/visitors", name: "Visitors", component: VisitorPage },
+    { path: "/block-list", name: "BlockList", component: BlockListPage },
+    { path: "/block-and-report", name: "BlockAndReport", component: BlockAndReportPage },
+    { path: "/follow-and-fans", name: "FollowAndFans", component: FollowAndFansPage },
     { path: "/wallet-detail", name: "WalletDetail", component: WalletDetailPage },
-    { path: "/edit-profile", name: "EditProfile", component: FormPage, meta: { formType: "profile", title: "Edit Profile" } },
-    { path: "/feedback", name: "Feedback", component: FormPage, meta: { formType: "feedback", title: "Feedback" } },
-    { path: "/video-upload-dynamic", name: "VideoUploadDynamic", component: FormPage, meta: { formType: "post", title: "New Moment" } },
+    { path: "/edit-profile", name: "EditProfile", component: EditProfilePage },
+    { path: "/feedback", name: "Feedback", component: FeedbackPage },
+    { path: "/video-upload-dynamic", name: "VideoUploadDynamic", component: PostComposerPage },
     { path: "/sign-detail", name: "SignDetail", component: SignInPage },
     { path: "/user-dynamic-list/:id", name: "UserDynamicList", component: UserDynamicListPage },
-    { path: "/membership", name: "Membership", component: MembershipPage }
+    { path: "/membership", name: "Membership", component: MembershipPage },
+    { path: "/game", name: "Game", component: GameCatPage },
+    { path: "/nearby", name: "Nearby", component: NearbyPage },
+    { path: "/match-new", name: "MatchNew", component: MatchNewPage },
+    { path: "/match-detail", name: "MatchDetail", component: MatchDetailPage }
   ],
   scrollBehavior() {
     return { top: 0 };

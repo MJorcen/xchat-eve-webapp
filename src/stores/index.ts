@@ -8,3 +8,4 @@ export { pinia };
 export * from "./user";
 export * from "./userDetail";
 export * from "./vipConfig";
+export * from "./moments";

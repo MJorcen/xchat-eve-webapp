@@ -198,8 +198,12 @@ function startChat() {
 }
 
 function onAction(action: { name: string }) {
-  emitter.emit("toast", `${action.name}ed`);
-  if (action.name === "Block") router.back();
+  if (action.name === "Report") {
+    router.push(`/block-and-report?id=${id}`);
+  } else {
+    emitter.emit("toast", "Blocked");
+    router.back();
+  }
 }
 
 onMounted(async () => {

@@ -58,6 +58,11 @@
 
     <!-- 设置列表 -->
     <nav class="settings">
+      <button class="row" @click="router.push('/game')">
+        <img src="/assets/eve/gc.png" alt="" />
+        <span>Games</span>
+        <img class="arrow" src="/assets/eve/mine/list_arrow-right-gray-20@2x.png" alt="" />
+      </button>
       <button class="row" @click="router.push('/block-list')">
         <img src="/assets/eve/mine/ic_block%20List@2x.png" alt="" />
         <span>Block List</span>

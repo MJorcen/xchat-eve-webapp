@@ -23,6 +23,8 @@ export type CurrentUser = {
   followers: number;
   vipLevel: number;
   vipValidEnd: string;
+  intro?: string;
+  gender?: string;
 };
 
 export type Moment = {
