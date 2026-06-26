@@ -16,6 +16,9 @@ import PaymentResultPage from "./pages/PaymentResultPage.vue";
 import ListPage from "./pages/ListPage.vue";
 import FormPage from "./pages/FormPage.vue";
 import UserDynamicListPage from "./pages/UserDynamicListPage.vue";
+import MembershipPage from "./pages/MembershipPage.vue";
+import WalletDetailPage from "./pages/WalletDetailPage.vue";
+import SignInPage from "./pages/SignInPage.vue";
 
 export const tabRouteNames = ["Home", "Match", "Moments", "Messages", "Mine"];
 
@@ -40,12 +43,13 @@ export const router = createRouter({
     { path: "/visitors", name: "Visitors", component: ListPage, meta: { listType: "visitors", title: "Visitors" } },
     { path: "/block-list", name: "BlockList", component: ListPage, meta: { listType: "blocked", title: "Block List" } },
     { path: "/follow-and-fans", name: "FollowAndFans", component: ListPage, meta: { listType: "following", title: "Follow And Fans" } },
-    { path: "/wallet-detail", name: "WalletDetail", component: ListPage, meta: { listType: "wallet", title: "Wallet Detail" } },
+    { path: "/wallet-detail", name: "WalletDetail", component: WalletDetailPage },
     { path: "/edit-profile", name: "EditProfile", component: FormPage, meta: { formType: "profile", title: "Edit Profile" } },
     { path: "/feedback", name: "Feedback", component: FormPage, meta: { formType: "feedback", title: "Feedback" } },
     { path: "/video-upload-dynamic", name: "VideoUploadDynamic", component: FormPage, meta: { formType: "post", title: "New Moment" } },
-    { path: "/sign-detail", name: "SignDetail", component: ListPage, meta: { listType: "sign", title: "Sign-in" } },
-    { path: "/user-dynamic-list/:id", name: "UserDynamicList", component: UserDynamicListPage }
+    { path: "/sign-detail", name: "SignDetail", component: SignInPage },
+    { path: "/user-dynamic-list/:id", name: "UserDynamicList", component: UserDynamicListPage },
+    { path: "/membership", name: "Membership", component: MembershipPage }
   ],
   scrollBehavior() {
     return { top: 0 };

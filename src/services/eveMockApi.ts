@@ -1,13 +1,30 @@
-import type { Anchor, CallRecord, Conversation, CurrentUser, Moment, NotificationItem, PaymentChannel, WalletPackage } from "../types/eve";
+import type {
+  Anchor,
+  CallRecord,
+  ChatMessage,
+  Conversation,
+  CurrentUser,
+  Gift,
+  LiveRoom,
+  Moment,
+  NotificationItem,
+  PaymentChannel,
+  SignDay,
+  VipPlan,
+  WalletPackage,
+  WalletRecord
+} from "../types/eve";
 
 const avatarSeeds = ["Lina", "Ava", "Mira", "Nora", "Sia", "Isha", "Zara", "Riya"];
+// 真实 SFW 人像占位图（randomuser），数据层统一，后续可一键替换为真实后端头像
+const portraitIds = [44, 68, 21, 32, 9, 75, 12, 51];
 
 const anchors: Anchor[] = avatarSeeds.map((name, index) => ({
   id: 860120 + index,
   nickname: name,
   age: [22, 24, 21, 26, 23, 25, 20, 27][index],
-  region: ["ind", "phl", "idn", "bra", "usa", "vnm", "egy", "mar"][index],
-  avatar: `https://api.dicebear.com/9.x/adventurer-neutral/svg?seed=${name}&backgroundColor=ffd5dc,ffe6a7,c0aede,d1d4f9`,
+  region: ["bgd", "phl", "idn", "bra", "egy", "vnm", "col", "esp"][index],
+  avatar: `https://randomuser.me/api/portraits/women/${portraitIds[index]}.jpg`,
   online: index % 3 !== 1,
   onDuty: index % 2 === 0,
   intro: "Open minded, sweet voice, love music and night talks. Say hi and let's make today less boring.",
@@ -19,7 +36,7 @@ const anchors: Anchor[] = avatarSeeds.map((name, index) => ({
 const currentUser: CurrentUser = {
   id: 778899,
   nickname: "Guest User",
-  avatar: "https://api.dicebear.com/9.x/adventurer-neutral/svg?seed=Guest&backgroundColor=fecaca",
+  avatar: "https://randomuser.me/api/portraits/women/65.jpg",
   age: 28,
   region: "ind",
   coins: 1280,
@@ -55,12 +72,25 @@ const conversations: Conversation[] = anchors.slice(0, 6).map((user, index) => (
   unread: [2, 0, 5, 1, 0, 0][index]
 }));
 
-const calls: CallRecord[] = anchors.slice(2, 6).map((user, index) => ({
-  id: user.id,
-  user,
-  duration: ["00:03:42", "00:12:16", "00:01:35", "00:08:28"][index],
-  time: ["2026-06-17 05:20", "2026-06-16 22:11", "2026-06-15 19:40", "2026-06-14 12:05"][index]
-}));
+const callDurationsSec = [222, 736, 0, 508];
+const callStatuses: CallRecord["status"][] = ["answered", "answered", "canceled", "answered"];
+const callDirections: CallRecord["direction"][] = ["out", "in", "out", "in"];
+
+const calls: CallRecord[] = anchors.slice(2, 6).map((user, index) => {
+  const durationSec = callDurationsSec[index];
+  const mm = String(Math.floor(durationSec / 60)).padStart(2, "0");
+  const ss = String(durationSec % 60).padStart(2, "0");
+  return {
+    id: user.id,
+    user,
+    duration: `00:${mm}:${ss}`,
+    time: ["2026-06-17 05:20", "2026-06-16 22:11", "2026-06-15 19:40", "2026-06-14 12:05"][index],
+    status: callStatuses[index],
+    direction: callDirections[index],
+    durationSec,
+    coinCost: Math.ceil(durationSec / 60) * user.price
+  };
+});
 
 const notifications: NotificationItem[] = [
   { id: 1, title: "System", content: "Welcome to EVE. New rewards are waiting for you.", time: "18:10" },
@@ -82,6 +112,71 @@ const paymentChannels: PaymentChannel[] = [
   { id: "upi", name: "UPI", description: "Instant bank transfer", mark: "UPI" }
 ];
 
+const vipPlans: VipPlan[] = [
+  { id: 1, level: 1, name: "Silver", months: 1, price: "$9.99", perks: ["Lower match price", "Priority queue"] },
+  { id: 2, level: 2, name: "Gold", months: 3, price: "$24.99", perks: ["All Silver perks", "Free daily calls", "VIP badge"], recommended: true },
+  { id: 3, level: 3, name: "Diamond", months: 12, price: "$79.99", perks: ["All Gold perks", "Invisible visits", "Exclusive gifts"] }
+];
+
+const signDays: SignDay[] = [
+  { day: 1, reward: 20, signed: true },
+  { day: 2, reward: 30, signed: true },
+  { day: 3, reward: 50, signed: false, today: true },
+  { day: 4, reward: 60, signed: false },
+  { day: 5, reward: 80, signed: false },
+  { day: 6, reward: 100, signed: false },
+  { day: 7, reward: 200, signed: false }
+];
+
+const liveRooms: LiveRoom[] = anchors.slice(0, 6).map((anchor, index) => ({
+  id: 9000 + index,
+  anchor,
+  cover: `https://picsum.photos/seed/live-${index}/480/640`,
+  title: ["Singing tonight 🎤", "Just chatting", "Dance party", "Late night talk", "Guess game", "Say hi to me"][index],
+  viewers: 120 + index * 233,
+  tag: ["Hot", "New", "Music", "Game", "Talk", "Dance"][index]
+}));
+
+// 礼物目录：mock 范围无单独礼物图片/SVGA 素材，用 emoji 字形代替 icon
+const gifts: Gift[] = [
+  { id: 1, name: "Rose", icon: "🌹", price: 10, category: "popular", tag: "hot" },
+  { id: 2, name: "Kiss", icon: "💋", price: 30, category: "popular" },
+  { id: 3, name: "Heart", icon: "❤️", price: 66, category: "popular" },
+  { id: 4, name: "Teddy", icon: "🧸", price: 99, category: "popular" },
+  { id: 5, name: "Cake", icon: "🍰", price: 52, category: "popular" },
+  { id: 6, name: "Star", icon: "⭐", price: 20, category: "popular" },
+  { id: 7, name: "Crown", icon: "👑", price: 188, category: "luxury" },
+  { id: 8, name: "Ring", icon: "💍", price: 520, category: "luxury" },
+  { id: 9, name: "Diamond", icon: "💎", price: 888, category: "luxury", tag: "new" },
+  { id: 10, name: "Rocket", icon: "🚀", price: 1314, category: "luxury" },
+  { id: 11, name: "Clover", icon: "🍀", price: 8, category: "lucky" },
+  { id: 12, name: "Rainbow", icon: "🌈", price: 48, category: "lucky" }
+];
+
+// 每个会话的种子聊天记录（文本/图片/礼物/语音/通话/系统混排）
+function buildChatThread(anchorId: number): ChatMessage[] {
+  const anchor = anchors.find((a) => a.id === anchorId) || anchors[0];
+  return [
+    { id: 1, type: "system", outgoing: false, time: "", date: "Today", text: "You are now connected. Say hi 👋" },
+    { id: 2, type: "text", outgoing: false, time: "18:02", text: `Hi! I'm ${anchor.nickname}, nice to meet you 😊` },
+    { id: 3, type: "text", outgoing: true, time: "18:03", text: "Hey, you look lovely today" },
+    { id: 4, type: "image", outgoing: false, time: "18:04", image: `https://picsum.photos/seed/chat-${anchorId}/360/480` },
+    { id: 5, type: "voice", outgoing: false, time: "18:05", duration: 4 },
+    { id: 6, type: "text", outgoing: true, time: "18:06", text: "Can we have a video call tonight?" },
+    { id: 7, type: "gift", outgoing: true, time: "18:07", gift: { name: "Rose", icon: "🌹", price: 10, count: 1 } },
+    { id: 8, type: "call", outgoing: true, time: "18:09", duration: 222, callStatus: "answered" },
+    { id: 9, type: "text", outgoing: false, time: "18:20", text: "Are you free now? 💕" }
+  ];
+}
+
+const walletRecords: WalletRecord[] = [
+  { id: 1, title: "Coins purchase", time: "2026-06-26 10:12", amount: 600, type: "income" },
+  { id: 2, title: "Video call · Mira", time: "2026-06-25 22:40", amount: -280, type: "expense" },
+  { id: 3, title: "Gift sent · Ava", time: "2026-06-25 21:05", amount: -99, type: "expense" },
+  { id: 4, title: "Sign-in reward", time: "2026-06-25 09:00", amount: 30, type: "income" },
+  { id: 5, title: "Coins purchase", time: "2026-06-24 18:33", amount: 1200, type: "income" }
+];
+
 export const eveMockApi = {
   getAnchors: () => anchors,
   getFollowing: () => anchors.filter((_, index) => index % 2 === 0),
@@ -95,5 +190,13 @@ export const eveMockApi = {
   getVisitors: () => anchors.slice(1, 7),
   getWalletPackages: () => walletPackages,
   getPaymentChannels: () => paymentChannels,
-  getBlockedUsers: () => anchors.slice(5, 7)
+  getBlockedUsers: () => anchors.slice(5, 7),
+  getVipPlans: () => vipPlans,
+  getSignDays: () => signDays,
+  getLiveRooms: () => liveRooms,
+  getWalletRecords: () => walletRecords,
+  getGifts: () => gifts,
+  getChatMessages: (anchorId: number) => buildChatThread(anchorId),
+  getCall: (id: number) => calls.find((c) => c.id === id) || calls[0],
+  translate: (text: string) => `（译）${text}`
 };

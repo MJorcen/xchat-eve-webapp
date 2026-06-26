@@ -42,11 +42,43 @@ export type Conversation = {
   unread: number;
 };
 
+export type CallStatus = "answered" | "missed" | "canceled" | "rejected";
+export type CallDirection = "in" | "out";
+
 export type CallRecord = {
   id: number;
   user: Anchor;
   duration: string;
   time: string;
+  status: CallStatus;
+  direction: CallDirection;
+  durationSec: number;
+  coinCost: number;
+};
+
+export type Gift = {
+  id: number;
+  name: string;
+  icon: string; // emoji glyph (mock — no per-gift image/SVGA assets on disk)
+  price: number; // coins
+  category?: "popular" | "luxury" | "lucky";
+  tag?: "hot" | "new";
+};
+
+export type ChatMessage = {
+  id: number;
+  type: "text" | "image" | "gift" | "voice" | "call" | "system";
+  outgoing: boolean; // true = sent by current user (right-aligned)
+  time: string;
+  date?: string; // day-group label
+  text?: string;
+  image?: string;
+  duration?: number; // seconds, for voice / call
+  gift?: { name: string; icon: string; price: number; count: number };
+  callStatus?: CallStatus;
+  translatedText?: string;
+  showTranslation?: boolean;
+  playing?: boolean;
 };
 
 export type NotificationItem = {
@@ -70,4 +102,38 @@ export type PaymentChannel = {
   description: string;
   mark: string;
   recommended?: boolean;
+};
+
+export type VipPlan = {
+  id: number;
+  level: number;
+  name: string;
+  months: number;
+  price: string;
+  perks: string[];
+  recommended?: boolean;
+};
+
+export type SignDay = {
+  day: number;
+  reward: number;
+  signed: boolean;
+  today?: boolean;
+};
+
+export type LiveRoom = {
+  id: number;
+  anchor: Anchor;
+  cover: string;
+  title: string;
+  viewers: number;
+  tag: string;
+};
+
+export type WalletRecord = {
+  id: number;
+  title: string;
+  time: string;
+  amount: number;
+  type: "income" | "expense";
 };
