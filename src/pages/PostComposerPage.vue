@@ -30,11 +30,12 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref } from "vue";
+import { computed, ref } from "vue";
 import { useRouter } from "vue-router";
 import { showToast } from "vant";
 import TopBar from "../components/TopBar.vue";
 import { useUserStore, useMomentsStore } from "../stores";
+import { fileToDataUrl } from "../utils/image";
 import type { Anchor, Moment } from "../types/eve";
 
 const router = useRouter();
@@ -44,22 +45,31 @@ const momentsStore = useMomentsStore();
 const text = ref("");
 const images = ref<string[]>([]);
 const fileInput = ref<HTMLInputElement | null>(null);
-let published = false;
 
 const canPost = computed(() => text.value.trim().length > 0);
 
-function onFiles(e: Event) {
-  const files = (e.target as HTMLInputElement).files;
+async function onFiles(e: Event) {
+  const input = e.target as HTMLInputElement;
+  const files = input.files;
   if (!files) return;
-  for (const f of Array.from(files)) {
-    if (images.value.length >= 9) break;
-    images.value.push(URL.createObjectURL(f));
+  let failed = false;
+  try {
+    for (const f of Array.from(files)) {
+      if (images.value.length >= 9) break;
+      try {
+        // 缩放成 data URL:可持久化、刷新不失效
+        images.value.push(await fileToDataUrl(f));
+      } catch {
+        failed = true; // 跳过无法解码的文件,继续处理其余
+      }
+    }
+  } finally {
+    input.value = ""; // 始终重置,保证重选同一文件能再次触发
   }
-  (e.target as HTMLInputElement).value = "";
+  if (failed) showToast("Some images couldn't be added");
 }
 
 function removeImage(i: number) {
-  URL.revokeObjectURL(images.value[i]);
   images.value.splice(i, 1);
 }
 
@@ -91,15 +101,9 @@ function publish() {
     liked: false
   };
   momentsStore.prepend(moment);
-  published = true; // 图片 URL 已交给 feed,卸载时不要回收
   showToast("Posted");
   router.back();
 }
-
-// 仅在"丢弃"路径回收;发布后这些 URL 仍被 feed 引用
-onBeforeUnmount(() => {
-  if (!published) images.value.forEach((u) => URL.revokeObjectURL(u));
-});
 </script>
 
 <style scoped lang="scss">

@@ -12,6 +12,9 @@ export const useMomentsStore = defineStore("moments", {
     },
     prepend(m: Moment) {
       this.list.unshift(m);
+      // 限制持久化体量(含 data URL 图片),避免无限增长撑爆 localStorage
+      if (this.list.length > 40) this.list.length = 40;
     }
-  }
+  },
+  persist: true
 });

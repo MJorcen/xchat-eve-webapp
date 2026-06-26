@@ -9,7 +9,8 @@
       </button>
     </header>
 
-    <div class="feed">
+    <AppSkeleton v-if="loading" type="list" />
+    <div v-else class="feed">
       <MomentCard v-for="item in moments" :key="item.id" :moment="item" />
     </div>
 
@@ -25,12 +26,16 @@
 import { computed, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import MomentCard from "../components/MomentCard.vue";
+import AppSkeleton from "../components/AppSkeleton.vue";
 import { api } from "../services/api";
 import { useMomentsStore } from "../stores";
+
+defineOptions({ name: "MomentsPage" });
 
 const router = useRouter();
 const tab = ref<"recommend" | "follow">("recommend");
 const momentsStore = useMomentsStore();
+const loading = ref(momentsStore.list.length === 0);
 
 // 读 store(新发布的动态会 prepend 进来);Following 标签展示子集
 const moments = computed(() =>
@@ -39,12 +44,14 @@ const moments = computed(() =>
 
 onMounted(async () => {
   momentsStore.seed(await api.getMoments());
+  loading.value = false;
 });
 </script>
 
 <style scoped lang="scss">
 .moments {
-  min-height: 100vh;
+  height: 100vh;
+  overflow-y: auto;
   padding-bottom: 84px;
   background: #2c1a1a;
 }

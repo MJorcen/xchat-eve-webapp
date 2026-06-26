@@ -9,7 +9,9 @@
       </button>
     </header>
 
-    <template v-if="tab === 'message'">
+    <AppSkeleton v-if="loading" type="list" />
+
+    <template v-else-if="tab === 'message'">
       <div class="entries">
         <button class="entry" @click="router.push('/notifications')">
           <img src="/assets/eve/messages/noticeNew.png" alt="" />
@@ -54,14 +56,18 @@
 import { onMounted, onUnmounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import ChatRow from "../components/ChatRow.vue";
+import AppSkeleton from "../components/AppSkeleton.vue";
 import { useCall } from "../composables/useCall";
 import emitter from "../common/eventBus";
 import { api } from "../services/api";
 import type { CallRecord, Conversation } from "../types/eve";
 
+defineOptions({ name: "MessagesPage" });
+
 const router = useRouter();
 const { openCall } = useCall();
 const tab = ref<"message" | "call">("message");
+const loading = ref(true);
 const conversations = ref<Conversation[]>([]);
 const calls = ref<CallRecord[]>([]);
 
@@ -76,6 +82,7 @@ function onMessage(p: { fromId: number; text: string }) {
 
 onMounted(async () => {
   [conversations.value, calls.value] = await Promise.all([api.getConversations(), api.getCalls()]);
+  loading.value = false;
   emitter.on("message:new", onMessage);
 });
 
@@ -84,7 +91,8 @@ onUnmounted(() => emitter.off("message:new", onMessage));
 
 <style scoped lang="scss">
 .messages {
-  min-height: 100vh;
+  height: 100vh;
+  overflow-y: auto;
   padding-bottom: 84px;
   background: #2c1a1a;
 }

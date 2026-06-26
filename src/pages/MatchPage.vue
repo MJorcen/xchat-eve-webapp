@@ -47,6 +47,8 @@ import { useRouter } from "vue-router";
 import { api } from "../services/api";
 import type { Anchor, CurrentUser } from "../types/eve";
 
+defineOptions({ name: "MatchPage" });
+
 const router = useRouter();
 const user = ref<CurrentUser | null>(null);
 const floats = ref<Anchor[]>([]);

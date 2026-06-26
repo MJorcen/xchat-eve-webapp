@@ -77,13 +77,14 @@
 </template>
 
 <script setup lang="ts">
-import { onBeforeUnmount, reactive, ref } from "vue";
+import { reactive, ref } from "vue";
 import { useRouter } from "vue-router";
 import { showLoadingToast, closeToast, showToast } from "vant";
 import type { UploaderFileListItem } from "vant";
 import TopBar from "../components/TopBar.vue";
 import { useUserStore } from "../stores";
 import { countryFlag } from "../utils/assets";
+import { fileToDataUrl } from "../utils/image";
 
 const router = useRouter();
 const userStore = useUserStore();
@@ -101,21 +102,20 @@ const form = reactive({
 const showGender = ref(false);
 const showAge = ref(false);
 const showRegion = ref(false);
-// 未保存的临时头像 blob,卸载时回收;保存后归属 store 不再回收
-let pendingBlob: string | null = null;
-let saved = false;
 
 const genderActions = [{ name: "Female" }, { name: "Male" }];
 const ageActions = Array.from({ length: 30 }, (_, i) => ({ name: String(18 + i) }));
 const regionCodes = ["usa", "bra", "ind", "phl", "vnm", "idn", "egy", "nga", "pak", "col", "fra", "esp", "mar", "bgd", "ven"];
 const regionActions = regionCodes.map((c) => ({ name: c }));
 
-function onAvatar(file: UploaderFileListItem | UploaderFileListItem[]) {
+async function onAvatar(file: UploaderFileListItem | UploaderFileListItem[]) {
   const f = Array.isArray(file) ? file[0] : file;
   if (!f.file) return;
-  if (pendingBlob) URL.revokeObjectURL(pendingBlob);
-  pendingBlob = URL.createObjectURL(f.file);
-  form.avatar = pendingBlob;
+  try {
+    form.avatar = await fileToDataUrl(f.file, 256);
+  } catch {
+    showToast("Couldn't load that image");
+  }
 }
 
 function save() {
@@ -129,16 +129,11 @@ function save() {
       intro: form.bio,
       gender: form.gender
     });
-    saved = true; // 头像已交给 store,卸载时不再回收
     closeToast();
     showToast("Saved");
     router.back();
   }, 600);
 }
-
-onBeforeUnmount(() => {
-  if (pendingBlob && !saved) URL.revokeObjectURL(pendingBlob);
-});
 </script>
 
 <style scoped lang="scss">

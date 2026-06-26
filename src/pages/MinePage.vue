@@ -90,6 +90,8 @@ import { eveMockApi } from "../services/eveMockApi";
 import { useUserStore } from "../stores";
 import type { CurrentUser } from "../types/eve";
 
+defineOptions({ name: "MinePage" });
+
 const router = useRouter();
 const userStore = useUserStore();
 // 金币走 store（与充值/礼物/通话计费同源），其余资料字段回退到 mock
@@ -107,7 +109,8 @@ function onClearCache() {
 
 <style scoped lang="scss">
 .mine {
-  min-height: 100vh;
+  height: 100vh;
+  overflow-y: auto;
   padding: 0 0 84px;
   background: #2c1a1a;
 }

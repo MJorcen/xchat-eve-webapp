@@ -101,6 +101,9 @@
 
     <!-- 输入栏 -->
     <footer class="input-bar">
+      <div class="quick-row">
+        <button v-for="q in quickReplies" :key="q" class="quick" @click="sendQuick(q)">{{ q }}</button>
+      </div>
       <div class="input-row">
         <input v-model="draft" class="field" placeholder="Say something…" @keyup.enter="handleSend" />
         <button class="send" @click="handleSend">
@@ -177,6 +180,7 @@ const statusClass = computed(() => {
 });
 
 const replyPool = ["Hi 👋", "Are you there?", "Miss you~", "😊", "Tell me more", "Let's video chat tonight"];
+const quickReplies = ["Hi 👋", "How are you?", "You're cute 😍", "Free to call?", "Send me a photo"];
 
 function fmtDur(sec: number) {
   const m = String(Math.floor(sec / 60)).padStart(2, "0");
@@ -215,6 +219,11 @@ function handleSend() {
   push({ type: "text", outgoing: true, time: nowTime(), text });
   draft.value = "";
   scheduleReply();
+}
+
+function sendQuick(t: string) {
+  draft.value = t;
+  handleSend();
 }
 
 async function toggleTranslate(m: ChatMessage) {
@@ -631,6 +640,26 @@ onUnmounted(() => {
   padding: 8px 16px calc(8px + env(safe-area-inset-bottom));
   background: #3a2526;
   border-top: 1px solid #241213;
+}
+
+.quick-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+  overflow-x: auto;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.quick {
+  flex: 0 0 auto;
+  padding: 6px 12px;
+  border-radius: 16px;
+  font-size: 12px;
+  color: #ece4e4;
+  background: #2c1a1a;
+  white-space: nowrap;
 }
 
 .input-row {

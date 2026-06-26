@@ -35,11 +35,13 @@
     </div>
 
     <!-- 主播照片栅格 -->
-    <div class="host-grid">
-      <HostCard v-for="anchor in anchors" :key="anchor.id" :anchor="anchor" />
-    </div>
-
-    <p v-if="!anchors.length" class="empty">No one here yet</p>
+    <AppSkeleton v-if="loading" type="grid" />
+    <template v-else>
+      <div class="host-grid">
+        <HostCard v-for="anchor in anchors" :key="anchor.id" :anchor="anchor" />
+      </div>
+      <p v-if="!anchors.length" class="empty">No one here yet</p>
+    </template>
   </section>
 </template>
 
@@ -47,13 +49,17 @@
 import { computed, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import HostCard from "../components/HostCard.vue";
+import AppSkeleton from "../components/AppSkeleton.vue";
 import { api } from "../services/api";
 import type { Anchor, LiveRoom } from "../types/eve";
+
+defineOptions({ name: "HomePage" });
 
 const router = useRouter();
 const tab = ref<"recommend" | "follow">("recommend");
 const categories = ["All", "Hot", "New", "Nearby", "Dance"];
 const category = ref("All");
+const loading = ref(true);
 
 const recommended = ref<Anchor[]>([]);
 const following = ref<Anchor[]>([]);
@@ -81,12 +87,14 @@ onMounted(async () => {
     api.getFollowing(),
     api.getLiveRooms()
   ]);
+  loading.value = false;
 });
 </script>
 
 <style scoped lang="scss">
 .home {
-  min-height: 100vh;
+  height: 100vh;
+  overflow-y: auto;
   padding-bottom: 84px;
   background: #2c1a1a;
 }
