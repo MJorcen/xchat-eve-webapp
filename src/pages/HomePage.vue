@@ -3,11 +3,11 @@
     <!-- 顶部主标签 Recommend / Following -->
     <header class="top-tabs">
       <button :class="['top-tab', { active: tab === 'recommend' }]" @click="tab = 'recommend'">
-        Recommend
+        {{ t("home.recommend") }}
         <span class="underline" />
       </button>
       <button :class="['top-tab', { active: tab === 'follow' }]" @click="tab = 'follow'">
-        Following
+        {{ t("home.following") }}
         <span class="underline" />
       </button>
     </header>
@@ -20,7 +20,7 @@
         :class="['chip', { active: category === c }]"
         @click="onChip(c)"
       >
-        {{ c }}
+        {{ t(`home.${c}`) }}
       </button>
     </nav>
 
@@ -40,7 +40,7 @@
       <div class="host-grid">
         <HostCard v-for="anchor in anchors" :key="anchor.id" :anchor="anchor" />
       </div>
-      <p v-if="!anchors.length" class="empty">No one here yet</p>
+      <p v-if="!anchors.length" class="empty">{{ t("home.empty") }}</p>
     </template>
   </section>
 </template>
@@ -48,6 +48,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
+import { useI18n } from "vue-i18n";
 import HostCard from "../components/HostCard.vue";
 import AppSkeleton from "../components/AppSkeleton.vue";
 import { api } from "../services/api";
@@ -55,10 +56,12 @@ import type { Anchor, LiveRoom } from "../types/eve";
 
 defineOptions({ name: "HomePage" });
 
+const { t } = useI18n();
 const router = useRouter();
 const tab = ref<"recommend" | "follow">("recommend");
-const categories = ["All", "Hot", "New", "Nearby", "Dance"];
-const category = ref("All");
+// key 用于逻辑/筛选,展示文案走 t(`home.${key}`)
+const categories = ["all", "hot", "new", "nearby", "dance"];
+const category = ref("all");
 const loading = ref(true);
 
 const recommended = ref<Anchor[]>([]);
@@ -66,8 +69,8 @@ const following = ref<Anchor[]>([]);
 const lives = ref<LiveRoom[]>([]);
 const anchors = computed(() => {
   const base = tab.value === "recommend" ? recommended.value : following.value;
-  if (category.value === "Hot") return base.filter((a) => a.online);
-  if (category.value === "New") return [...base].reverse();
+  if (category.value === "hot") return base.filter((a) => a.online);
+  if (category.value === "new") return [...base].reverse();
   return base;
 });
 
@@ -75,9 +78,9 @@ function formatViewers(n: number) {
   return n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(n);
 }
 
-// "Nearby" 胶囊跳附近页,其余作为筛选
+// "nearby" 胶囊跳附近页,其余作为筛选
 function onChip(c: string) {
-  if (c === "Nearby") router.push("/nearby");
+  if (c === "nearby") router.push("/nearby");
   else category.value = c;
 }
 

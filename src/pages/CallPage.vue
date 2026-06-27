@@ -45,11 +45,16 @@
       </div>
     </div>
 
-    <!-- 低余额提醒 -->
-    <div v-if="lowBalance" class="low-balance">
-      <span>Low balance — call may end soon</span>
-      <button @click="router.push('/recharge')">Top up</button>
-    </div>
+    <!-- 余额不足倒计时弹窗 -->
+    <van-popup :show="showCountdown" round teleport="body" class="cd-popup" :z-index="9930" :close-on-click-overlay="false">
+      <div class="cd">
+        <div class="cd-ring">{{ countdown }}</div>
+        <p class="cd-tip">{{ t("call.lowBalance") }}</p>
+        <p class="cd-sub">{{ t("call.endingIn", { n: countdown }) }}</p>
+        <button class="cd-topup" @click="goRecharge">{{ t("call.topUp") }}</button>
+        <button class="cd-hang" @click="hangup">{{ t("call.hangUp") }}</button>
+      </div>
+    </van-popup>
 
     <!-- 底部控制 -->
     <footer class="controls">
@@ -75,9 +80,10 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from "vue";
+import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { showConfirmDialog } from "vant";
+import { useI18n } from "vue-i18n";
 import emitter from "../common/eventBus";
 import { api } from "../services/api";
 import { useCall } from "../composables/useCall";
@@ -85,6 +91,7 @@ import { useUserStore } from "../stores";
 import GiftPanel from "../components/GiftPanel.vue";
 import type { Anchor, CurrentUser, Gift } from "../types/eve";
 
+const { t } = useI18n();
 const route = useRoute();
 const router = useRouter();
 const userStore = useUserStore();
@@ -99,6 +106,40 @@ const msgList = ref<{ text?: string; gift?: string; count?: number; fromSelf: bo
 const lowBalance = computed(
   () => !callState.free && callState.phase === "active" && !!anchor.value && userStore.coins < anchor.value.price
 );
+
+// 余额不足倒计时:10s 内不充值则自动挂断
+const showCountdown = ref(false);
+const countdown = ref(10);
+let cdTimer: number | null = null;
+
+function stopCountdown() {
+  if (cdTimer) {
+    window.clearInterval(cdTimer);
+    cdTimer = null;
+  }
+  showCountdown.value = false;
+}
+
+function goRecharge() {
+  stopCountdown();
+  router.push("/recharge");
+}
+
+watch(lowBalance, (low) => {
+  if (low && !showCountdown.value) {
+    showCountdown.value = true;
+    countdown.value = 10;
+    cdTimer = window.setInterval(() => {
+      countdown.value -= 1;
+      if (countdown.value <= 0) {
+        stopCountdown();
+        hangup();
+      }
+    }, 1000);
+  } else if (!low) {
+    stopCountdown(); // 充值后余额恢复,撤销倒计时
+  }
+});
 
 function onMessage(p: { fromId: number; text: string }) {
   if (p.fromId === id) msgList.value.push({ text: p.text, fromSelf: false });
@@ -142,6 +183,7 @@ onMounted(async () => {
 onUnmounted(() => {
   emitter.off("message:new", onMessage);
   emitter.off("call:hangup", onHangupEvent);
+  stopCountdown();
   // 离开通话页时若仍在拨号/响铃，取消（清掉 ringTimer，避免后台自动接通并继续计费）
   if (callState.phase === "ringing" || callState.phase === "incoming") reset();
 });
@@ -321,26 +363,50 @@ onUnmounted(() => {
   }
 }
 
-.low-balance {
-  position: absolute;
-  left: 16px;
-  right: 16px;
-  bottom: 110px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 8px 14px;
-  border-radius: 99px;
-  background: rgba(235, 99, 0, 0.85);
-  color: #fff;
-  font-size: 13px;
+.cd {
+  width: 280px;
+  padding: 28px 24px 22px;
+  background: linear-gradient(180deg, #4a2526, #2c1a1a);
+  border-radius: 24px;
+  text-align: center;
 
-  button {
-    padding: 4px 14px;
-    border-radius: 8px;
-    background: #fff;
-    color: #eb6300;
+  .cd-ring {
+    width: 64px;
+    height: 64px;
+    margin: 0 auto;
+    border-radius: 50%;
+    border: 3px solid #eb6300;
+    display: grid;
+    place-items: center;
+    font-size: 24px;
+    font-weight: 800;
+    color: #ffd36e;
+  }
+  .cd-tip {
+    margin-top: 16px;
+    font-size: 16px;
     font-weight: 600;
+    color: #fff;
+  }
+  .cd-sub {
+    margin-top: 6px;
+    font-size: 13px;
+    color: #9a8b8b;
+  }
+  .cd-topup {
+    width: 100%;
+    height: 46px;
+    margin-top: 18px;
+    border-radius: 23px;
+    font-size: 15px;
+    font-weight: 700;
+    color: #fff;
+    background: linear-gradient(90deg, #ff5473, #eb6300);
+  }
+  .cd-hang {
+    margin-top: 12px;
+    font-size: 14px;
+    color: #9a8b8b;
   }
 }
 

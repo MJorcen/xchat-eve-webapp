@@ -9,6 +9,7 @@
     <CallModal />
     <GiftAnimation />
     <TopNotification />
+    <FirstChargePopup />
   </main>
 </template>
 
@@ -19,6 +20,7 @@ import AppTabbar from "./components/AppTabbar.vue";
 import CallModal from "./components/CallModal.vue";
 import GiftAnimation from "./components/GiftAnimation.vue";
 import TopNotification from "./components/TopNotification.vue";
+import FirstChargePopup from "./components/FirstChargePopup.vue";
 import { tabRouteNames } from "./router";
 import { api } from "./services/api";
 import { useUserStore } from "./stores";

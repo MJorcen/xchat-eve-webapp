@@ -2,10 +2,10 @@
   <section class="messages">
     <header class="top-tabs">
       <button :class="['top-tab', { active: tab === 'message' }]" @click="tab = 'message'">
-        Message<span class="underline" />
+        {{ t("messages.message") }}<span class="underline" />
       </button>
       <button :class="['top-tab', { active: tab === 'call' }]" @click="tab = 'call'">
-        Call<span class="underline" />
+        {{ t("messages.call") }}<span class="underline" />
       </button>
     </header>
 
@@ -16,15 +16,15 @@
         <button class="entry" @click="router.push('/notifications')">
           <img src="/assets/eve/messages/noticeNew.png" alt="" />
           <div class="entry-text">
-            <strong>Notifications</strong>
-            <span>No new notifications</span>
+            <strong>{{ t("messages.notifications") }}</strong>
+            <span>{{ t("messages.noNew") }}</span>
           </div>
         </button>
         <button class="entry" @click="router.push('/visitors')">
           <img src="/assets/eve/messages/eyes.png" alt="" />
           <div class="entry-text">
-            <strong>Visitors</strong>
-            <span>You have new visitors!</span>
+            <strong>{{ t("messages.visitors") }}</strong>
+            <span>{{ t("messages.newVisitors") }}</span>
           </div>
         </button>
       </div>
@@ -58,12 +58,14 @@ import { useRouter } from "vue-router";
 import ChatRow from "../components/ChatRow.vue";
 import AppSkeleton from "../components/AppSkeleton.vue";
 import { useCall } from "../composables/useCall";
+import { useI18n } from "vue-i18n";
 import emitter from "../common/eventBus";
 import { api } from "../services/api";
 import type { CallRecord, Conversation } from "../types/eve";
 
 defineOptions({ name: "MessagesPage" });
 
+const { t } = useI18n();
 const router = useRouter();
 const { openCall } = useCall();
 const tab = ref<"message" | "call">("message");

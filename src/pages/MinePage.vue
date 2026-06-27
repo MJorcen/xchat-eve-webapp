@@ -21,19 +21,19 @@
 
       <div class="stats">
         <button class="stat" @click="router.push('/follow-and-fans?type=following')">
-          <strong>{{ user.following }}</strong><span>Following</span>
+          <strong>{{ user.following }}</strong><span>{{ t("mine.following") }}</span>
         </button>
         <i class="shu" />
         <button class="stat" @click="router.push('/follow-and-fans?type=followers')">
-          <strong>{{ user.followers }}</strong><span>Followers</span>
+          <strong>{{ user.followers }}</strong><span>{{ t("mine.followers") }}</span>
         </button>
         <i class="shu" />
         <button class="stat" @click="router.push(`/user-dynamic-list/${user.id}`)">
-          <strong>12</strong><span>Moments</span>
+          <strong>12</strong><span>{{ t("mine.moments") }}</span>
         </button>
         <i class="shu" />
         <button class="stat" @click="router.push('/visitors')">
-          <strong>36</strong><span>Visitor</span>
+          <strong>36</strong><span>{{ t("mine.visitor") }}</span>
         </button>
       </div>
     </div>
@@ -41,8 +41,8 @@
     <!-- VIP 横幅 -->
     <button class="vip-banner" @click="router.push('/membership')">
       <div class="vip-text">
-        <strong>Become <span class="gold">VIP</span></strong>
-        <small>Get <span class="gold">8000</span> coins & more perks</small>
+        <strong class="gold">{{ t("mine.becomeVip") }}</strong>
+        <small>{{ t("mine.vipDesc") }}</small>
       </div>
       <span class="vip-cta">Go ›</span>
     </button>
@@ -50,60 +50,79 @@
     <!-- 钱包卡 -->
     <button class="coin-card" @click="router.push('/wallet')">
       <div class="coin-left">
-        <span>My coins</span>
+        <span>{{ t("mine.myCoins") }}</span>
         <strong>{{ user.coins }}</strong>
       </div>
-      <span class="coin-cta">Recharge</span>
+      <span class="coin-cta">{{ t("common.recharge") }}</span>
     </button>
 
     <!-- 设置列表 -->
     <nav class="settings">
       <button class="row" @click="router.push('/game')">
         <img src="/assets/eve/gc.png" alt="" />
-        <span>Games</span>
+        <span>{{ t("mine.games") }}</span>
         <img class="arrow" src="/assets/eve/mine/list_arrow-right-gray-20@2x.png" alt="" />
       </button>
       <button class="row" @click="router.push('/block-list')">
         <img src="/assets/eve/mine/ic_block%20List@2x.png" alt="" />
-        <span>Block List</span>
+        <span>{{ t("mine.blockList") }}</span>
         <img class="arrow" src="/assets/eve/mine/list_arrow-right-gray-20@2x.png" alt="" />
       </button>
       <button class="row" @click="router.push('/feedback')">
         <img src="/assets/eve/mine/ic_feedback@2x.png" alt="" />
-        <span>Feedback</span>
+        <span>{{ t("mine.feedback") }}</span>
         <img class="arrow" src="/assets/eve/mine/list_arrow-right-gray-20@2x.png" alt="" />
       </button>
-      <button class="row" @click="onClearCache">
+      <button class="row" @click="showLang = true">
         <img src="/assets/eve/mine/ic_settings@2x.png" alt="" />
-        <span>Settings</span>
+        <span>{{ t("mine.language") }}</span>
+        <span class="lang-val">{{ t(`lang.${userStore.lang}`) }}</span>
         <img class="arrow" src="/assets/eve/mine/list_arrow-right-gray-20@2x.png" alt="" />
       </button>
     </nav>
+
+    <van-action-sheet
+      v-model:show="showLang"
+      :actions="langActions"
+      cancel-text="Cancel"
+      close-on-click-action
+      @select="onLang"
+    />
   </section>
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, ref } from "vue";
 import { useRouter } from "vue-router";
 import { showToast } from "vant";
+import { useI18n } from "vue-i18n";
 import { eveMockApi } from "../services/eveMockApi";
 import { useUserStore } from "../stores";
+import type { AppLocale } from "../i18n";
 import type { CurrentUser } from "../types/eve";
 
 defineOptions({ name: "MinePage" });
 
+const { t, locale } = useI18n();
 const router = useRouter();
 const userStore = useUserStore();
 // 金币走 store（与充值/礼物/通话计费同源），其余资料字段回退到 mock
 const user = computed<CurrentUser>(() => ({ ...eveMockApi.getCurrentUser(), ...userStore.user } as CurrentUser));
 
+const showLang = ref(false);
+const langActions = [
+  { name: "English", value: "en" },
+  { name: "中文", value: "zh" }
+];
+
 function copyId() {
   navigator.clipboard?.writeText(String(user.value.id));
-  showToast("ID copied");
+  showToast(t("mine.idCopied"));
 }
 
-function onClearCache() {
-  showToast("Cache cleared");
+function onLang(a: { value: AppLocale }) {
+  userStore.setLang(a.value);
+  locale.value = a.value;
 }
 </script>
 
@@ -296,6 +315,11 @@ function onClearCache() {
       flex: 1;
       font-size: 14px;
       color: #ece4e4;
+    }
+    .lang-val {
+      flex: 0 0 auto;
+      font-size: 13px;
+      color: #9a8b8b;
     }
     .arrow {
       width: 16px;

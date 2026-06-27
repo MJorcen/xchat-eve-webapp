@@ -7,7 +7,11 @@ export const useUserStore = defineStore("user", {
     user: {} as Partial<CurrentUser>,
     token: "" as string,
     // 已领取的签到日（持久化，防止刷新/重进重复领取）
-    claimedSignDays: [] as number[]
+    claimedSignDays: [] as number[],
+    // 首充弹窗只展示一次
+    firstChargeSeen: false,
+    // 界面语言
+    lang: "en" as "en" | "zh"
   }),
   getters: {
     coins: (state) => state.user.coins ?? 0,
@@ -26,6 +30,12 @@ export const useUserStore = defineStore("user", {
     },
     claimSignDay(day: number) {
       if (!this.claimedSignDays.includes(day)) this.claimedSignDays.push(day);
+    },
+    setFirstChargeSeen() {
+      this.firstChargeSeen = true;
+    },
+    setLang(lang: "en" | "zh") {
+      this.lang = lang;
     },
     logout() {
       this.user = {};

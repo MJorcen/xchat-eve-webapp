@@ -5,6 +5,8 @@ import "vant/lib/index.css";
 import App from "./App.vue";
 import { router } from "./router";
 import { pinia } from "@/stores";
+import { useUserStore } from "@/stores";
+import { i18n } from "@/i18n";
 import { realtime } from "@/services/realtime";
 import "./style.css";
 
@@ -12,8 +14,12 @@ const app = createApp(App);
 
 app.use(router);
 app.use(pinia);
+app.use(i18n);
 app.use(vant);
 app.use(Lazyload);
+
+// 用持久化的语言偏好初始化 i18n
+i18n.global.locale.value = useUserStore().lang;
 
 // 屏蔽模板告警噪音（mock 阶段）
 app.config.warnHandler = () => null;

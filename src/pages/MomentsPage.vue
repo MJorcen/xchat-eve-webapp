@@ -2,10 +2,10 @@
   <section class="moments">
     <header class="top-tabs">
       <button :class="['top-tab', { active: tab === 'recommend' }]" @click="tab = 'recommend'">
-        Discover<span class="underline" />
+        {{ t("moments.discover") }}<span class="underline" />
       </button>
       <button :class="['top-tab', { active: tab === 'follow' }]" @click="tab = 'follow'">
-        Following<span class="underline" />
+        {{ t("moments.following") }}<span class="underline" />
       </button>
     </header>
 
@@ -25,6 +25,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
+import { useI18n } from "vue-i18n";
 import MomentCard from "../components/MomentCard.vue";
 import AppSkeleton from "../components/AppSkeleton.vue";
 import { api } from "../services/api";
@@ -32,6 +33,7 @@ import { useMomentsStore } from "../stores";
 
 defineOptions({ name: "MomentsPage" });
 
+const { t } = useI18n();
 const router = useRouter();
 const tab = ref<"recommend" | "follow">("recommend");
 const momentsStore = useMomentsStore();

@@ -1,8 +1,8 @@
 <template>
   <section class="match">
     <header class="head">
-      <h1>Match</h1>
-      <p>Meet someone new in one tap</p>
+      <h1>{{ t("match.title") }}</h1>
+      <p>{{ t("match.subtitle") }}</p>
     </header>
 
     <!-- 雷达区 -->
@@ -30,12 +30,12 @@
     <!-- 匹配按钮 -->
     <div class="actions">
       <button class="match-btn random" @click="startMatch('Random')">
-        <span class="t">Random</span>
-        <small class="c">300 <img src="/assets/eve/matchHome/coin_20@2x.png" alt="" /> / match</small>
+        <span class="t">{{ t("match.random") }}</span>
+        <small class="c">300 <img src="/assets/eve/matchHome/coin_20@2x.png" alt="" /> {{ t("match.perMatch") }}</small>
       </button>
       <button class="match-btn goddess" @click="startMatch('Goddess')">
-        <span class="t">Goddess</span>
-        <small class="c">500 <img src="/assets/eve/matchHome/coin_20@2x.png" alt="" /> / match</small>
+        <span class="t">{{ t("match.goddess") }}</span>
+        <small class="c">500 <img src="/assets/eve/matchHome/coin_20@2x.png" alt="" /> {{ t("match.perMatch") }}</small>
       </button>
     </div>
   </section>
@@ -44,11 +44,13 @@
 <script setup lang="ts">
 import { onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
+import { useI18n } from "vue-i18n";
 import { api } from "../services/api";
 import type { Anchor, CurrentUser } from "../types/eve";
 
 defineOptions({ name: "MatchPage" });
 
+const { t } = useI18n();
 const router = useRouter();
 const user = ref<CurrentUser | null>(null);
 const floats = ref<Anchor[]>([]);
