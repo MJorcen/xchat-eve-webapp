@@ -44,7 +44,7 @@
         <strong class="gold">{{ t("mine.becomeVip") }}</strong>
         <small>{{ t("mine.vipDesc") }}</small>
       </div>
-      <span class="vip-cta">Go ›</span>
+      <span class="vip-cta">{{ t("mine.go") }} ›</span>
     </button>
 
     <!-- 钱包卡 -->
@@ -84,7 +84,7 @@
     <van-action-sheet
       v-model:show="showLang"
       :actions="langActions"
-      cancel-text="Cancel"
+      :cancel-text="t('common.cancel')"
       close-on-click-action
       @select="onLang"
     />

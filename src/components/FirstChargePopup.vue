@@ -30,15 +30,19 @@
 
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref } from "vue";
-import { useRouter } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { useUserStore } from "../stores";
 
 const { t } = useI18n();
+const route = useRoute();
 const router = useRouter();
 const userStore = useUserStore();
 const show = ref(false);
 let timer: number | null = null;
+
+// 登录/通话页不打扰
+const blockedRoutes = ["Login", "Call"];
 
 function goRecharge() {
   show.value = false;
@@ -53,7 +57,10 @@ onMounted(() => {
   // 首次进入、非 VIP 时延迟弹一次
   if (userStore.firstChargeSeen || userStore.isVip) return;
   timer = window.setTimeout(() => {
-    if (!userStore.firstChargeSeen) show.value = true;
+    // 触发时再判一次:已看过/VIP/在登录或通话页都不弹(不烧标记,下次进入再试)
+    if (userStore.firstChargeSeen || userStore.isVip) return;
+    if (blockedRoutes.includes(String(route.name))) return;
+    show.value = true;
   }, 1400);
 });
 

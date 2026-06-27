@@ -52,13 +52,12 @@ const en = {
     becomeVip: "Become VIP",
     vipDesc: "Get 8000 coins & more perks",
     myCoins: "My coins",
+    go: "Go",
     games: "Games",
     blockList: "Block List",
     feedback: "Feedback",
-    settings: "Settings",
     language: "Language",
-    idCopied: "ID copied",
-    cacheCleared: "Cache cleared"
+    idCopied: "ID copied"
   },
   firstCharge: {
     title: "First Recharge Bonus",
@@ -129,13 +128,12 @@ const zh: typeof en = {
     becomeVip: "成为 VIP",
     vipDesc: "领 8000 金币及更多特权",
     myCoins: "我的金币",
+    go: "去看看",
     games: "游戏",
     blockList: "黑名单",
     feedback: "反馈",
-    settings: "设置",
     language: "语言",
-    idCopied: "ID 已复制",
-    cacheCleared: "缓存已清除"
+    idCopied: "ID 已复制"
   },
   firstCharge: {
     title: "首充奖励",
