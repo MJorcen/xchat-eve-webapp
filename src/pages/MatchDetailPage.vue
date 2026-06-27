@@ -1,6 +1,6 @@
 <template>
   <section v-if="anchor" class="match-detail">
-    <TopBar :title="matched ? 'It\'s a match!' : 'Matching…'">
+    <TopBar :title="matched ? t('matchDetail.matchedTitle') : t('matchDetail.matchingTitle')">
       <button class="report" @click="router.push(`/block-and-report?id=${anchor.id}`)">
         <van-icon name="warning-o" />
       </button>
@@ -21,19 +21,20 @@
     <button class="heart" @click="onHeart">{{ userLiked || matched ? "❤️" : "🤍" }}</button>
 
     <div v-if="!matched" class="reveal">
-      <p class="reveal-tip">She'll be hidden in {{ remain }}s — don't miss her</p>
+      <p class="reveal-tip">{{ t("matchDetail.revealTip", { remain }) }}</p>
       <div class="track"><i :style="{ width: progress + '%' }" /></div>
     </div>
 
     <div class="actions">
-      <button v-if="matched" class="accept" @click="accept">Start Video Call</button>
-      <button class="next" @click="rematch">{{ matched ? "Maybe later" : "Next" }}</button>
+      <button v-if="matched" class="accept" @click="accept">{{ t("matchDetail.startVideoCall") }}</button>
+      <button class="next" @click="rematch">{{ matched ? t("common.later") : t("matchDetail.next") }}</button>
     </div>
   </section>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from "vue";
+import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
 import emitter from "../common/eventBus";
 import { api } from "../services/api";
@@ -41,6 +42,7 @@ import { useCall } from "../composables/useCall";
 import { countryFlag } from "../utils/assets";
 import type { Anchor } from "../types/eve";
 
+const { t } = useI18n();
 const router = useRouter();
 const { startOutgoing } = useCall();
 
@@ -54,9 +56,9 @@ const remain = ref(10);
 const timers: number[] = [];
 
 const promptText = computed(() => {
-  if (matched.value) return "It's a match! 🎉";
-  if (hostLiked.value && !userLiked.value) return "She liked you! Tap to like back!";
-  return "Tap the heart to like her";
+  if (matched.value) return t("matchDetail.promptMatched");
+  if (hostLiked.value && !userLiked.value) return t("matchDetail.promptLikedYou");
+  return t("matchDetail.promptTapHeart");
 });
 
 function clearTimers() {
@@ -89,7 +91,7 @@ function checkMatch() {
   if (hostLiked.value && userLiked.value && !matched.value) {
     matched.value = true;
     clearTimers();
-    emitter.emit("toast", "It's a match!");
+    emitter.emit("toast", t("matchDetail.matchedTitle"));
   }
 }
 

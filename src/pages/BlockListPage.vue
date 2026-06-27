@@ -1,6 +1,6 @@
 <template>
   <section class="page">
-    <TopBar title="Block List" />
+    <TopBar :title="t('blockListPage.title')" />
     <div v-if="blocked.length" class="list">
       <article v-for="a in blocked" :key="a.id" class="row">
         <van-image round fit="cover" class="avatar" :src="a.avatar" lazy-load />
@@ -8,29 +8,31 @@
           <strong>{{ a.nickname }}</strong>
           <span class="id">ID: {{ a.id }}</span>
         </div>
-        <button class="unblock" @click="unblock(a.id)">Unblock</button>
+        <button class="unblock" @click="unblock(a.id)">{{ t("blockListPage.unblock") }}</button>
       </article>
     </div>
-    <EmptyState v-else text="No blocked users" />
+    <EmptyState v-else :text="t('blockListPage.empty')" />
   </section>
 </template>
 
 <script setup lang="ts">
 import { onMounted, ref } from "vue";
+import { useI18n } from "vue-i18n";
 import { showLoadingToast, closeToast, showToast } from "vant";
 import TopBar from "../components/TopBar.vue";
 import EmptyState from "../components/EmptyState.vue";
 import { api } from "../services/api";
 import type { Anchor } from "../types/eve";
 
+const { t } = useI18n();
 const blocked = ref<Anchor[]>([]);
 
 function unblock(id: number) {
-  showLoadingToast({ message: "Please wait…", forbidClick: true });
+  showLoadingToast({ message: t("blockListPage.pleaseWait"), forbidClick: true });
   window.setTimeout(() => {
     blocked.value = blocked.value.filter((a) => a.id !== id);
     closeToast();
-    showToast("Unblocked");
+    showToast(t("blockListPage.unblocked"));
   }, 600);
 }
 

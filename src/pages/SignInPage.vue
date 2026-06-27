@@ -1,15 +1,15 @@
 <template>
   <section class="signin">
-    <TopBar title="Daily sign-in">
+    <TopBar :title="t('signIn.title')">
       <span class="streak">{{ signedCount }}/7</span>
     </TopBar>
 
-    <p class="rules">Claim each reward on its day. Miss a day and the streak resets.</p>
+    <p class="rules">{{ t("signIn.rules") }}</p>
 
     <!-- 7 天奖励日历 -->
     <div class="calendar">
       <div v-for="d in signDays" :key="d.day" class="cell" :class="cellState(d)">
-        <span class="day">Day {{ d.day }}</span>
+        <span class="day">{{ t("signIn.day", { day: d.day }) }}</span>
         <img class="coin" src="/assets/eve/wallet/coin_20@2x.png" alt="" />
         <span class="reward">+{{ d.reward }}</span>
         <span v-if="d.signed" class="check">✓</span>
@@ -17,14 +17,14 @@
     </div>
 
     <button class="sign-btn" :disabled="!canSign" @click="handleSign">
-      {{ canSign ? `Sign in · +${todayItem?.reward}` : "Signed in today" }}
+      {{ canSign ? t("signIn.signInReward", { reward: todayItem?.reward }) : t("signIn.signedToday") }}
     </button>
 
     <!-- 累计进度 -->
     <div class="progress-panel">
       <div class="progress-head">
-        <span class="pt">Sign-in streak</span>
-        <span class="pc">{{ signedCount }} days</span>
+        <span class="pt">{{ t("signIn.streakLabel") }}</span>
+        <span class="pc">{{ t("signIn.daysCount", { count: signedCount }) }}</span>
       </div>
       <div class="rail">
         <i v-for="d in signDays" :key="d.day" :class="{ on: d.signed }" />
@@ -42,9 +42,9 @@
       <div class="reward-card">
         <div class="burst">🎉</div>
         <strong class="amount">+{{ lastReward }}</strong>
-        <h3>Reward claimed!</h3>
-        <p>Balance: {{ coins }} coins</p>
-        <button class="ok" @click="showReward = false">Awesome</button>
+        <h3>{{ t("signIn.rewardClaimed") }}</h3>
+        <p>{{ t("signIn.balance", { coins }) }}</p>
+        <button class="ok" @click="showReward = false">{{ t("signIn.awesome") }}</button>
       </div>
     </van-popup>
   </section>
@@ -52,11 +52,13 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
+import { useI18n } from "vue-i18n";
 import TopBar from "../components/TopBar.vue";
 import { api } from "../services/api";
 import { useUserStore } from "../stores";
 import type { SignDay } from "../types/eve";
 
+const { t } = useI18n();
 const userStore = useUserStore();
 const signDays = ref<SignDay[]>([]);
 const showReward = ref(false);

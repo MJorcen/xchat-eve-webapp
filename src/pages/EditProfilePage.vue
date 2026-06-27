@@ -1,12 +1,12 @@
 <template>
   <section class="page">
-    <TopBar title="Edit Profile">
-      <button class="save" @click="save">Save</button>
+    <TopBar :title="t('editProfile.title')">
+      <button class="save" @click="save">{{ t("common.save") }}</button>
     </TopBar>
 
     <!-- 头像 -->
     <div class="row avatar-row">
-      <span class="label">Avatar</span>
+      <span class="label">{{ t("editProfile.avatar") }}</span>
       <van-uploader :after-read="onAvatar" :max-count="1" :preview-image="false">
         <van-image round fit="cover" class="avatar" :src="form.avatar" />
       </van-uploader>
@@ -14,38 +14,38 @@
 
     <!-- 昵称 -->
     <div class="row">
-      <span class="label">Nickname</span>
-      <van-field v-model="form.nickname" input-align="right" placeholder="Your name" clearable />
+      <span class="label">{{ t("editProfile.nickname") }}</span>
+      <van-field v-model="form.nickname" input-align="right" :placeholder="t('editProfile.namePlaceholder')" clearable />
     </div>
 
     <!-- 简介 -->
     <div class="bio-block">
-      <span class="label">Bio</span>
+      <span class="label">{{ t("editProfile.bio") }}</span>
       <van-field
         v-model="form.bio"
         type="textarea"
         rows="3"
         maxlength="200"
         show-word-limit
-        placeholder="Say something about yourself…"
+        :placeholder="t('editProfile.bioPlaceholder')"
       />
     </div>
 
     <!-- 性别 -->
     <button class="row" @click="showGender = true">
-      <span class="label">Gender</span>
+      <span class="label">{{ t("editProfile.gender") }}</span>
       <span class="value">{{ form.gender }} <van-icon name="arrow" /></span>
     </button>
 
     <!-- 年龄 -->
     <button class="row" @click="showAge = true">
-      <span class="label">Age</span>
+      <span class="label">{{ t("editProfile.age") }}</span>
       <span class="value">{{ form.age }} <van-icon name="arrow" /></span>
     </button>
 
     <!-- 地区 -->
     <button class="row" @click="showRegion = true">
-      <span class="label">Region</span>
+      <span class="label">{{ t("editProfile.region") }}</span>
       <span class="value">
         <img class="flag" :src="countryFlag(form.region)" alt="" />
         {{ form.region.toUpperCase() }} <van-icon name="arrow" />
@@ -55,21 +55,21 @@
     <van-action-sheet
       v-model:show="showGender"
       :actions="genderActions"
-      cancel-text="Cancel"
+      :cancel-text="t('common.cancel')"
       close-on-click-action
       @select="(a: any) => (form.gender = a.name)"
     />
     <van-action-sheet
       v-model:show="showAge"
       :actions="ageActions"
-      cancel-text="Cancel"
+      :cancel-text="t('common.cancel')"
       close-on-click-action
       @select="(a: any) => (form.age = Number(a.name))"
     />
     <van-action-sheet
       v-model:show="showRegion"
       :actions="regionActions"
-      cancel-text="Cancel"
+      :cancel-text="t('common.cancel')"
       close-on-click-action
       @select="(a: any) => (form.region = a.name)"
     />
@@ -78,6 +78,7 @@
 
 <script setup lang="ts">
 import { reactive, ref } from "vue";
+import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
 import { showLoadingToast, closeToast, showToast } from "vant";
 import type { UploaderFileListItem } from "vant";
@@ -86,6 +87,7 @@ import { useUserStore } from "../stores";
 import { countryFlag } from "../utils/assets";
 import { fileToDataUrl } from "../utils/image";
 
+const { t } = useI18n();
 const router = useRouter();
 const userStore = useUserStore();
 const u = userStore.user;
@@ -114,12 +116,12 @@ async function onAvatar(file: UploaderFileListItem | UploaderFileListItem[]) {
   try {
     form.avatar = await fileToDataUrl(f.file, 256);
   } catch {
-    showToast("Couldn't load that image");
+    showToast(t("editProfile.imageError"));
   }
 }
 
 function save() {
-  showLoadingToast({ message: "Saving…", forbidClick: true });
+  showLoadingToast({ message: t("editProfile.saving"), forbidClick: true });
   window.setTimeout(() => {
     userStore.setUser({
       nickname: form.nickname,
@@ -130,7 +132,7 @@ function save() {
       gender: form.gender
     });
     closeToast();
-    showToast("Saved");
+    showToast(t("editProfile.saved"));
     router.back();
   }, 600);
 }

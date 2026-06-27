@@ -3,35 +3,36 @@
     <div class="card">
       <img class="avatar" :src="anchor.avatar" alt="" />
       <h1 class="duration">{{ durationText }}</h1>
-      <p class="ended">Call ended</p>
+      <p class="ended">{{ t("callSummary.callEnded") }}</p>
 
       <div class="costs">
         <div class="cost">
-          <span>Call cost</span>
+          <span>{{ t("callSummary.callCost") }}</span>
           <b><img src="/assets/eve/callDetail/coin_16@2x.png" alt="" />{{ callCost }}</b>
         </div>
         <div class="cost">
-          <span>Gift cost</span>
+          <span>{{ t("callSummary.giftCost") }}</span>
           <b><img src="/assets/eve/callDetail/coin_16@2x.png" alt="" />{{ giftCost }}</b>
         </div>
       </div>
 
       <button class="follow" :class="{ on: followed }" @click="toggleFollow">
-        {{ followed ? "Following" : `+ Follow ${anchor.nickname}` }}
+        {{ followed ? t("common.following") : t("callSummary.followAnchor", { name: anchor.nickname }) }}
       </button>
 
       <div v-if="!isVip" class="vip-upsell">
-        <span>Get VIP and enjoy unlimited video chats</span>
-        <button @click="router.push('/membership')">Get</button>
+        <span>{{ t("callSummary.vipUpsell") }}</span>
+        <button @click="router.push('/membership')">{{ t("callSummary.get") }}</button>
       </div>
     </div>
 
-    <button class="confirm" @click="router.replace('/messages')">Confirm</button>
+    <button class="confirm" @click="router.replace('/messages')">{{ t("callSummary.confirm") }}</button>
   </section>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
+import { useI18n } from "vue-i18n";
 import { useRoute, useRouter } from "vue-router";
 import emitter from "../common/eventBus";
 import { api } from "../services/api";
@@ -39,6 +40,7 @@ import { useCall } from "../composables/useCall";
 import { useUserStore } from "../stores";
 import type { Anchor } from "../types/eve";
 
+const { t } = useI18n();
 const route = useRoute();
 const router = useRouter();
 const userStore = useUserStore();
@@ -63,7 +65,7 @@ const durationText = computed(() => {
 
 function toggleFollow() {
   followed.value = !followed.value;
-  emitter.emit("toast", followed.value ? "Followed" : "Unfollowed");
+  emitter.emit("toast", followed.value ? t("callSummary.followed") : t("callSummary.unfollowed"));
 }
 
 onMounted(async () => {

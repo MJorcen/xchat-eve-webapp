@@ -1,6 +1,6 @@
 <template>
   <section class="page">
-    <TopBar title="Notification" />
+    <TopBar :title="t('notification.title')" />
     <div v-if="items.length" class="list">
       <article v-for="n in items" :key="n.id" class="item">
         <img class="badge" src="/assets/eve/logo.png" alt="" />
@@ -11,17 +11,19 @@
         </div>
       </article>
     </div>
-    <EmptyState v-else text="No notifications" />
+    <EmptyState v-else :text="t('notification.empty')" />
   </section>
 </template>
 
 <script setup lang="ts">
 import { onMounted, ref } from "vue";
+import { useI18n } from "vue-i18n";
 import TopBar from "../components/TopBar.vue";
 import EmptyState from "../components/EmptyState.vue";
 import { api } from "../services/api";
 import type { NotificationItem } from "../types/eve";
 
+const { t } = useI18n();
 const items = ref<NotificationItem[]>([]);
 onMounted(async () => (items.value = await api.getNotifications()));
 </script>

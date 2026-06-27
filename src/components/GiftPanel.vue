@@ -10,7 +10,7 @@
   >
     <div class="gift-panel">
       <div class="panel-head">
-        <span class="title">Gifts</span>
+        <span class="title">{{ t("gift.title") }}</span>
         <span class="balance">
           <img src="/assets/eve/chatRoom/coin_16@2x.png" alt="" />
           {{ coins }}
@@ -45,7 +45,7 @@
         </button>
         <div class="foot-right">
           <button class="qty" @click="cycleQty">×{{ count }}</button>
-          <button class="send" :disabled="!selected" @click="onSend">Send</button>
+          <button class="send" :disabled="!selected" @click="onSend">{{ t("common.send") }}</button>
         </div>
       </div>
     </div>
@@ -55,6 +55,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from "vue";
 import { useRouter } from "vue-router";
+import { useI18n } from "vue-i18n";
 import { showToast } from "vant";
 import { api } from "../services/api";
 import { useUserStore } from "../stores";
@@ -68,6 +69,7 @@ const emit = defineEmits<{
 }>();
 
 const router = useRouter();
+const { t } = useI18n();
 const userStore = useUserStore();
 const anim = useGiftAnimation();
 
@@ -113,7 +115,7 @@ function onSend() {
   const gift = selected.value;
   const total = gift.price * count.value;
   if (coins.value < total) {
-    showToast("Not enough coins");
+    showToast(t("gift.notEnoughCoins"));
     goRecharge();
     return;
   }

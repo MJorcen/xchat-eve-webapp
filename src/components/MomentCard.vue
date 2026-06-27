@@ -8,7 +8,7 @@
           <strong class="name">{{ moment.user.nickname }}</strong>
           <img class="flag" :src="countryFlag(moment.user.region)" alt="" />
         </div>
-        <span class="sub">{{ moment.user.online ? "Online now" : "Active recently" }}</span>
+        <span class="sub">{{ moment.user.online ? t("momentCard.onlineNow") : t("momentCard.activeRecently") }}</span>
       </div>
       <button class="more" @click="showActions = !showActions">
         <img src="/assets/eve/dynamic/more-horizontal@2x.png" alt="" />
@@ -18,7 +18,7 @@
     <p class="content">{{ translated ? "（译）" + moment.content : moment.content }}</p>
     <button class="translate" @click="translated = !translated">
       <img src="/assets/eve/dynamic/icon_translate@2x.png" alt="" />
-      {{ translated ? "Hide translation" : "See translation" }}
+      {{ translated ? t("momentCard.hideTranslation") : t("momentCard.seeTranslation") }}
     </button>
 
     <div class="images" :class="`count-${moment.images.length}`">
@@ -31,28 +31,30 @@
         {{ likeCount }}
       </button>
       <button class="action" @click="router.push(`/chat/${moment.user.id}`)">
-        <img src="/assets/eve/dynamic/chat.png" alt="" /> Chat
+        <img src="/assets/eve/dynamic/chat.png" alt="" /> {{ t("momentCard.chat") }}
       </button>
       <button class="action" @click="openCall(moment.user)">
-        <img src="/assets/eve/dynamic/video.png" alt="" /> Call
+        <img src="/assets/eve/dynamic/video.png" alt="" /> {{ t("momentCard.call") }}
       </button>
     </footer>
 
     <div v-if="showActions" class="inline-actions">
-      <button @click="router.push('/block-list')">Block</button>
-      <button @click="router.push('/feedback')">Report</button>
+      <button @click="router.push('/block-list')">{{ t("momentCard.block") }}</button>
+      <button @click="router.push('/feedback')">{{ t("momentCard.report") }}</button>
     </div>
   </article>
 </template>
 
 <script setup lang="ts">
 import { computed, ref } from "vue";
+import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
 import { useCall } from "../composables/useCall";
 import type { Moment } from "../types/eve";
 import { countryFlag } from "../utils/assets";
 
 const props = defineProps<{ moment: Moment }>();
+const { t } = useI18n();
 const router = useRouter();
 const { openCall } = useCall();
 

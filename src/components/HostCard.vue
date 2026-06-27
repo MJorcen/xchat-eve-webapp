@@ -12,7 +12,7 @@
     <!-- 在线状态（左上角） -->
     <div class="status-pill">
       <span class="dot" :class="{ on: anchor.online }" />
-      {{ anchor.online ? "online" : "offline" }}
+      {{ anchor.online ? t("common.online") : t("common.offline") }}
     </div>
 
     <!-- 底部渐变 + 信息 -->
@@ -34,6 +34,7 @@
 </template>
 
 <script setup lang="ts">
+import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
 import { useCall } from "../composables/useCall";
 import type { Anchor } from "../types/eve";
@@ -41,6 +42,7 @@ import { countryFlag } from "../utils/assets";
 
 defineProps<{ anchor: Anchor }>();
 
+const { t } = useI18n();
 const router = useRouter();
 const { openCall } = useCall();
 </script>

@@ -1,6 +1,6 @@
 <template>
   <section class="page">
-    <TopBar :title="user?.nickname || 'Moment'" />
+    <TopBar :title="user?.nickname || t('userDynamic.moment')" />
 
     <div v-if="user" class="profile">
       <van-image round fit="cover" class="avatar" :src="user.avatar" lazy-load />
@@ -10,23 +10,24 @@
           <img class="flag" :src="countryFlag(user.region)" alt="" />
         </div>
         <span class="id">ID: {{ user.id }}</span>
-        <span class="sub">{{ user.region.toUpperCase() }} · {{ user.age }} · {{ user.followers }} followers</span>
+        <span class="sub">{{ user.region.toUpperCase() }} · {{ user.age }} · {{ user.followers }} {{ t("userDynamic.followers") }}</span>
       </div>
       <button class="follow" :class="{ on: followed }" @click="followed = !followed">
-        {{ followed ? "Following" : "+ Follow" }}
+        {{ followed ? t("common.following") : t("userDynamic.followCta") }}
       </button>
     </div>
 
     <div v-if="moments.length" class="feed">
       <MomentCard v-for="m in moments" :key="m.id" :moment="m" />
     </div>
-    <EmptyState v-else text="No moments yet" />
+    <EmptyState v-else :text="t('userDynamic.noMoments')" />
   </section>
 </template>
 
 <script setup lang="ts">
 import { onMounted, ref } from "vue";
 import { useRoute } from "vue-router";
+import { useI18n } from "vue-i18n";
 import MomentCard from "../components/MomentCard.vue";
 import TopBar from "../components/TopBar.vue";
 import EmptyState from "../components/EmptyState.vue";
@@ -34,6 +35,7 @@ import { api } from "../services/api";
 import { countryFlag } from "../utils/assets";
 import type { Anchor, Moment } from "../types/eve";
 
+const { t } = useI18n();
 const route = useRoute();
 const id = Number(route.params.id);
 const user = ref<Anchor | null>(null);

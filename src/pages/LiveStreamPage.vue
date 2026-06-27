@@ -13,11 +13,11 @@
         </div>
         <div class="meta">
           <strong>{{ room.anchor.nickname }}</strong>
-          <span class="viewers"><i class="dot" />{{ formatViewers(viewers) }} watching</span>
+          <span class="viewers"><i class="dot" />{{ t("live.watching", { count: formatViewers(viewers) }) }}</span>
         </div>
       </div>
       <button class="follow" :class="{ on: followed }" @click="followed = !followed">
-        {{ followed ? "Following" : "Follow" }}
+        {{ followed ? t("common.following") : t("common.follow") }}
       </button>
       <button class="exit" @click="router.back()">✕</button>
     </header>
@@ -26,7 +26,7 @@
     <Transition name="slide-fade">
       <div v-if="banner" class="gift-banner">
         <van-image round fit="cover" class="b-avatar" :src="banner.avatar" />
-        <span>{{ banner.name }} sent</span>
+        <span>{{ t("live.sentLabel", { name: banner.name }) }}</span>
         <b>{{ banner.gift }}</b>
         <span class="face">{{ banner.icon }}</span>
       </div>
@@ -40,15 +40,15 @@
     <!-- 评论流 -->
     <div ref="commentBox" class="comments">
       <div v-for="(c, i) in comments" :key="i" class="bubble" :class="c.kind">
-        <template v-if="c.kind === 'enter'">{{ c.name }} joined</template>
-        <template v-else-if="c.kind === 'gift'"><b>{{ c.name }}</b> sent {{ c.text }} 🎁</template>
+        <template v-if="c.kind === 'enter'">{{ t("live.joined", { name: c.name }) }}</template>
+        <template v-else-if="c.kind === 'gift'"><b>{{ c.name }}</b> {{ t("live.sentGift", { gift: c.text }) }} 🎁</template>
         <template v-else><b>{{ c.name }}:</b> {{ c.text }}</template>
       </div>
     </div>
 
     <!-- 底部操作 -->
     <footer class="bottom-bar">
-      <input v-model="draft" class="say" placeholder="Say something…" @keyup.enter="sendComment" />
+      <input v-model="draft" class="say" :placeholder="t('live.sayPlaceholder')" @keyup.enter="sendComment" />
       <button class="round heart-btn" @click="spawnHeart(true)">❤</button>
       <button class="round gift-btn" @click="showGift = true">
         <img src="/assets/eve/chatRoom/ic_gift@2x.png" alt="" />
@@ -63,6 +63,7 @@
 <script setup lang="ts">
 import { nextTick, onMounted, onUnmounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
+import { useI18n } from "vue-i18n";
 import emitter from "../common/eventBus";
 import { api } from "../services/api";
 import { useCall } from "../composables/useCall";
@@ -72,6 +73,7 @@ import type { Anchor, Gift, LiveRoom } from "../types/eve";
 
 const route = useRoute();
 const router = useRouter();
+const { t } = useI18n();
 const { startOutgoing } = useCall();
 
 const room = ref<LiveRoom | null>(null);

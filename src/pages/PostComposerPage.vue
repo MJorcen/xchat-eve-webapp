@@ -1,19 +1,19 @@
 <template>
   <section class="composer">
-    <TopBar title="New Moment">
-      <button class="post-link" :class="{ on: canPost }" @click="publish">Post</button>
+    <TopBar :title="t('composer.title')">
+      <button class="post-link" :class="{ on: canPost }" @click="publish">{{ t("composer.post") }}</button>
     </TopBar>
 
     <div class="text-card">
-      <label><i>*</i> Share something</label>
+      <label><i>*</i> {{ t("composer.shareSomething") }}</label>
       <div class="panel">
-        <textarea v-model="text" maxlength="200" placeholder="Say something nice…" />
+        <textarea v-model="text" maxlength="200" :placeholder="t('composer.placeholder')" />
         <span class="counter">{{ text.length }}/200</span>
       </div>
     </div>
 
     <div class="photos">
-      <span class="label">Add photos</span>
+      <span class="label">{{ t("composer.addPhotos") }}</span>
       <div class="grid">
         <div v-for="(img, i) in images" :key="img" class="tile">
           <img :src="img" alt="" />
@@ -25,12 +25,13 @@
 
     <input ref="fileInput" type="file" accept="image/*" multiple hidden @change="onFiles" />
 
-    <button class="post-btn" :disabled="!canPost" @click="publish">Post</button>
+    <button class="post-btn" :disabled="!canPost" @click="publish">{{ t("composer.post") }}</button>
   </section>
 </template>
 
 <script setup lang="ts">
 import { computed, ref } from "vue";
+import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
 import { showToast } from "vant";
 import TopBar from "../components/TopBar.vue";
@@ -38,6 +39,7 @@ import { useUserStore, useMomentsStore } from "../stores";
 import { fileToDataUrl } from "../utils/image";
 import type { Anchor, Moment } from "../types/eve";
 
+const { t } = useI18n();
 const router = useRouter();
 const userStore = useUserStore();
 const momentsStore = useMomentsStore();
@@ -66,7 +68,7 @@ async function onFiles(e: Event) {
   } finally {
     input.value = ""; // 始终重置,保证重选同一文件能再次触发
   }
-  if (failed) showToast("Some images couldn't be added");
+  if (failed) showToast(t("composer.someImagesFailed"));
 }
 
 function removeImage(i: number) {
@@ -75,7 +77,7 @@ function removeImage(i: number) {
 
 function publish() {
   if (!canPost.value) {
-    showToast("Please write something");
+    showToast(t("composer.pleaseWrite"));
     return;
   }
   const u = userStore.user;
@@ -101,7 +103,7 @@ function publish() {
     liked: false
   };
   momentsStore.prepend(moment);
-  showToast("Posted");
+  showToast(t("composer.posted"));
   router.back();
 }
 </script>

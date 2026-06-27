@@ -13,7 +13,7 @@
         </div>
       </div>
       <button class="follow" :class="{ on: followed }" @click="toggleFollow">
-        {{ followed ? "Following" : "Follow" }}
+        {{ followed ? t("common.following") : t("common.follow") }}
       </button>
       <button class="more" @click="showActions = true">
         <van-icon name="ellipsis" />
@@ -25,7 +25,7 @@
       <span class="coins">
         <img src="/assets/eve/chatRoom/coin_16@2x.png" alt="" />{{ coins }}
       </span>
-      <button class="recharge" @click="router.push('/recharge')">Recharge</button>
+      <button class="recharge" @click="router.push('/recharge')">{{ t("common.recharge") }}</button>
     </div>
 
     <!-- 消息区 -->
@@ -59,7 +59,7 @@
               </div>
               <button v-if="!m.outgoing" class="translate" @click="toggleTranslate(m)">
                 <img src="/assets/eve/chatRoom/icon_translate@2x.png" alt="" />
-                {{ m.showTranslation ? "Hide translation" : "See translation" }}
+                {{ m.showTranslation ? t("chat.hideTranslation") : t("chat.seeTranslation") }}
               </button>
             </template>
 
@@ -89,7 +89,7 @@
             <div v-else-if="m.type === 'call'" class="call-bubble" :class="m.outgoing ? 'mine' : 'other'">
               <img src="/assets/eve/chatRoom/ic_video-off@2x.png" alt="" />
               <span :class="{ canceled: m.callStatus === 'canceled' }">
-                {{ m.callStatus === "canceled" ? "Canceled" : `Video call ${fmtDur(m.duration || 0)}` }}
+                {{ m.callStatus === "canceled" ? t("chat.canceled") : t("chat.videoCall", { duration: fmtDur(m.duration || 0) }) }}
               </span>
             </div>
           </div>
@@ -105,7 +105,7 @@
         <button v-for="q in quickReplies" :key="q" class="quick" @click="sendQuick(q)">{{ q }}</button>
       </div>
       <div class="input-row">
-        <input v-model="draft" class="field" placeholder="Say something…" @keyup.enter="handleSend" />
+        <input v-model="draft" class="field" :placeholder="t('chat.inputPlaceholder')" @keyup.enter="handleSend" />
         <button class="send" @click="handleSend">
           <img src="/assets/eve/chatRoom/ic_send@2x.png" alt="" />
         </button>
@@ -132,8 +132,8 @@
 
     <van-action-sheet
       v-model:show="showActions"
-      :actions="[{ name: 'Report' }, { name: 'Block' }]"
-      cancel-text="Cancel"
+      :actions="actionSheetActions"
+      :cancel-text="t('common.cancel')"
       close-on-click-action
       @select="onAction"
     />
@@ -143,6 +143,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
+import { useI18n } from "vue-i18n";
 import { showImagePreview, showToast } from "vant";
 import emitter from "../common/eventBus";
 import { api } from "../services/api";
@@ -153,6 +154,7 @@ import type { Anchor, ChatMessage, Gift } from "../types/eve";
 
 const route = useRoute();
 const router = useRouter();
+const { t } = useI18n();
 const userStore = useUserStore();
 const { startOutgoing } = useCall();
 
@@ -172,7 +174,11 @@ const timers: number[] = [];
 const coins = computed(() => userStore.coins);
 const statusText = computed(() => {
   if (!anchor.value) return "";
-  return anchor.value.online && anchor.value.onDuty ? "Online" : anchor.value.onDuty ? "Busy" : "Offline";
+  return anchor.value.online && anchor.value.onDuty
+    ? t("chat.statusOnline")
+    : anchor.value.onDuty
+      ? t("chat.statusBusy")
+      : t("chat.statusOffline");
 });
 const statusClass = computed(() => {
   if (!anchor.value) return "";
@@ -279,11 +285,17 @@ function goAnchor() {
 
 function toggleFollow() {
   followed.value = !followed.value;
-  showToast(followed.value ? "Followed" : "Unfollowed");
+  showToast(followed.value ? t("chat.followed") : t("chat.unfollowed"));
 }
 
-function onAction(action: { name: string }) {
-  showToast(`${action.name}ed`);
+const actionSheetActions = computed(() => [
+  { name: t("chat.report"), key: "report" },
+  { name: t("chat.block"), key: "block" }
+]);
+
+function onAction(action: { key?: string }) {
+  if (action.key === "report") showToast(t("chat.reported"));
+  else if (action.key === "block") showToast(t("chat.blocked"));
 }
 
 function preview(img?: string) {

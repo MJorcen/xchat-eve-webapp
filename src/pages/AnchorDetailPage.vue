@@ -14,7 +14,7 @@
       </button>
 
       <button class="follow" :class="{ on: followed }" @click="toggleFollow">
-        {{ followed ? "Following" : "+ Follow" }}
+        {{ followed ? t("common.following") : `+ ${t("common.follow")}` }}
       </button>
 
       <div v-if="gallery.length > 1" class="thumbs">
@@ -49,7 +49,7 @@
       <div class="stats">
         <div class="stat">
           <img src="/assets/eve/anchorDetail/ic_gender@2x.png" alt="" />
-          <span>Female</span>
+          <span>{{ t("anchor.female") }}</span>
         </div>
         <i class="div" />
         <div class="stat">
@@ -71,8 +71,8 @@
       <!-- Moment -->
       <div v-if="moments.length" class="section">
         <div class="section-head">
-          <span class="section-title">Moment</span>
-          <button class="more-link" @click="router.push(`/user-dynamic-list/${anchor.id}`)">More ›</button>
+          <span class="section-title">{{ t("anchor.moment") }}</span>
+          <button class="more-link" @click="router.push(`/user-dynamic-list/${anchor.id}`)">{{ t("anchor.more") }} ›</button>
         </div>
         <div class="moment-grid">
           <van-image
@@ -88,7 +88,7 @@
 
       <!-- Profile -->
       <div class="section">
-        <span class="section-title">Profile</span>
+        <span class="section-title">{{ t("anchor.profile") }}</span>
         <div class="chips">
           <span v-for="(tag, i) in anchor.tags" :key="tag" class="chip" :class="`c${i % 3}`">{{ tag }}</span>
         </div>
@@ -96,7 +96,7 @@
 
       <!-- Gifts -->
       <div class="section">
-        <span class="section-title">Gifts</span>
+        <span class="section-title">{{ t("anchor.gifts") }}</span>
         <div class="gift-strip">
           <div v-for="g in receivedGifts" :key="g.icon" class="gift">
             <span class="face">{{ g.icon }}</span>
@@ -111,8 +111,8 @@
       <button class="cta" @click="startCall">
         <img src="/assets/eve/anchorDetail/ic_call_video@2x.png" alt="" />
         <span class="cta-text">
-          Video Call
-          <small><img src="/assets/eve/callDialog/coin_300@2x.png" alt="" />{{ anchor.price }}/min</small>
+          {{ t("anchor.videoCall") }}
+          <small><img src="/assets/eve/callDialog/coin_300@2x.png" alt="" />{{ anchor.price }}{{ t("anchor.perMin") }}</small>
         </span>
       </button>
       <button class="msg-btn" @click="startChat">
@@ -122,8 +122,8 @@
 
     <van-action-sheet
       v-model:show="showActions"
-      :actions="[{ name: 'Report' }, { name: 'Block' }]"
-      cancel-text="Cancel"
+      :actions="reportActions"
+      :cancel-text="t('common.cancel')"
       close-on-click-action
       @select="onAction"
     />
@@ -132,6 +132,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
+import { useI18n } from "vue-i18n";
 import { useRoute, useRouter } from "vue-router";
 import { showImagePreview } from "vant";
 import emitter from "../common/eventBus";
@@ -140,6 +141,7 @@ import { useCall } from "../composables/useCall";
 import { countryFlag } from "../utils/assets";
 import type { Anchor, Moment } from "../types/eve";
 
+const { t } = useI18n();
 const route = useRoute();
 const router = useRouter();
 const { startOutgoing } = useCall();
@@ -166,7 +168,11 @@ const gallery = computed(() => {
 
 const statusText = computed(() => {
   if (!anchor.value) return "";
-  return anchor.value.online && anchor.value.onDuty ? "Online" : anchor.value.onDuty ? "Busy" : "Offline";
+  return anchor.value.online && anchor.value.onDuty
+    ? t("anchor.online")
+    : anchor.value.onDuty
+      ? t("anchor.busy")
+      : t("anchor.offline");
 });
 const statusClass = computed(() => {
   if (!anchor.value) return "";
@@ -179,12 +185,12 @@ function preview(img: string) {
 
 function copyId() {
   navigator.clipboard?.writeText(String(id)).catch(() => {});
-  emitter.emit("toast", "Copied");
+  emitter.emit("toast", t("anchor.copied"));
 }
 
 function toggleFollow() {
   followed.value = !followed.value;
-  emitter.emit("toast", followed.value ? "Followed" : "Unfollowed");
+  emitter.emit("toast", followed.value ? t("anchor.followed") : t("anchor.unfollowed"));
 }
 
 function startCall() {
@@ -197,11 +203,16 @@ function startChat() {
   router.push(`/chat/${id}`);
 }
 
-function onAction(action: { name: string }) {
-  if (action.name === "Report") {
+const reportActions = computed(() => [
+  { name: t("anchor.report"), value: "report" },
+  { name: t("anchor.block"), value: "block" }
+]);
+
+function onAction(action: { value?: string }) {
+  if (action.value === "report") {
     router.push(`/block-and-report?id=${id}`);
   } else {
-    emitter.emit("toast", "Blocked");
+    emitter.emit("toast", t("anchor.blocked"));
     router.back();
   }
 }

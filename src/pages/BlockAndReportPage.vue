@@ -1,36 +1,38 @@
 <template>
   <section class="page">
-    <TopBar title="Block & Report" />
+    <TopBar :title="t('report.title')" />
 
-    <p class="hint">Select a reason for reporting this user.</p>
+    <p class="hint">{{ t("report.hint") }}</p>
     <div class="reasons">
       <button
         v-for="r in reasons"
-        :key="r"
+        :key="r.key"
         class="reason"
-        :class="{ on: selected === r }"
-        @click="selected = r"
+        :class="{ on: selected === r.key }"
+        @click="selected = r.key"
       >
-        <span>{{ r }}</span>
-        <span class="radio" :class="{ on: selected === r }" />
+        <span>{{ t(r.label) }}</span>
+        <span class="radio" :class="{ on: selected === r.key }" />
       </button>
     </div>
 
     <div class="block-row">
-      <span>Block this user too</span>
+      <span>{{ t("report.blockToo") }}</span>
       <van-switch v-model="alsoBlock" size="22px" active-color="#eb6300" inactive-color="#3a2526" />
     </div>
 
-    <button class="submit" :disabled="!selected" @click="submit">Submit</button>
+    <button class="submit" :disabled="!selected" @click="submit">{{ t("common.submit") }}</button>
   </section>
 </template>
 
 <script setup lang="ts">
 import { ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
+import { useI18n } from "vue-i18n";
 import { showLoadingToast, closeToast, showToast } from "vant";
 import TopBar from "../components/TopBar.vue";
 
+const { t } = useI18n();
 const route = useRoute();
 const router = useRouter();
 // 被举报用户 id(由 AnchorDetail / MatchDetail 通过 ?id 传入)
@@ -38,22 +40,22 @@ const targetId = Number(route.query.id) || 0;
 const selected = ref("");
 const alsoBlock = ref(false);
 const reasons = [
-  "Pornographic / vulgar",
-  "Fraud / scam",
-  "Harassment / abuse",
-  "Underage",
-  "Impersonation / fake profile",
-  "Advertising / spam",
-  "Other"
+  { key: "pornographic", label: "report.reasonPornographic" },
+  { key: "fraud", label: "report.reasonFraud" },
+  { key: "harassment", label: "report.reasonHarassment" },
+  { key: "underage", label: "report.reasonUnderage" },
+  { key: "impersonation", label: "report.reasonImpersonation" },
+  { key: "advertising", label: "report.reasonAdvertising" },
+  { key: "other", label: "report.reasonOther" }
 ];
 
 function submit() {
   if (!selected.value) return;
-  showLoadingToast({ message: "Submitting…", forbidClick: true });
+  showLoadingToast({ message: t("report.submitting"), forbidClick: true });
   window.setTimeout(() => {
     // mock:针对 targetId 提交举报(+可选拉黑)
     closeToast();
-    showToast(alsoBlock.value && targetId ? "Reported & blocked" : "Report submitted");
+    showToast(alsoBlock.value && targetId ? t("report.reportedBlocked") : t("report.reportSubmitted"));
     router.back();
   }, 700);
 }

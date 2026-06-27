@@ -1,20 +1,20 @@
 <template>
   <section class="payment">
-    <TopBar title="Payment" />
+    <TopBar :title="t('payment.title')" />
 
     <!-- 订单金额 -->
     <div class="order">
       <strong class="price">{{ pkg?.price }}</strong>
       <p class="coins">
         <img src="/assets/eve/wallet/coin_20@2x.png" alt="" />
-        {{ pkg?.coins }} coins <span class="bonus">+{{ pkg?.bonus }} bonus</span>
+        {{ pkg?.coins }} {{ t("payment.coins") }} <span class="bonus">+{{ pkg?.bonus }} {{ t("payment.bonus") }}</span>
       </p>
     </div>
 
     <!-- 支付方式 -->
     <div class="section-head">
-      <h2>Payment method</h2>
-      <span>{{ channels.length }} available</span>
+      <h2>{{ t("payment.paymentMethod") }}</h2>
+      <span>{{ t("payment.available", { count: channels.length }) }}</span>
     </div>
     <div class="channels">
       <button
@@ -28,7 +28,7 @@
         <div class="info">
           <strong>
             <span class="cname">{{ c.name }}</span>
-            <b v-if="c.recommended" class="rec">Recommended</b>
+            <b v-if="c.recommended" class="rec">{{ t("payment.recommended") }}</b>
           </strong>
           <span class="desc">{{ c.description }}</span>
         </div>
@@ -38,23 +38,25 @@
 
     <!-- 到账明细 -->
     <div class="summary">
-      <div class="row"><span>Coins</span><b>{{ pkg?.coins }}</b></div>
-      <div class="row"><span>Bonus</span><b class="gold">+{{ pkg?.bonus }}</b></div>
-      <div class="row total"><span>Total arrival</span><b>{{ (pkg?.coins || 0) + (pkg?.bonus || 0) }}</b></div>
+      <div class="row"><span>{{ t("payment.coinsLabel") }}</span><b>{{ pkg?.coins }}</b></div>
+      <div class="row"><span>{{ t("payment.bonusLabel") }}</span><b class="gold">+{{ pkg?.bonus }}</b></div>
+      <div class="row total"><span>{{ t("payment.totalArrival") }}</span><b>{{ (pkg?.coins || 0) + (pkg?.bonus || 0) }}</b></div>
     </div>
 
-    <button class="pay" :disabled="!channelId" @click="submitPayment">Pay {{ pkg?.price }}</button>
+    <button class="pay" :disabled="!channelId" @click="submitPayment">{{ t("payment.pay", { price: pkg?.price }) }}</button>
   </section>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
+import { useI18n } from "vue-i18n";
 import { useRoute, useRouter } from "vue-router";
 import TopBar from "../components/TopBar.vue";
 import { api } from "../services/api";
 import { useUserStore } from "../stores";
 import type { PaymentChannel, WalletPackage } from "../types/eve";
 
+const { t } = useI18n();
 const route = useRoute();
 const router = useRouter();
 const userStore = useUserStore();

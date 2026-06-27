@@ -1,6 +1,6 @@
 <template>
   <section class="page">
-    <TopBar title="Visitor" />
+    <TopBar :title="t('visitor.title')" />
     <div v-if="visitors.length" class="list">
       <article v-for="a in visitors" :key="a.id" class="row" @click="router.push(`/anchor/${a.id}`)">
         <div class="avatar-wrap">
@@ -12,23 +12,25 @@
           <span class="id">ID: {{ a.id }}</span>
         </div>
         <div class="meta">
-          <b>{{ (a.id % 3) + 1 }} Visits</b>
-          <span>{{ ["2m ago", "1h ago", "Yesterday", "3d ago"][a.id % 4] }}</span>
+          <b>{{ t("visitor.visits", { count: (a.id % 3) + 1 }) }}</b>
+          <span>{{ [t("visitor.time2m"), t("visitor.time1h"), t("visitor.timeYesterday"), t("visitor.time3d")][a.id % 4] }}</span>
         </div>
       </article>
     </div>
-    <EmptyState v-else text="No visitors yet" />
+    <EmptyState v-else :text="t('visitor.empty')" />
   </section>
 </template>
 
 <script setup lang="ts">
 import { onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
+import { useI18n } from "vue-i18n";
 import TopBar from "../components/TopBar.vue";
 import EmptyState from "../components/EmptyState.vue";
 import { api } from "../services/api";
 import type { Anchor } from "../types/eve";
 
+const { t } = useI18n();
 const router = useRouter();
 const visitors = ref<Anchor[]>([]);
 onMounted(async () => (visitors.value = await api.getVisitors()));

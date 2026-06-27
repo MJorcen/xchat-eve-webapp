@@ -1,18 +1,18 @@
 <template>
   <section class="recharge">
-    <TopBar title="Recharge">
-      <button class="records" @click="router.push('/wallet-detail')">Records</button>
+    <TopBar :title="t('common.recharge')">
+      <button class="records" @click="router.push('/wallet-detail')">{{ t("common.records") }}</button>
     </TopBar>
 
     <div class="hero">
-      <span class="label">Current balance</span>
+      <span class="label">{{ t("recharge.currentBalance") }}</span>
       <div class="amount">
         <img src="/assets/eve/wallet/coin_20@2x.png" alt="" />
         <strong>{{ coins }}</strong>
       </div>
     </div>
 
-    <div class="section-head"><h2>Choose a package</h2></div>
+    <div class="section-head"><h2>{{ t("recharge.choosePackage") }}</h2></div>
     <div class="packages">
       <button
         v-for="item in packages"
@@ -21,34 +21,36 @@
         :class="{ active: selected === item.id }"
         @click="selected = item.id"
       >
-        <span v-if="item.selected" class="tag">Popular</span>
+        <span v-if="item.selected" class="tag">{{ t("recharge.popular") }}</span>
         <div class="pkg-coins">
           <img src="/assets/eve/wallet/coin_20@2x.png" alt="" />
           <strong>{{ item.coins }}</strong>
         </div>
-        <span class="pkg-bonus">+{{ item.bonus }} bonus</span>
+        <span class="pkg-bonus">+{{ item.bonus }} {{ t("recharge.bonus") }}</span>
         <span class="pkg-price">{{ item.price }}</span>
       </button>
     </div>
 
     <div class="benefits">
-      <span>✓ Secure payment</span>
-      <span>✓ Instant arrival</span>
-      <span>✓ Receipts in records</span>
+      <span>✓ {{ t("recharge.securePayment") }}</span>
+      <span>✓ {{ t("recharge.instantArrival") }}</span>
+      <span>✓ {{ t("recharge.receiptsInRecords") }}</span>
     </div>
 
-    <button class="continue" @click="goPay">Continue</button>
+    <button class="continue" @click="goPay">{{ t("common.continue") }}</button>
   </section>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
+import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
 import TopBar from "../components/TopBar.vue";
 import { api } from "../services/api";
 import { useUserStore } from "../stores";
 import type { WalletPackage } from "../types/eve";
 
+const { t } = useI18n();
 const router = useRouter();
 const userStore = useUserStore();
 const packages = ref<WalletPackage[]>([]);

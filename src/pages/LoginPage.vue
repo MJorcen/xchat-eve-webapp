@@ -4,13 +4,13 @@
       <div class="glow" />
       <img class="logo" src="/assets/eve/logo.png" alt="" />
       <h1 class="wordmark">Eve</h1>
-      <p class="tagline">Meet someone new tonight.</p>
+      <p class="tagline">{{ t("login.tagline") }}</p>
     </div>
 
     <div class="actions">
-      <button class="guest" :disabled="loading" @click="loginAsGuest">Continue as guest</button>
+      <button class="guest" :disabled="loading" @click="loginAsGuest">{{ t("login.continueAsGuest") }}</button>
 
-      <div class="or"><i /><span>or continue with</span><i /></div>
+      <div class="or"><i /><span>{{ t("login.orContinueWith") }}</span><i /></div>
 
       <div class="oauth">
         <button @click="comingSoon">Google</button>
@@ -18,9 +18,9 @@
       </div>
 
       <p class="terms">
-        By continuing you agree to our
-        <a @click="comingSoon">Terms of Service</a> and
-        <a @click="comingSoon">Privacy Policy</a>.
+        {{ t("login.termsPrefix") }}
+        <a @click="comingSoon">{{ t("login.termsOfService") }}</a> {{ t("login.and") }}
+        <a @click="comingSoon">{{ t("login.privacyPolicy") }}</a>.
       </p>
     </div>
   </section>
@@ -29,10 +29,12 @@
 <script setup lang="ts">
 import { onUnmounted, ref } from "vue";
 import { useRouter } from "vue-router";
+import { useI18n } from "vue-i18n";
 import { showLoadingToast, closeToast, showToast } from "vant";
 import { api } from "../services/api";
 import { useUserStore } from "../stores";
 
+const { t } = useI18n();
 const router = useRouter();
 const userStore = useUserStore();
 const loading = ref(false);
@@ -41,7 +43,7 @@ let loginTimer: number | null = null;
 function loginAsGuest() {
   if (loading.value) return;
   loading.value = true;
-  showLoadingToast({ message: "Signing you in…", forbidClick: true, duration: 0 });
+  showLoadingToast({ message: t("login.signingIn"), forbidClick: true, duration: 0 });
   loginTimer = window.setTimeout(async () => {
     loginTimer = null;
     const user = await api.getCurrentUser();
@@ -61,7 +63,7 @@ onUnmounted(() => {
 });
 
 function comingSoon() {
-  showToast("Coming soon");
+  showToast(t("login.comingSoon"));
 }
 </script>
 

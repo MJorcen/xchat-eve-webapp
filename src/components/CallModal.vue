@@ -7,14 +7,14 @@
       <img class="avatar" :src="callState.target?.avatar" alt="" />
       <h2 class="name">{{ callState.target?.nickname }}</h2>
       <div class="subline">
-        <span v-if="callState.free" class="free-pill">Free ×3</span>
+        <span v-if="callState.free" class="free-pill">{{ t("callModal.freeTimes") }}</span>
         <span v-else class="price">
           <img src="/assets/eve/callDialog/coin_300@2x.png" alt="" />
-          {{ callState.target?.price }}/min
+          {{ callState.target?.price }}{{ t("callModal.perMin") }}
         </span>
       </div>
       <p class="hint">
-        {{ callState.phase === "incoming" ? "invites you to a video call…" : "Calling…" }}
+        {{ callState.phase === "incoming" ? t("callModal.incomingHint") : t("callModal.callingHint") }}
       </p>
     </div>
 
@@ -33,11 +33,13 @@
 
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
+import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
 import emitter from "../common/eventBus";
 import { useCall } from "../composables/useCall";
 import type { Anchor } from "../types/eve";
 
+const { t } = useI18n();
 const router = useRouter();
 const { callState, receiveIncoming, accept, reject, reset } = useCall();
 

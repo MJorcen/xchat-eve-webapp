@@ -1,11 +1,11 @@
 <template>
   <section class="result">
-    <TopBar title="Payment Result" />
+    <TopBar :title="t('paymentResult.title')" />
 
     <div class="card">
       <div class="badge" :class="{ fail: !success }">{{ success ? "✓" : "!" }}</div>
-      <h1>{{ success ? "Payment successful" : "Payment failed" }}</h1>
-      <p>{{ success ? "Coins have been added to your wallet." : "The payment was not completed. Please try another method." }}</p>
+      <h1>{{ success ? t("paymentResult.successHeading") : t("paymentResult.failHeading") }}</h1>
+      <p>{{ success ? t("paymentResult.successDesc") : t("paymentResult.failDesc") }}</p>
     </div>
 
     <div v-if="success" class="arrival">
@@ -14,23 +14,25 @@
     </div>
 
     <div class="summary">
-      <div class="row"><span>Status</span><b :class="success ? 'ok' : 'bad'">{{ success ? "Success" : "Failed" }}</b></div>
-      <div class="row"><span>Arrival coins</span><b>{{ coins }}</b></div>
-      <div class="row"><span>Amount</span><b>{{ amount }}</b></div>
-      <div class="row"><span>Method</span><b>{{ method }}</b></div>
+      <div class="row"><span>{{ t("paymentResult.status") }}</span><b :class="success ? 'ok' : 'bad'">{{ success ? t("paymentResult.statusSuccess") : t("paymentResult.statusFailed") }}</b></div>
+      <div class="row"><span>{{ t("paymentResult.arrivalCoins") }}</span><b>{{ coins }}</b></div>
+      <div class="row"><span>{{ t("paymentResult.amount") }}</span><b>{{ amount }}</b></div>
+      <div class="row"><span>{{ t("paymentResult.method") }}</span><b>{{ method }}</b></div>
     </div>
 
-    <button class="primary" @click="router.replace('/wallet')">Back to wallet</button>
-    <button class="secondary" @click="router.replace('/messages')">Continue chatting</button>
+    <button class="primary" @click="router.replace('/wallet')">{{ t("paymentResult.backToWallet") }}</button>
+    <button class="secondary" @click="router.replace('/messages')">{{ t("paymentResult.continueChatting") }}</button>
   </section>
 </template>
 
 <script setup lang="ts">
 import { computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
+import { useI18n } from "vue-i18n";
 import TopBar from "../components/TopBar.vue";
 
 // 纯回执页：金币已在 PaymentPage 入账，这里不再变更余额（避免刷新/返回重复入账）
+const { t } = useI18n();
 const route = useRoute();
 const router = useRouter();
 

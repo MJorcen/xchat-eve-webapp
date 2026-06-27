@@ -1,6 +1,6 @@
 <template>
   <section class="detail">
-    <TopBar title="Coin Records" />
+    <TopBar :title="t('walletDetail.title')" />
 
     <div class="list">
       <article v-for="r in records" :key="r.id" class="record">
@@ -15,16 +15,18 @@
       </article>
     </div>
 
-    <p v-if="!records.length" class="empty">No records yet</p>
+    <p v-if="!records.length" class="empty">{{ t("walletDetail.empty") }}</p>
   </section>
 </template>
 
 <script setup lang="ts">
 import { onMounted, ref } from "vue";
+import { useI18n } from "vue-i18n";
 import TopBar from "../components/TopBar.vue";
 import { api } from "../services/api";
 import type { WalletRecord } from "../types/eve";
 
+const { t } = useI18n();
 const records = ref<WalletRecord[]>([]);
 
 onMounted(async () => {

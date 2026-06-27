@@ -1,9 +1,9 @@
 <template>
   <section class="page">
-    <TopBar title="Feedback" />
+    <TopBar :title="t('feedbackPage.title')" />
 
     <div class="field-wrap">
-      <label><i>*</i> Content</label>
+      <label><i>*</i> {{ t("feedbackPage.content") }}</label>
       <div class="field">
         <van-field
           v-model="content"
@@ -11,41 +11,43 @@
           rows="5"
           maxlength="200"
           show-word-limit
-          placeholder="Describe your issue or suggestion…"
+          :placeholder="t('feedbackPage.contentPlaceholder')"
         />
       </div>
     </div>
 
     <div class="field-wrap">
-      <label>Contact</label>
+      <label>{{ t("feedbackPage.contact") }}</label>
       <div class="field">
-        <van-field v-model="contact" placeholder="Email or phone (optional)" />
+        <van-field v-model="contact" :placeholder="t('feedbackPage.contactPlaceholder')" />
       </div>
     </div>
 
-    <button class="submit" @click="submit">Submit</button>
+    <button class="submit" @click="submit">{{ t("common.submit") }}</button>
   </section>
 </template>
 
 <script setup lang="ts">
 import { ref } from "vue";
 import { useRouter } from "vue-router";
+import { useI18n } from "vue-i18n";
 import { showLoadingToast, closeToast, showToast } from "vant";
 import TopBar from "../components/TopBar.vue";
 
+const { t } = useI18n();
 const router = useRouter();
 const content = ref("");
 const contact = ref("");
 
 function submit() {
   if (!content.value.trim()) {
-    showToast("Please describe your issue");
+    showToast(t("feedbackPage.emptyContent"));
     return;
   }
-  showLoadingToast({ message: "Submitting…", forbidClick: true });
+  showLoadingToast({ message: t("feedbackPage.submitting"), forbidClick: true });
   window.setTimeout(() => {
     closeToast();
-    showToast("Thanks for your feedback");
+    showToast(t("feedbackPage.thanks"));
     router.back();
   }, 700);
 }

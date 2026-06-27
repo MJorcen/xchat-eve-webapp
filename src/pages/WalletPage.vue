@@ -1,23 +1,23 @@
 <template>
   <section class="wallet">
-    <TopBar title="Wallet">
-      <button class="records" @click="router.push('/wallet-detail')">Records</button>
+    <TopBar :title="t('wallet.title')">
+      <button class="records" @click="router.push('/wallet-detail')">{{ t("common.records") }}</button>
     </TopBar>
 
     <!-- 余额卡 -->
     <div class="balance">
-      <span class="label">My coins</span>
+      <span class="label">{{ t("wallet.myCoins") }}</span>
       <div class="amount">
         <img src="/assets/eve/wallet/coin_20@2x.png" alt="" />
         <strong>{{ coins }}</strong>
       </div>
-      <p class="tip">Coins are used for video calls, gifts and live interactions.</p>
+      <p class="tip">{{ t("wallet.coinsTip") }}</p>
     </div>
 
     <!-- 充值套餐 -->
     <div class="section-head">
-      <h2>Recharge</h2>
-      <span>Secure · instant arrival</span>
+      <h2>{{ t("common.recharge") }}</h2>
+      <span>{{ t("wallet.secureInstant") }}</span>
     </div>
     <div class="packages">
       <button
@@ -27,34 +27,36 @@
         :class="{ active: selected === item.id }"
         @click="selected = item.id"
       >
-        <span v-if="item.selected" class="tag">Popular</span>
+        <span v-if="item.selected" class="tag">{{ t("wallet.popular") }}</span>
         <div class="pkg-coins">
           <img src="/assets/eve/wallet/coin_20@2x.png" alt="" />
           <strong>{{ item.coins }}</strong>
         </div>
-        <span class="pkg-bonus">+{{ item.bonus }} bonus</span>
+        <span class="pkg-bonus">{{ t("wallet.bonus", { n: item.bonus }) }}</span>
         <span class="pkg-price">{{ item.price }}</span>
       </button>
     </div>
 
     <!-- VIP 入口 -->
     <button class="vip-entry" @click="router.push('/membership')">
-      <span class="vip-left">👑 Become VIP <small>Unlock perks & lower prices</small></span>
+      <span class="vip-left">👑 {{ t("wallet.becomeVip") }} <small>{{ t("wallet.vipSubtitle") }}</small></span>
       <van-icon name="arrow" />
     </button>
 
-    <button class="continue" @click="goPay">Continue</button>
+    <button class="continue" @click="goPay">{{ t("common.continue") }}</button>
   </section>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
+import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
 import TopBar from "../components/TopBar.vue";
 import { api } from "../services/api";
 import { useUserStore } from "../stores";
 import type { WalletPackage } from "../types/eve";
 
+const { t } = useI18n();
 const router = useRouter();
 const userStore = useUserStore();
 const packages = ref<WalletPackage[]>([]);

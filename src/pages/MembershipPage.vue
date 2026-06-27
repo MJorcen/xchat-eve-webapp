@@ -2,13 +2,13 @@
   <section class="membership">
     <header class="nav">
       <button class="back" @click="router.back()"><van-icon name="arrow-left" /></button>
-      <span class="title">Membership</span>
+      <span class="title">{{ t("membership.title") }}</span>
     </header>
 
     <div class="hero">
       <div class="crown">👑</div>
       <h1>EVE VIP</h1>
-      <p>Unlock unlimited video chats, lower match prices & exclusive perks</p>
+      <p>{{ t("membership.heroSubtitle") }}</p>
     </div>
 
     <div class="plans">
@@ -19,9 +19,9 @@
         :class="{ active: selected?.id === plan.id }"
         @click="selected = plan"
       >
-        <span v-if="plan.recommended" class="badge">Popular</span>
+        <span v-if="plan.recommended" class="badge">{{ t("membership.popular") }}</span>
         <strong class="plan-name">{{ plan.name }}</strong>
-        <span class="plan-months">{{ plan.months }} month{{ plan.months > 1 ? "s" : "" }}</span>
+        <span class="plan-months">{{ plan.months }} {{ plan.months > 1 ? t("membership.months") : t("membership.month") }}</span>
         <span class="plan-price">{{ plan.price }}</span>
       </button>
     </div>
@@ -33,7 +33,7 @@
     </ul>
 
     <button class="subscribe" :disabled="!selected" @click="subscribe">
-      {{ selected ? `Subscribe · ${selected.price}` : "Select a plan" }}
+      {{ selected ? `${t("membership.subscribe")} · ${selected.price}` : t("membership.selectPlan") }}
     </button>
   </section>
 </template>
@@ -41,17 +41,19 @@
 <script setup lang="ts">
 import { onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
+import { useI18n } from "vue-i18n";
 import { showToast } from "vant";
 import { api } from "../services/api";
 import type { VipPlan } from "../types/eve";
 
+const { t } = useI18n();
 const router = useRouter();
 const plans = ref<VipPlan[]>([]);
 const selected = ref<VipPlan | null>(null);
 
 function subscribe() {
   if (!selected.value) return;
-  showToast("Mock: subscription started");
+  showToast(t("membership.subscriptionStarted"));
 }
 
 onMounted(async () => {

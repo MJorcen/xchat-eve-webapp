@@ -1,6 +1,6 @@
 <template>
   <section class="nearby">
-    <TopBar title="Nearby" />
+    <TopBar :title="t('nearby.title')" />
 
     <div class="map">
       <span class="ring r1" />
@@ -19,13 +19,13 @@
         <span class="km">{{ p.km }} km</span>
       </button>
 
-      <p class="tip">Based on your location, here are people nearby.</p>
+      <p class="tip">{{ t("nearby.tip") }}</p>
     </div>
 
     <div class="strip">
       <button v-for="a in strip" :key="a.id" class="card" @click="router.push(`/anchor/${a.id}`)">
         <van-image fit="cover" class="cover" :src="a.avatar" lazy-load />
-        <span class="status" :class="{ on: a.online }">{{ a.online ? "online" : "offline" }}</span>
+        <span class="status" :class="{ on: a.online }">{{ a.online ? t("common.online") : t("common.offline") }}</span>
         <span class="dist">{{ distance(a) }} km</span>
         <span class="name">{{ a.nickname }}, {{ a.age }}</span>
       </button>
@@ -36,12 +36,14 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref } from "vue";
 import { useRouter } from "vue-router";
+import { useI18n } from "vue-i18n";
 import TopBar from "../components/TopBar.vue";
 import { api } from "../services/api";
 import { countryFlag } from "../utils/assets";
 import type { Anchor, CurrentUser } from "../types/eve";
 
 const router = useRouter();
+const { t } = useI18n();
 const me = ref<CurrentUser | null>(null);
 const strip = ref<Anchor[]>([]);
 const pins = ref<{ anchor: Anchor; km: number; online: boolean; style: { left: string; top: string } }[]>([]);

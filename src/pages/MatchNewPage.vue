@@ -1,6 +1,6 @@
 <template>
   <section class="match-new">
-    <TopBar title="Match" />
+    <TopBar :title="t('matchNew.title')" />
 
     <div class="hero">
       <van-image v-if="side[0]" round fit="cover" class="side" :src="side[0].avatar" lazy-load />
@@ -15,30 +15,31 @@
       <van-image v-if="side[1]" round fit="cover" class="side" :src="side[1].avatar" lazy-load />
     </div>
 
-    <p class="headline">Thousands of girls are matching now…</p>
+    <p class="headline">{{ t("matchNew.headline") }}</p>
     <div class="cost">
       <img src="/assets/eve/matchHome/coin_20@2x.png" alt="" />
-      <strong>{{ cost }}</strong> <span>/ match</span>
+      <strong>{{ cost }}</strong> <span>{{ t("matchNew.perMatch") }}</span>
     </div>
-    <p class="balance">Balance: {{ coins }} coins</p>
+    <p class="balance">{{ t("matchNew.balance", { coins }) }}</p>
 
     <p class="terms">
-      Each match costs {{ cost }} coins. Coins are non-refundable once a match starts.
-      Be kind and respectful.
+      {{ t("matchNew.terms", { cost }) }}
     </p>
 
-    <button class="start" @click="start">Start Match</button>
+    <button class="start" @click="start">{{ t("matchNew.startMatch") }}</button>
   </section>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
+import { useI18n } from "vue-i18n";
 import { useRoute, useRouter } from "vue-router";
 import emitter from "../common/eventBus";
 import { api } from "../services/api";
 import { useUserStore } from "../stores";
 import type { Anchor } from "../types/eve";
 
+const { t } = useI18n();
 const route = useRoute();
 const router = useRouter();
 const userStore = useUserStore();
@@ -50,12 +51,12 @@ const coins = computed(() => userStore.coins);
 
 function start() {
   if (coins.value < cost) {
-    emitter.emit("toast", "Insufficient coins");
+    emitter.emit("toast", t("matchNew.insufficientCoins"));
     router.push("/recharge");
     return;
   }
   userStore.addCoins(-cost);
-  emitter.emit("toast", `-${cost} coins`);
+  emitter.emit("toast", t("matchNew.coinsDeducted", { cost }));
   router.push("/match-detail");
 }
 

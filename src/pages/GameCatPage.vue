@@ -1,12 +1,12 @@
 <template>
   <section class="page">
-    <TopBar title="Games" />
+    <TopBar :title="t('game.title')" />
     <div class="grid">
       <button v-for="g in games" :key="g.id" class="tile" @click="play">
         <div class="cover" :style="{ background: g.bg }">{{ g.emoji }}</div>
         <div class="foot">
           <span class="name">{{ g.name }}</span>
-          <span class="play">Play</span>
+          <span class="play">{{ t("game.play") }}</span>
         </div>
       </button>
     </div>
@@ -15,7 +15,10 @@
 
 <script setup lang="ts">
 import { showToast } from "vant";
+import { useI18n } from "vue-i18n";
 import TopBar from "../components/TopBar.vue";
+
+const { t } = useI18n();
 
 const games = [
   { id: "greedy-cat", name: "Greedy Cat", emoji: "🐱", bg: "linear-gradient(135deg,#ff8a5c,#eb6300)" },
@@ -27,7 +30,7 @@ const games = [
 ];
 
 function play() {
-  showToast("Coming soon");
+  showToast(t("game.comingSoon"));
 }
 </script>
 

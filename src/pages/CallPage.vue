@@ -11,16 +11,16 @@
         <img class="who-avatar" :src="anchor.avatar" alt="" />
         <div class="who-text">
           <strong>{{ anchor.nickname }}</strong>
-          <span v-if="callState.free" class="free">Free call</span>
+          <span v-if="callState.free" class="free">{{ t("callPage.freeCall") }}</span>
           <span v-else class="price">
-            <img src="/assets/eve/callDialog/coin_300@2x.png" alt="" />{{ anchor.price }}/min
+            <img src="/assets/eve/callDialog/coin_300@2x.png" alt="" />{{ anchor.price }}{{ t("callPage.perMin") }}
           </span>
         </div>
       </div>
     </header>
 
     <div class="meter">
-      <div class="timer">{{ callState.phase === "ringing" ? "Calling…" : elapsed }}</div>
+      <div class="timer">{{ callState.phase === "ringing" ? t("callPage.calling") : elapsed }}</div>
       <div v-if="!callState.free && callState.phase === 'active'" class="spent">
         <img src="/assets/eve/chatRoom/coin_16@2x.png" alt="" />{{ callState.coinCost }}
       </div>
@@ -40,8 +40,8 @@
     <!-- 聊天浮层 -->
     <div class="overlay-msgs">
       <div v-for="(m, i) in msgList" :key="i" class="bubble">
-        <template v-if="m.gift">{{ m.fromSelf ? "You sent" : anchor.nickname }} {{ m.gift }} <b>×{{ m.count }}</b></template>
-        <template v-else>{{ m.fromSelf ? "You" : anchor.nickname }}: {{ m.text }}</template>
+        <template v-if="m.gift">{{ m.fromSelf ? t("callPage.youSent") : anchor.nickname }} {{ m.gift }} <b>×{{ m.count }}</b></template>
+        <template v-else>{{ m.fromSelf ? t("callPage.you") : anchor.nickname }}: {{ m.text }}</template>
       </div>
     </div>
 
@@ -161,7 +161,11 @@ function onGiftSent({ gift, count }: { gift: Gift; count: number }) {
 
 async function onHangup() {
   try {
-    await showConfirmDialog({ title: "Hang up?", message: "End this video call?", confirmButtonText: "Hang up" });
+    await showConfirmDialog({
+      title: t("callPage.hangUpTitle"),
+      message: t("callPage.hangUpMessage"),
+      confirmButtonText: t("call.hangUp")
+    });
   } catch {
     return;
   }

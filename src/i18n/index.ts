@@ -25,17 +25,8 @@ const en = {
     dance: "Dance",
     empty: "No one here yet"
   },
-  match: {
-    title: "Match",
-    subtitle: "Meet someone new in one tap",
-    random: "Random",
-    goddess: "Goddess",
-    perMatch: "/ match"
-  },
-  moments: {
-    discover: "Discover",
-    following: "Following"
-  },
+  match: { title: "Match", subtitle: "Meet someone new in one tap", random: "Random", goddess: "Goddess", perMatch: "/ match" },
+  moments: { discover: "Discover", following: "Following" },
   messages: {
     message: "Message",
     call: "Call",
@@ -59,21 +50,247 @@ const en = {
     language: "Language",
     idCopied: "ID copied"
   },
-  firstCharge: {
-    title: "First Recharge Bonus",
-    subtitle: "Double coins on your very first top-up!",
-    cta: "Recharge now"
+  firstCharge: { title: "First Recharge Bonus", subtitle: "Double coins on your very first top-up!", cta: "Recharge now" },
+  call: { lowBalance: "Low balance — call ends soon", topUp: "Top up", hangUp: "Hang up", endingIn: "Call ends in {n}s" },
+  lang: { en: "English", zh: "中文" },
+
+  wallet: {
+    title: "Wallet",
+    myCoins: "My coins",
+    coinsTip: "Coins are used for video calls, gifts and live interactions.",
+    secureInstant: "Secure · instant arrival",
+    popular: "Popular",
+    bonus: "+{n} bonus",
+    becomeVip: "Become VIP",
+    vipSubtitle: "Unlock perks & lower prices"
   },
-  call: {
-    lowBalance: "Low balance — call ends soon",
-    topUp: "Top up",
-    hangUp: "Hang up",
-    endingIn: "Call ends in {n}s"
+  recharge: {
+    currentBalance: "Current balance",
+    choosePackage: "Choose a package",
+    popular: "Popular",
+    bonus: "bonus",
+    securePayment: "Secure payment",
+    instantArrival: "Instant arrival",
+    receiptsInRecords: "Receipts in records"
   },
-  lang: {
-    en: "English",
-    zh: "中文"
-  }
+  payment: {
+    title: "Payment",
+    coins: "coins",
+    bonus: "bonus",
+    paymentMethod: "Payment method",
+    available: "{count} available",
+    recommended: "Recommended",
+    coinsLabel: "Coins",
+    bonusLabel: "Bonus",
+    totalArrival: "Total arrival",
+    pay: "Pay {price}"
+  },
+  paymentResult: {
+    title: "Payment Result",
+    successHeading: "Payment successful",
+    failHeading: "Payment failed",
+    successDesc: "Coins have been added to your wallet.",
+    failDesc: "The payment was not completed. Please try another method.",
+    status: "Status",
+    statusSuccess: "Success",
+    statusFailed: "Failed",
+    arrivalCoins: "Arrival coins",
+    amount: "Amount",
+    method: "Method",
+    backToWallet: "Back to wallet",
+    continueChatting: "Continue chatting"
+  },
+  walletDetail: { title: "Coin Records", empty: "No records yet" },
+  signIn: {
+    title: "Daily sign-in",
+    rules: "Claim each reward on its day. Miss a day and the streak resets.",
+    day: "Day {day}",
+    signInReward: "Sign in · +{reward}",
+    signedToday: "Signed in today",
+    streakLabel: "Sign-in streak",
+    daysCount: "{count} days",
+    rewardClaimed: "Reward claimed!",
+    balance: "Balance: {coins} coins",
+    awesome: "Awesome"
+  },
+  membership: {
+    title: "Membership",
+    heroSubtitle: "Unlock unlimited video chats, lower match prices & exclusive perks",
+    popular: "Popular",
+    month: "month",
+    months: "months",
+    subscribe: "Subscribe",
+    selectPlan: "Select a plan",
+    subscriptionStarted: "Mock: subscription started"
+  },
+  login: {
+    tagline: "Meet someone new tonight.",
+    continueAsGuest: "Continue as guest",
+    orContinueWith: "or continue with",
+    termsPrefix: "By continuing you agree to our",
+    termsOfService: "Terms of Service",
+    and: "and",
+    privacyPolicy: "Privacy Policy",
+    signingIn: "Signing you in…",
+    comingSoon: "Coming soon"
+  },
+  visitor: {
+    title: "Visitor",
+    empty: "No visitors yet",
+    visits: "{count} Visits",
+    time2m: "2m ago",
+    time1h: "1h ago",
+    timeYesterday: "Yesterday",
+    time3d: "3d ago"
+  },
+  followFans: { title: "Follow & Fans", fans: "Fans", emptyFollowing: "Not following anyone yet", emptyFans: "No fans yet" },
+  blockListPage: { title: "Block List", unblock: "Unblock", empty: "No blocked users", pleaseWait: "Please wait…", unblocked: "Unblocked" },
+  notification: { title: "Notification", empty: "No notifications" },
+  report: {
+    title: "Block & Report",
+    hint: "Select a reason for reporting this user.",
+    blockToo: "Block this user too",
+    reasonPornographic: "Pornographic / vulgar",
+    reasonFraud: "Fraud / scam",
+    reasonHarassment: "Harassment / abuse",
+    reasonUnderage: "Underage",
+    reasonImpersonation: "Impersonation / fake profile",
+    reasonAdvertising: "Advertising / spam",
+    reasonOther: "Other",
+    submitting: "Submitting…",
+    reportedBlocked: "Reported & blocked",
+    reportSubmitted: "Report submitted"
+  },
+  feedbackPage: {
+    title: "Feedback",
+    content: "Content",
+    contentPlaceholder: "Describe your issue or suggestion…",
+    contact: "Contact",
+    contactPlaceholder: "Email or phone (optional)",
+    emptyContent: "Please describe your issue",
+    submitting: "Submitting…",
+    thanks: "Thanks for your feedback"
+  },
+  editProfile: {
+    title: "Edit Profile",
+    avatar: "Avatar",
+    nickname: "Nickname",
+    namePlaceholder: "Your name",
+    bio: "Bio",
+    bioPlaceholder: "Say something about yourself…",
+    gender: "Gender",
+    age: "Age",
+    region: "Region",
+    imageError: "Couldn't load that image",
+    saving: "Saving…",
+    saved: "Saved"
+  },
+  game: { title: "Games", play: "Play", comingSoon: "Coming soon" },
+  composer: {
+    title: "New Moment",
+    post: "Post",
+    shareSomething: "Share something",
+    placeholder: "Say something nice…",
+    addPhotos: "Add photos",
+    someImagesFailed: "Some images couldn't be added",
+    pleaseWrite: "Please write something",
+    posted: "Posted"
+  },
+  userDynamic: { moment: "Moment", followers: "followers", followCta: "+ Follow", noMoments: "No moments yet" },
+  live: {
+    watching: "{count} watching",
+    sentLabel: "{name} sent",
+    joined: "{name} joined",
+    sentGift: "sent {gift}",
+    sayPlaceholder: "Say something…"
+  },
+  nearby: { title: "Nearby", tip: "Based on your location, here are people nearby." },
+  matchNew: {
+    title: "Match",
+    headline: "Thousands of girls are matching now…",
+    perMatch: "/ match",
+    balance: "Balance: {coins} coins",
+    terms: "Each match costs {cost} coins. Coins are non-refundable once a match starts. Be kind and respectful.",
+    startMatch: "Start Match",
+    insufficientCoins: "Insufficient coins",
+    coinsDeducted: "-{cost} coins"
+  },
+  matchDetail: {
+    matchedTitle: "It's a match!",
+    matchingTitle: "Matching…",
+    revealTip: "She'll be hidden in {remain}s — don't miss her",
+    startVideoCall: "Start Video Call",
+    next: "Next",
+    promptMatched: "It's a match! 🎉",
+    promptLikedYou: "She liked you! Tap to like back!",
+    promptTapHeart: "Tap the heart to like her"
+  },
+  chat: {
+    seeTranslation: "See translation",
+    hideTranslation: "Hide translation",
+    canceled: "Canceled",
+    videoCall: "Video call {duration}",
+    inputPlaceholder: "Say something…",
+    statusOnline: "Online",
+    statusBusy: "Busy",
+    statusOffline: "Offline",
+    followed: "Followed",
+    unfollowed: "Unfollowed",
+    report: "Report",
+    block: "Block",
+    reported: "Reported",
+    blocked: "Blocked"
+  },
+  anchor: {
+    female: "Female",
+    online: "Online",
+    busy: "Busy",
+    offline: "Offline",
+    moment: "Moment",
+    more: "More",
+    profile: "Profile",
+    gifts: "Gifts",
+    videoCall: "Video Call",
+    perMin: "/min",
+    report: "Report",
+    block: "Block",
+    copied: "Copied",
+    followed: "Followed",
+    unfollowed: "Unfollowed",
+    blocked: "Blocked"
+  },
+  callPage: {
+    freeCall: "Free call",
+    perMin: "/min",
+    calling: "Calling…",
+    youSent: "You sent",
+    you: "You",
+    hangUpTitle: "Hang up?",
+    hangUpMessage: "End this video call?"
+  },
+  callSummary: {
+    callEnded: "Call ended",
+    callCost: "Call cost",
+    giftCost: "Gift cost",
+    followAnchor: "+ Follow {name}",
+    vipUpsell: "Get VIP and enjoy unlimited video chats",
+    get: "Get",
+    confirm: "Confirm",
+    followed: "Followed",
+    unfollowed: "Unfollowed"
+  },
+  momentCard: {
+    onlineNow: "Online now",
+    activeRecently: "Active recently",
+    hideTranslation: "Hide translation",
+    seeTranslation: "See translation",
+    chat: "Chat",
+    call: "Call",
+    block: "Block",
+    report: "Report"
+  },
+  gift: { title: "Gifts", notEnoughCoins: "Not enough coins" },
+  callModal: { freeTimes: "Free ×3", perMin: "/min", incomingHint: "invites you to a video call…", callingHint: "Calling…" }
 };
 
 const zh: typeof en = {
@@ -101,17 +318,8 @@ const zh: typeof en = {
     dance: "热舞",
     empty: "这里还没有人"
   },
-  match: {
-    title: "匹配",
-    subtitle: "一键遇见新朋友",
-    random: "随机",
-    goddess: "女神",
-    perMatch: "/ 次"
-  },
-  moments: {
-    discover: "发现",
-    following: "关注"
-  },
+  match: { title: "匹配", subtitle: "一键遇见新朋友", random: "随机", goddess: "女神", perMatch: "/ 次" },
+  moments: { discover: "发现", following: "关注" },
   messages: {
     message: "消息",
     call: "通话",
@@ -135,21 +343,247 @@ const zh: typeof en = {
     language: "语言",
     idCopied: "ID 已复制"
   },
-  firstCharge: {
-    title: "首充奖励",
-    subtitle: "首次充值金币翻倍！",
-    cta: "立即充值"
+  firstCharge: { title: "首充奖励", subtitle: "首次充值金币翻倍！", cta: "立即充值" },
+  call: { lowBalance: "余额不足,通话即将结束", topUp: "去充值", hangUp: "挂断", endingIn: "{n} 秒后结束" },
+  lang: { en: "English", zh: "中文" },
+
+  wallet: {
+    title: "钱包",
+    myCoins: "我的金币",
+    coinsTip: "金币可用于视频通话、礼物和直播互动。",
+    secureInstant: "安全 · 即时到账",
+    popular: "热门",
+    bonus: "+{n} 赠送",
+    becomeVip: "成为 VIP",
+    vipSubtitle: "解锁特权与更低价格"
   },
-  call: {
-    lowBalance: "余额不足,通话即将结束",
-    topUp: "去充值",
-    hangUp: "挂断",
-    endingIn: "{n} 秒后结束"
+  recharge: {
+    currentBalance: "当前余额",
+    choosePackage: "选择套餐",
+    popular: "热门",
+    bonus: "赠送",
+    securePayment: "安全支付",
+    instantArrival: "即时到账",
+    receiptsInRecords: "记录中保存凭证"
   },
-  lang: {
-    en: "English",
-    zh: "中文"
-  }
+  payment: {
+    title: "支付",
+    coins: "金币",
+    bonus: "赠送",
+    paymentMethod: "支付方式",
+    available: "{count} 种可用",
+    recommended: "推荐",
+    coinsLabel: "金币",
+    bonusLabel: "赠送",
+    totalArrival: "实际到账",
+    pay: "支付 {price}"
+  },
+  paymentResult: {
+    title: "支付结果",
+    successHeading: "支付成功",
+    failHeading: "支付失败",
+    successDesc: "金币已添加到你的钱包。",
+    failDesc: "支付未完成，请尝试其他方式。",
+    status: "状态",
+    statusSuccess: "成功",
+    statusFailed: "失败",
+    arrivalCoins: "到账金币",
+    amount: "金额",
+    method: "支付方式",
+    backToWallet: "返回钱包",
+    continueChatting: "继续聊天"
+  },
+  walletDetail: { title: "金币记录", empty: "暂无记录" },
+  signIn: {
+    title: "每日签到",
+    rules: "每天领取当日奖励。漏签一天，连签将重置。",
+    day: "第 {day} 天",
+    signInReward: "签到 · +{reward}",
+    signedToday: "今日已签到",
+    streakLabel: "连续签到",
+    daysCount: "{count} 天",
+    rewardClaimed: "奖励已领取！",
+    balance: "余额：{coins} 金币",
+    awesome: "太棒了"
+  },
+  membership: {
+    title: "会员",
+    heroSubtitle: "解锁无限视频聊天、更低匹配价格及专属特权",
+    popular: "热门",
+    month: "个月",
+    months: "个月",
+    subscribe: "订阅",
+    selectPlan: "选择套餐",
+    subscriptionStarted: "模拟:订阅已开始"
+  },
+  login: {
+    tagline: "今晚邂逅新的人。",
+    continueAsGuest: "以访客身份继续",
+    orContinueWith: "或使用以下方式继续",
+    termsPrefix: "继续即表示您同意我们的",
+    termsOfService: "服务条款",
+    and: "和",
+    privacyPolicy: "隐私政策",
+    signingIn: "正在登录…",
+    comingSoon: "敬请期待"
+  },
+  visitor: {
+    title: "访客",
+    empty: "暂无访客",
+    visits: "{count} 次访问",
+    time2m: "2分钟前",
+    time1h: "1小时前",
+    timeYesterday: "昨天",
+    time3d: "3天前"
+  },
+  followFans: { title: "关注与粉丝", fans: "粉丝", emptyFollowing: "还没有关注任何人", emptyFans: "暂无粉丝" },
+  blockListPage: { title: "黑名单", unblock: "解除拉黑", empty: "暂无已拉黑用户", pleaseWait: "请稍候…", unblocked: "已解除拉黑" },
+  notification: { title: "通知", empty: "暂无通知" },
+  report: {
+    title: "举报与拉黑",
+    hint: "请选择举报该用户的原因。",
+    blockToo: "同时拉黑该用户",
+    reasonPornographic: "色情 / 低俗",
+    reasonFraud: "欺诈 / 诈骗",
+    reasonHarassment: "骚扰 / 辱骂",
+    reasonUnderage: "未成年",
+    reasonImpersonation: "冒充 / 虚假资料",
+    reasonAdvertising: "广告 / 垃圾信息",
+    reasonOther: "其他",
+    submitting: "提交中…",
+    reportedBlocked: "已举报并拉黑",
+    reportSubmitted: "举报已提交"
+  },
+  feedbackPage: {
+    title: "意见反馈",
+    content: "内容",
+    contentPlaceholder: "请描述您的问题或建议…",
+    contact: "联系方式",
+    contactPlaceholder: "邮箱或电话（选填）",
+    emptyContent: "请描述您的问题",
+    submitting: "提交中…",
+    thanks: "感谢您的反馈"
+  },
+  editProfile: {
+    title: "编辑资料",
+    avatar: "头像",
+    nickname: "昵称",
+    namePlaceholder: "你的名字",
+    bio: "简介",
+    bioPlaceholder: "说说你自己吧…",
+    gender: "性别",
+    age: "年龄",
+    region: "地区",
+    imageError: "无法加载该图片",
+    saving: "保存中…",
+    saved: "已保存"
+  },
+  game: { title: "游戏", play: "开始", comingSoon: "敬请期待" },
+  composer: {
+    title: "发布动态",
+    post: "发布",
+    shareSomething: "分享点什么",
+    placeholder: "说点好听的…",
+    addPhotos: "添加照片",
+    someImagesFailed: "部分图片无法添加",
+    pleaseWrite: "请写点内容",
+    posted: "已发布"
+  },
+  userDynamic: { moment: "动态", followers: "粉丝", followCta: "+ 关注", noMoments: "暂无动态" },
+  live: {
+    watching: "{count} 人观看",
+    sentLabel: "{name} 送出",
+    joined: "{name} 进入直播间",
+    sentGift: "送出 {gift}",
+    sayPlaceholder: "说点什么…"
+  },
+  nearby: { title: "附近", tip: "根据你的位置，为你推荐附近的人。" },
+  matchNew: {
+    title: "匹配",
+    headline: "成千上万的女生正在匹配中…",
+    perMatch: "/ 次匹配",
+    balance: "余额:{coins} 金币",
+    terms: "每次匹配花费 {cost} 金币。匹配一旦开始,金币不可退还。请友善并尊重他人。",
+    startMatch: "开始匹配",
+    insufficientCoins: "金币不足",
+    coinsDeducted: "-{cost} 金币"
+  },
+  matchDetail: {
+    matchedTitle: "配对成功!",
+    matchingTitle: "匹配中…",
+    revealTip: "{remain} 秒后她将隐身,别错过她",
+    startVideoCall: "发起视频通话",
+    next: "下一位",
+    promptMatched: "配对成功!🎉",
+    promptLikedYou: "她喜欢你!点击回赞吧!",
+    promptTapHeart: "点击爱心喜欢她"
+  },
+  chat: {
+    seeTranslation: "查看翻译",
+    hideTranslation: "隐藏翻译",
+    canceled: "已取消",
+    videoCall: "视频通话 {duration}",
+    inputPlaceholder: "说点什么…",
+    statusOnline: "在线",
+    statusBusy: "忙碌",
+    statusOffline: "离线",
+    followed: "已关注",
+    unfollowed: "已取消关注",
+    report: "举报",
+    block: "拉黑",
+    reported: "已举报",
+    blocked: "已拉黑"
+  },
+  anchor: {
+    female: "女",
+    online: "在线",
+    busy: "忙碌",
+    offline: "离线",
+    moment: "动态",
+    more: "更多",
+    profile: "资料",
+    gifts: "礼物",
+    videoCall: "视频通话",
+    perMin: "/分钟",
+    report: "举报",
+    block: "拉黑",
+    copied: "已复制",
+    followed: "已关注",
+    unfollowed: "已取消关注",
+    blocked: "已拉黑"
+  },
+  callPage: {
+    freeCall: "免费通话",
+    perMin: "/分钟",
+    calling: "呼叫中…",
+    youSent: "你赠送了",
+    you: "你",
+    hangUpTitle: "挂断通话？",
+    hangUpMessage: "结束本次视频通话？"
+  },
+  callSummary: {
+    callEnded: "通话已结束",
+    callCost: "通话花费",
+    giftCost: "礼物花费",
+    followAnchor: "+ 关注 {name}",
+    vipUpsell: "开通 VIP，畅享无限视频聊天",
+    get: "开通",
+    confirm: "确认",
+    followed: "已关注",
+    unfollowed: "已取消关注"
+  },
+  momentCard: {
+    onlineNow: "当前在线",
+    activeRecently: "最近活跃",
+    hideTranslation: "隐藏翻译",
+    seeTranslation: "查看翻译",
+    chat: "聊天",
+    call: "通话",
+    block: "拉黑",
+    report: "举报"
+  },
+  gift: { title: "礼物", notEnoughCoins: "金币不足" },
+  callModal: { freeTimes: "免费 ×3", perMin: "/分钟", incomingHint: "邀请你视频通话…", callingHint: "正在呼叫…" }
 };
 
 export const i18n = createI18n({

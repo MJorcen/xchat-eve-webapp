@@ -1,10 +1,10 @@
 <template>
   <section class="page">
-    <TopBar title="Follow & Fans" />
+    <TopBar :title="t('followFans.title')" />
 
     <div class="tabs">
-      <button :class="['tab', { active: tab === 0 }]" @click="tab = 0">Following<i /></button>
-      <button :class="['tab', { active: tab === 1 }]" @click="tab = 1">Fans<i /></button>
+      <button :class="['tab', { active: tab === 0 }]" @click="tab = 0">{{ t("common.following") }}<i /></button>
+      <button :class="['tab', { active: tab === 1 }]" @click="tab = 1">{{ t("followFans.fans") }}<i /></button>
     </div>
 
     <div class="list">
@@ -21,7 +21,7 @@
           <van-icon name="arrow" class="arrow" />
         </article>
       </template>
-      <EmptyState v-else :text="tab === 0 ? 'Not following anyone yet' : 'No fans yet'" />
+      <EmptyState v-else :text="tab === 0 ? t('followFans.emptyFollowing') : t('followFans.emptyFans')" />
     </div>
   </section>
 </template>
@@ -29,11 +29,13 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
+import { useI18n } from "vue-i18n";
 import TopBar from "../components/TopBar.vue";
 import EmptyState from "../components/EmptyState.vue";
 import { api } from "../services/api";
 import type { Anchor } from "../types/eve";
 
+const { t } = useI18n();
 const route = useRoute();
 const router = useRouter();
 const tab = ref(route.query.type === "followers" ? 1 : 0);
