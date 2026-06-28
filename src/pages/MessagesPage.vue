@@ -20,9 +20,8 @@
           <span>{{ t("messages.liveOnline", { n: lives.length }) }}</span>
         </div>
         <div class="live-avatars">
-          <van-image v-for="r in lives.slice(0, 4)" :key="r.id" round fit="cover" class="la" :src="r.anchor.avatar" lazy-load />
+          <van-image v-for="r in lives.slice(0, 3)" :key="r.id" round fit="cover" class="la" :src="r.anchor.avatar" lazy-load />
         </div>
-        <ChevronRight :size="18" class="arrow" />
       </button>
 
       <div class="entries">
@@ -68,7 +67,7 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref } from "vue";
 import { useRouter } from "vue-router";
-import { ChevronRight, Video } from "lucide-vue-next";
+import { Video } from "lucide-vue-next";
 import ChatRow from "../components/ChatRow.vue";
 import AppSkeleton from "../components/AppSkeleton.vue";
 import { useCall } from "../composables/useCall";
@@ -158,10 +157,10 @@ onUnmounted(() => emitter.off("message:new", onMessage));
 .live-entry {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   width: calc(100% - 32px);
   margin: 6px 16px 4px;
-  padding: 12px 14px;
+  padding: 12px 12px;
   border-radius: 16px;
   background: linear-gradient(120deg, #2a1940, #3b1230);
   border: 1px solid var(--eve-line);
@@ -170,9 +169,10 @@ onUnmounted(() => emitter.off("message:new", onMessage));
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    padding: 3px 9px;
+    padding: 0 8px;
+    height: 20px;
     border-radius: 999px;
-    font-size: 10px;
+    font-size: 9px;
     font-weight: 800;
     color: #fff;
     background: var(--eve-grad);
@@ -194,23 +194,30 @@ onUnmounted(() => emitter.off("message:new", onMessage));
       font-size: 14px;
       font-weight: 700;
       color: #fff;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
     span {
+      display: block;
       font-size: 11px;
       color: var(--eve-muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
   }
   .live-avatars {
     display: flex;
     flex: 0 0 auto;
     .la {
-      width: 26px;
-      height: 26px;
+      width: 22px;
+      height: 22px;
       border-radius: 50%;
       overflow: hidden;
       border: 1.5px solid var(--eve-bg);
       & + .la {
-        margin-left: -8px;
+        margin-left: -7px;
       }
     }
   }
