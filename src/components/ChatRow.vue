@@ -64,8 +64,8 @@ function onClick() {
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  background: #00e397;
-  border: 2px solid #2c1a1a;
+  background: var(--eve-green);
+  border: 2px solid var(--eve-bg);
 }
 
 .body {
@@ -84,7 +84,7 @@ function onClick() {
 
 .last {
   font-size: 13px;
-  color: #9a8b8b;
+  color: var(--eve-faint);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -100,7 +100,7 @@ function onClick() {
 
 .time {
   font-size: 11px;
-  color: #7d6a6a;
+  color: var(--eve-faint);
 }
 
 .badge {
@@ -108,7 +108,7 @@ function onClick() {
   height: 18px;
   padding: 0 5px;
   border-radius: 999px;
-  background: #ff5473;
+  background: var(--eve-pink);
   color: #fff;
   font-size: 11px;
   display: grid;

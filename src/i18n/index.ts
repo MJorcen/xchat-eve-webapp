@@ -35,7 +35,9 @@ const en = {
     notifications: "Notifications",
     noNew: "No new notifications",
     visitors: "Visitors",
-    newVisitors: "You have new visitors!"
+    newVisitors: "You have new visitors!",
+    liveStreaming: "Live streaming",
+    liveOnline: "{n} hosts live now"
   },
   mine: {
     following: "Following",
@@ -378,7 +380,9 @@ const zh: typeof en = {
     notifications: "通知",
     noNew: "暂无新通知",
     visitors: "访客",
-    newVisitors: "有新访客啦！"
+    newVisitors: "有新访客啦！",
+    liveStreaming: "直播",
+    liveOnline: "{n} 位主播正在直播"
   },
   mine: {
     following: "关注",

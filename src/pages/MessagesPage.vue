@@ -12,6 +12,19 @@
     <AppSkeleton v-if="loading" type="list" />
 
     <template v-else-if="tab === 'message'">
+      <!-- 直播入口 -->
+      <button v-if="lives.length" class="live-entry" @click="router.push(`/live/${lives[0].id}`)">
+        <span class="live-badge"><i class="d" />LIVE</span>
+        <div class="live-text">
+          <strong>{{ t("messages.liveStreaming") }}</strong>
+          <span>{{ t("messages.liveOnline", { n: lives.length }) }}</span>
+        </div>
+        <div class="live-avatars">
+          <van-image v-for="r in lives.slice(0, 4)" :key="r.id" round fit="cover" class="la" :src="r.anchor.avatar" lazy-load />
+        </div>
+        <ChevronRight :size="18" class="arrow" />
+      </button>
+
       <div class="entries">
         <button class="entry" @click="router.push('/notifications')">
           <img src="/assets/eve/messages/noticeNew.png" alt="" />
@@ -44,7 +57,7 @@
             <small class="time">{{ call.time }}</small>
           </div>
           <button class="call-btn" @click.stop="openCall(call.user)">
-            <img src="/assets/eve/messages/ic_video@2x.png" alt="" />
+            <Video :size="22" :stroke-width="2" />
           </button>
         </article>
       </div>
@@ -55,13 +68,14 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref } from "vue";
 import { useRouter } from "vue-router";
+import { ChevronRight, Video } from "lucide-vue-next";
 import ChatRow from "../components/ChatRow.vue";
 import AppSkeleton from "../components/AppSkeleton.vue";
 import { useCall } from "../composables/useCall";
 import { useI18n } from "vue-i18n";
 import emitter from "../common/eventBus";
 import { api } from "../services/api";
-import type { CallRecord, Conversation } from "../types/eve";
+import type { CallRecord, Conversation, LiveRoom } from "../types/eve";
 
 defineOptions({ name: "MessagesPage" });
 
@@ -72,6 +86,7 @@ const tab = ref<"message" | "call">("message");
 const loading = ref(true);
 const conversations = ref<Conversation[]>([]);
 const calls = ref<CallRecord[]>([]);
+const lives = ref<LiveRoom[]>([]);
 
 // 模拟服务端推送：新消息落到对应会话，递增未读并更新最后一条
 function onMessage(p: { fromId: number; text: string }) {
@@ -83,7 +98,11 @@ function onMessage(p: { fromId: number; text: string }) {
 }
 
 onMounted(async () => {
-  [conversations.value, calls.value] = await Promise.all([api.getConversations(), api.getCalls()]);
+  [conversations.value, calls.value, lives.value] = await Promise.all([
+    api.getConversations(),
+    api.getCalls(),
+    api.getLiveRooms()
+  ]);
   loading.value = false;
   emitter.on("message:new", onMessage);
 });
@@ -96,7 +115,7 @@ onUnmounted(() => emitter.off("message:new", onMessage));
   height: 100vh;
   overflow-y: auto;
   padding-bottom: 84px;
-  background: #2c1a1a;
+  background: var(--eve-bg);
 }
 
 .top-tabs {
@@ -107,14 +126,14 @@ onUnmounted(() => emitter.off("message:new", onMessage));
   align-items: flex-end;
   gap: 22px;
   padding: calc(14px + env(safe-area-inset-top)) 16px 12px;
-  background: #2c1a1a;
+  background: var(--eve-bg);
 }
 
 .top-tab {
   position: relative;
   font-size: 18px;
-  font-weight: 700;
-  color: #888;
+  font-weight: 800;
+  color: var(--eve-faint);
 
   .underline {
     position: absolute;
@@ -128,17 +147,87 @@ onUnmounted(() => emitter.off("message:new", onMessage));
 
   &.active {
     font-size: 21px;
-    color: #eb6300;
+    color: #fff;
     .underline {
-      background: #eb6300;
+      background: var(--eve-grad);
+      box-shadow: var(--eve-glow-pink);
     }
   }
+}
+
+.live-entry {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: calc(100% - 32px);
+  margin: 6px 16px 4px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: linear-gradient(120deg, #2a1940, #3b1230);
+  border: 1px solid var(--eve-line);
+
+  .live-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 9px;
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 800;
+    color: #fff;
+    background: var(--eve-grad);
+    flex: 0 0 auto;
+    .d {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: #fff;
+      animation: blink 1.2s ease-in-out infinite;
+    }
+  }
+  .live-text {
+    flex: 1;
+    min-width: 0;
+    text-align: left;
+    strong {
+      display: block;
+      font-size: 14px;
+      font-weight: 700;
+      color: #fff;
+    }
+    span {
+      font-size: 11px;
+      color: var(--eve-muted);
+    }
+  }
+  .live-avatars {
+    display: flex;
+    flex: 0 0 auto;
+    .la {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      overflow: hidden;
+      border: 1.5px solid var(--eve-bg);
+      & + .la {
+        margin-left: -8px;
+      }
+    }
+  }
+  .arrow {
+    color: var(--eve-faint);
+    flex: 0 0 auto;
+  }
+}
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
 }
 
 .entries {
   display: flex;
   gap: 12px;
-  padding: 6px 16px 10px;
+  padding: 8px 16px 10px;
 }
 
 .entry {
@@ -148,7 +237,8 @@ onUnmounted(() => emitter.off("message:new", onMessage));
   align-items: center;
   gap: 10px;
   padding: 12px;
-  background: #3a2526;
+  background: var(--eve-surface);
+  border: 1px solid var(--eve-line);
   border-radius: 14px;
   text-align: left;
 
@@ -171,7 +261,7 @@ onUnmounted(() => emitter.off("message:new", onMessage));
   }
   span {
     font-size: 11px;
-    color: #9a8b8b;
+    color: var(--eve-faint);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -210,23 +300,21 @@ onUnmounted(() => emitter.off("message:new", onMessage));
   }
   .sub {
     font-size: 12px;
-    color: #9a8b8b;
+    color: var(--eve-faint);
   }
   .time {
     font-size: 11px;
-    color: #7d6a6a;
+    color: var(--eve-faint);
   }
   .call-btn {
     width: 40px;
     height: 40px;
     border-radius: 50%;
-    background: #3a2526;
+    color: #fff;
+    background: var(--eve-grad);
+    box-shadow: var(--eve-glow-pink);
     display: grid;
     place-items: center;
-    img {
-      width: 22px;
-      height: 22px;
-    }
   }
 }
 </style>

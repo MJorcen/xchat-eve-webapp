@@ -1,5 +1,5 @@
 <template>
-  <section v-if="room" class="live-room">
+  <section v-if="room" class="live-room" @touchstart.passive="onTouchStart" @touchend="onTouchEnd">
     <img class="stage" :src="room.cover" alt="" />
     <div class="scrim-top" />
     <div class="scrim-bottom" />
@@ -46,6 +46,14 @@
       </div>
     </div>
 
+    <!-- 快捷礼物条 -->
+    <div class="quick-gifts">
+      <button v-for="g in quickGifts" :key="g.id" class="qg" @click="quickSend(g)">
+        <span class="qg-ico">{{ g.icon }}</span>
+        <span class="qg-val">{{ g.price }}</span>
+      </button>
+    </div>
+
     <!-- 底部操作 -->
     <footer class="bottom-bar">
       <input v-model="draft" class="say" :placeholder="t('live.sayPlaceholder')" @keyup.enter="sendComment" />
@@ -67,6 +75,7 @@ import { useI18n } from "vue-i18n";
 import emitter from "../common/eventBus";
 import { api } from "../services/api";
 import { useCall } from "../composables/useCall";
+import { useUserStore } from "../stores";
 import { countryFlag } from "../utils/assets";
 import GiftPanel from "../components/GiftPanel.vue";
 import type { Anchor, Gift, LiveRoom } from "../types/eve";
@@ -75,12 +84,17 @@ const route = useRoute();
 const router = useRouter();
 const { t } = useI18n();
 const { startOutgoing } = useCall();
+const userStore = useUserStore();
 
+const rooms = ref<LiveRoom[]>([]);
+const idx = ref(0);
+const quickGifts = ref<Gift[]>([]);
 const room = ref<LiveRoom | null>(null);
 const viewers = ref(0);
 const followed = ref(false);
 const showGift = ref(false);
 const draft = ref("");
+let touchStartY = 0;
 const comments = ref<{ name: string; text: string; avatar?: string; kind: "text" | "enter" | "gift" | "self" | "system" }[]>([]);
 const hearts = ref<{ id: number; dx: number; color: string }[]>([]);
 const banner = ref<{ name: string; avatar: string; gift: string; icon: string } | null>(null);
@@ -94,7 +108,7 @@ const timers: number[] = [];
 const heartTimeouts: number[] = [];
 
 const phrases = ["You look amazing 😍", "Hi from Brazil 🇧🇷", "sing one more!", "first time here", "love this vibe", "so pretty 💕", "hello everyone"];
-const heartColors = ["#ff5473", "#eb6300", "#ffd36e"];
+const heartColors = ["#ff5473", "var(--eve-pink)", "var(--eve-gold)"];
 
 function formatViewers(n: number) {
   return n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(n);
@@ -133,17 +147,58 @@ function callAnchor() {
   if (room.value) startOutgoing(room.value.anchor);
 }
 
-onMounted(async () => {
-  const id = Number(route.params.id);
-  const [rooms, g, anchors] = await Promise.all([api.getLiveRooms(), api.getGifts(), api.getAnchors()]);
-  room.value = rooms.find((r) => r.id === id) || rooms[0];
-  gifts = g;
-  senders = anchors;
-  viewers.value = room.value?.viewers || 0;
-
-  pushComment({ name: "System", text: `Welcome to ${room.value?.anchor.nickname}'s room 💕`, kind: "system" });
+function seedRoom() {
+  if (!room.value) return;
+  comments.value = [];
+  banner.value = null;
+  viewers.value = room.value.viewers || 0;
+  pushComment({ name: "System", text: `Welcome to ${room.value.anchor.nickname}'s room 💕`, kind: "system" });
   pushComment({ name: rand(senders).nickname, text: "", kind: "enter" });
   pushComment({ name: rand(senders).nickname, text: rand(phrases), kind: "text" });
+}
+
+// 上下滑切换主播房间
+function switchRoom(dir: number) {
+  if (rooms.value.length < 2) return;
+  idx.value = (idx.value + dir + rooms.value.length) % rooms.value.length;
+  room.value = rooms.value[idx.value];
+  followed.value = false;
+  seedRoom();
+}
+function onTouchStart(e: TouchEvent) {
+  touchStartY = e.touches[0].clientY;
+}
+function onTouchEnd(e: TouchEvent) {
+  if ((e.target as HTMLElement).closest(".bottom-bar, .quick-gifts, .top-bar, .comments")) return;
+  const dy = e.changedTouches[0].clientY - touchStartY;
+  if (Math.abs(dy) > 70) switchRoom(dy < 0 ? 1 : -1);
+}
+
+// 快捷送礼(一键)
+function quickSend(g: Gift) {
+  if (userStore.coins < g.price) {
+    emitter.emit("toast", t("gift.notEnoughCoins"));
+    router.push("/recharge");
+    return;
+  }
+  userStore.addCoins(-g.price);
+  pushComment({ name: "You", text: `${g.name} ×1`, kind: "gift" });
+  banner.value = { name: "You", avatar: userStore.user.avatar || "", gift: g.name, icon: g.icon };
+  if (bannerTimer) window.clearTimeout(bannerTimer);
+  bannerTimer = window.setTimeout(() => (banner.value = null), 3500);
+  spawnHeart(true);
+}
+
+onMounted(async () => {
+  const id = Number(route.params.id);
+  const [list, g, anchors] = await Promise.all([api.getLiveRooms(), api.getGifts(), api.getAnchors()]);
+  rooms.value = list;
+  gifts = g;
+  quickGifts.value = g.slice(0, 5);
+  senders = anchors;
+  idx.value = Math.max(0, list.findIndex((r) => r.id === id));
+  room.value = list[idx.value] || list[0];
+  seedRoom();
 
   const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
@@ -264,7 +319,7 @@ onUnmounted(() => {
   font-size: 13px;
   font-weight: 600;
   color: #fff;
-  background: linear-gradient(90deg, #ff5473, #eb6300);
+  background: var(--eve-grad);
   &.on {
     background: transparent;
     border: 1px solid rgba(255, 255, 255, 0.5);
@@ -300,7 +355,7 @@ onUnmounted(() => {
     overflow: hidden;
   }
   b {
-    color: #ffd36e;
+    color: var(--eve-gold);
   }
   .face {
     font-size: 24px;
@@ -362,22 +417,58 @@ onUnmounted(() => {
   line-height: 1.3;
   word-break: break-word;
   b {
-    color: #eb6300;
+    color: var(--eve-pink);
   }
   &.gift b {
-    color: #ffd36e;
+    color: var(--eve-gold);
   }
   &.enter,
   &.system {
-    color: #00e397;
+    color: var(--eve-green);
   }
   &.gift {
-    color: #ffd36e;
+    color: var(--eve-gold);
   }
   &.self b {
-    color: #ff5473;
+    color: var(--eve-pink);
   }
 }
+.quick-gifts {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: calc(58px + env(safe-area-inset-bottom));
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  z-index: 28;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+.qg {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  width: 46px;
+  padding: 5px 0;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.42);
+  border: 1px solid var(--eve-line);
+  backdrop-filter: blur(4px);
+  .qg-ico {
+    font-size: 22px;
+    line-height: 1;
+  }
+  .qg-val {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--eve-gold);
+  }
+}
+
 .bottom-bar {
   position: absolute;
   left: 0;
@@ -399,7 +490,7 @@ onUnmounted(() => {
   color: #fff;
   font-size: 14px;
   &::placeholder {
-    color: #9a8b8b;
+    color: var(--eve-faint);
   }
 }
 .round {
@@ -418,10 +509,10 @@ onUnmounted(() => {
   }
 }
 .gift-btn {
-  background: linear-gradient(135deg, #ff5473, #eb6300);
+  background: var(--eve-grad);
 }
 .call-btn {
-  background: #ff5473;
+  background: var(--eve-pink);
 }
 .slide-fade-enter-active,
 .slide-fade-leave-active {
