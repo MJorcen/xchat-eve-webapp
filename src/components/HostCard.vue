@@ -24,8 +24,8 @@
         </span>
       </div>
       <div class="meta-row">
-        <span class="age-pill"><span class="sex">♀</span>{{ anchor.age }}</span>
         <img class="flag" :src="countryFlag(anchor.region)" alt="" />
+        <span class="region">{{ anchor.region.toUpperCase() }}·{{ anchor.age }}</span>
       </div>
     </div>
 
@@ -170,28 +170,26 @@ const callable = computed(() => props.anchor.online && props.anchor.onDuty && !p
 .meta-row {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
   margin-top: 5px;
-}
-
-.age-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-  height: 18px;
-  padding: 0 7px;
-  font-size: 10px;
-  font-weight: 700;
-  color: #fff;
-  background: var(--eve-pink);
-  border-radius: 20px;
+  min-width: 0;
 }
 
 .flag {
-  width: 20px;
-  height: 14px;
+  width: 19px;
+  height: 13px;
   border-radius: 3px;
   object-fit: cover;
+  flex: 0 0 auto;
+}
+
+.region {
+  font-size: 11px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.85);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .dist {
