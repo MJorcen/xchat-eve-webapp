@@ -1,11 +1,11 @@
 <template>
   <section v-if="anchor" class="call-screen">
-    <!-- 远端"视频"（mock：主播头像铺底） -->
+    <!-- 远端"视频"(mock:主播头像铺底) -->
     <img class="remote" :src="anchor.avatar" alt="" />
     <div class="scrim-top" />
     <div class="scrim-bottom" />
 
-    <!-- 顶部身份 + 计费 -->
+    <!-- 顶部身份 + 挂断 -->
     <header class="top">
       <div class="who">
         <img class="who-avatar" :src="anchor.avatar" alt="" />
@@ -13,37 +13,65 @@
           <strong>{{ anchor.nickname }}</strong>
           <span v-if="callState.free" class="free">{{ t("callPage.freeCall") }}</span>
           <span v-else class="price">
-            <img src="/assets/eve/callDialog/coin_300@2x.png" alt="" />{{ anchor.price }}{{ t("callPage.perMin") }}
+            <Coins :size="13" :stroke-width="1.8" />{{ anchor.price }}{{ t("callPage.perMin") }}
           </span>
         </div>
       </div>
+      <button class="hangup-top" @click="onHangup"><PhoneOff :size="20" :stroke-width="2.2" /></button>
     </header>
 
     <div class="meter">
       <div class="timer">{{ callState.phase === "ringing" ? t("callPage.calling") : elapsed }}</div>
       <div v-if="!callState.free && callState.phase === 'active'" class="spent">
-        <img src="/assets/eve/chatRoom/coin_16@2x.png" alt="" />{{ callState.coinCost }}
+        <Coins :size="13" :stroke-width="1.8" />{{ callState.coinCost }}
       </div>
     </div>
 
     <!-- 本地 PIP -->
     <div class="pip">
       <img v-if="callState.cameraOn" :src="user?.avatar" alt="" />
-      <div v-else class="pip-off">
-        <img src="/assets/eve/callDialog/ic_camera_close@2x.png" alt="" />
+      <div v-else class="pip-off"><VideoOff :size="26" :stroke-width="1.8" /></div>
+      <button class="pip-switch" @click="switchCamera"><SwitchCamera :size="15" :stroke-width="2" /></button>
+    </div>
+
+    <!-- 公屏聊天 -->
+    <div ref="msgScroll" class="screen-msgs">
+      <div v-for="(m, i) in msgList" :key="i" class="msg" :class="{ sys: m.system }">
+        <template v-if="m.system">
+          <span class="sys-txt">{{ m.text }}</span>
+        </template>
+        <template v-else-if="m.gift">
+          <b class="from" :class="{ self: m.fromSelf }">{{ m.fromSelf ? t("callPage.you") : anchor.nickname }}</b>
+          <span class="g-txt">{{ t("callPage.sentGift") }}</span>
+          <span class="g-ico">{{ m.gift }}</span>
+          <span class="g-x">×{{ m.count }}</span>
+        </template>
+        <template v-else>
+          <b class="from" :class="{ self: m.fromSelf }">{{ m.fromSelf ? t("callPage.you") : anchor.nickname }}</b>
+          <span class="m-txt">{{ m.text }}</span>
+        </template>
       </div>
-      <button class="pip-switch" @click="switchCamera">
-        <img src="/assets/eve/callDialog/ic_changecamera@2x.png" alt="" />
+    </div>
+
+    <!-- 快捷礼物条 -->
+    <div class="quick-gifts">
+      <button v-for="g in quickGifts" :key="g.id" class="qg" @click="sendQuick(g)">
+        <span class="qg-ico">{{ g.icon }}</span>
+        <span class="qg-price"><Coins :size="11" :stroke-width="2" />{{ g.price }}</span>
       </button>
     </div>
 
-    <!-- 聊天浮层 -->
-    <div class="overlay-msgs">
-      <div v-for="(m, i) in msgList" :key="i" class="bubble">
-        <template v-if="m.gift">{{ m.fromSelf ? t("callPage.youSent") : anchor.nickname }} {{ m.gift }} <b>×{{ m.count }}</b></template>
-        <template v-else>{{ m.fromSelf ? t("callPage.you") : anchor.nickname }}: {{ m.text }}</template>
+    <!-- 底部:输入 + 操作 -->
+    <footer class="dock">
+      <div class="input-bar">
+        <input v-model="draft" :placeholder="t('callPage.saySomething')" @keyup.enter="sendMsg" />
+        <button class="send" :class="{ on: draft.trim() }" @click="sendMsg"><Send :size="18" :stroke-width="2" /></button>
       </div>
-    </div>
+      <button class="act" @click="toggleMic">
+        <component :is="callState.micOn ? Mic : MicOff" :size="22" :stroke-width="1.9" />
+      </button>
+      <button class="act gift" @click="showGift = true"><Gift :size="22" :stroke-width="1.9" /></button>
+    </footer>
 
     <!-- 余额不足倒计时弹窗 -->
     <van-popup :show="showCountdown" round teleport="body" class="cd-popup" :z-index="9930" :close-on-click-overlay="false">
@@ -56,52 +84,41 @@
       </div>
     </van-popup>
 
-    <!-- 底部控制 -->
-    <footer class="controls">
-      <button class="ctrl" @click="toggleMic">
-        <img :src="callState.micOn ? '/assets/eve/callDialog/ic_calling_mic@2x.png' : '/assets/eve/callDialog/ic_mic-off@2x.png'" alt="" />
-      </button>
-      <button class="ctrl" @click="toggleCamera">
-        <img :src="callState.cameraOn ? '/assets/eve/callDialog/ic_camera_open@2x.png' : '/assets/eve/callDialog/ic_camera_close@2x.png'" alt="" />
-      </button>
-      <button class="ctrl gift" @click="showGift = true">
-        <img src="/assets/eve/callDialog/ic_calling_gift@2x.png" alt="" />
-      </button>
-      <button class="ctrl coin" @click="router.push('/recharge')">
-        <img src="/assets/eve/callDialog/ic_calling_coin@2x.png" alt="" />
-      </button>
-      <button class="ctrl hangup" @click="onHangup">
-        <img src="/assets/eve/callDialog/ic_phone-hangup@2x.png" alt="" />
-      </button>
-    </footer>
-
     <GiftPanel v-model:show="showGift" :anchor="anchor" @sent="onGiftSent" />
   </section>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref, watch } from "vue";
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { showConfirmDialog } from "vant";
 import { useI18n } from "vue-i18n";
+import { Coins, PhoneOff, SwitchCamera, Mic, MicOff, VideoOff, Gift, Send } from "lucide-vue-next";
 import emitter from "../common/eventBus";
 import { api } from "../services/api";
 import { useCall } from "../composables/useCall";
+import { useGiftAnimation } from "../composables/useGiftAnimation";
 import { useUserStore } from "../stores";
 import GiftPanel from "../components/GiftPanel.vue";
-import type { Anchor, CurrentUser, Gift } from "../types/eve";
+import type { Anchor, CurrentUser, Gift as GiftType } from "../types/eve";
 
 const { t } = useI18n();
 const route = useRoute();
 const router = useRouter();
 const userStore = useUserStore();
-const { callState, elapsed, startOutgoing, hangup, reset, toggleMic, toggleCamera, switchCamera, addGiftCost } = useCall();
+const anim = useGiftAnimation();
+const { callState, elapsed, startOutgoing, hangup, reset, toggleMic, switchCamera, addGiftCost } = useCall();
 
 const id = Number(route.params.id);
 const anchor = ref<Anchor | null>(null);
 const user = ref<CurrentUser | null>(null);
 const showGift = ref(false);
-const msgList = ref<{ text?: string; gift?: string; count?: number; fromSelf: boolean }[]>([]);
+const quickGifts = ref<GiftType[]>([]);
+const draft = ref("");
+const msgScroll = ref<HTMLElement | null>(null);
+type Msg = { text?: string; gift?: string; count?: number; fromSelf?: boolean; system?: boolean };
+const msgList = ref<Msg[]>([]);
+const greetTimers: number[] = [];
 
 const lowBalance = computed(
   () => !callState.free && callState.phase === "active" && !!anchor.value && userStore.coins < anchor.value.price
@@ -141,11 +158,37 @@ watch(lowBalance, (low) => {
   }
 });
 
-function onMessage(p: { fromId: number; text: string }) {
-  if (p.fromId === id) msgList.value.push({ text: p.text, fromSelf: false });
+function pushMsg(m: Msg) {
+  msgList.value.push(m);
+  nextTick(() => {
+    if (msgScroll.value) msgScroll.value.scrollTop = msgScroll.value.scrollHeight;
+  });
 }
 
-// 通话结束 → 结算页（携带计费明细）
+function onMessage(p: { fromId: number; text: string }) {
+  if (p.fromId === id) pushMsg({ text: p.text, fromSelf: false });
+}
+
+function sendMsg() {
+  const text = draft.value.trim();
+  if (!text) return;
+  pushMsg({ text, fromSelf: true });
+  draft.value = "";
+}
+
+function sendQuick(g: GiftType) {
+  if (userStore.coins < g.price) {
+    emitter.emit("toast", t("gift.notEnoughCoins"));
+    router.push("/recharge");
+    return;
+  }
+  userStore.addCoins(-g.price);
+  anim.play(g, 1, true);
+  addGiftCost(g.price);
+  pushMsg({ gift: g.icon, count: 1, fromSelf: true });
+}
+
+// 通话结束 → 结算页(携带计费明细)
 function onHangupEvent(p: { anchor: Anchor; duration: number }) {
   if (p.anchor.id === id) {
     router.replace(
@@ -154,9 +197,9 @@ function onHangupEvent(p: { anchor: Anchor; duration: number }) {
   }
 }
 
-function onGiftSent({ gift, count }: { gift: Gift; count: number }) {
+function onGiftSent({ gift, count }: { gift: GiftType; count: number }) {
   addGiftCost(gift.price * count);
-  msgList.value.push({ gift: gift.icon, count, fromSelf: true });
+  pushMsg({ gift: gift.icon, count, fromSelf: true });
 }
 
 async function onHangup() {
@@ -172,11 +215,24 @@ async function onHangup() {
   hangup();
 }
 
+// 接通后公屏来点"生气"(系统进场 + 主播两句寒暄)
+watch(
+  () => callState.phase,
+  (phase, prev) => {
+    if (phase === "active" && prev !== "active" && anchor.value) {
+      pushMsg({ system: true, text: t("callPage.joined", { name: anchor.value.nickname }) });
+      greetTimers.push(window.setTimeout(() => pushMsg({ text: t("callPage.greet1"), fromSelf: false }), 2600));
+      greetTimers.push(window.setTimeout(() => pushMsg({ text: t("callPage.greet2"), fromSelf: false }), 7200));
+    }
+  }
+);
+
 onMounted(async () => {
-  const [a, u] = await Promise.all([api.getAnchor(id), api.getCurrentUser()]);
+  const [a, u, gifts] = await Promise.all([api.getAnchor(id), api.getCurrentUser(), api.getGifts()]);
   anchor.value = a;
   user.value = u;
-  // 直接进入 /call/:id（深链/去电）时若无进行中的通话，则发起去电
+  quickGifts.value = gifts.slice(0, 4);
+  // 直接进入 /call/:id(深链/去电)时若无进行中的通话,则发起去电
   if (callState.target?.id !== id || callState.phase === "idle" || callState.phase === "ended") {
     startOutgoing(a);
   }
@@ -187,8 +243,9 @@ onMounted(async () => {
 onUnmounted(() => {
   emitter.off("message:new", onMessage);
   emitter.off("call:hangup", onHangupEvent);
+  greetTimers.forEach((tid) => window.clearTimeout(tid));
   stopCountdown();
-  // 离开通话页时若仍在拨号/响铃，取消（清掉 ringTimer，避免后台自动接通并继续计费）
+  // 离开通话页时若仍在拨号/响铃,取消(清掉 ringTimer,避免后台自动接通并继续计费)
   if (callState.phase === "ringing" || callState.phase === "incoming") reset();
 });
 </script>
@@ -197,6 +254,9 @@ onUnmounted(() => {
 .call-screen {
   position: fixed;
   inset: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(400PX, 100vw);
   background: #000;
   overflow: hidden;
 }
@@ -214,8 +274,8 @@ onUnmounted(() => {
   top: 0;
   left: 0;
   right: 0;
-  height: 30%;
-  background: linear-gradient(180deg, rgba(0, 0, 0, 0.55), transparent);
+  height: 26%;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.6), transparent);
 }
 
 .scrim-bottom {
@@ -223,26 +283,33 @@ onUnmounted(() => {
   bottom: 0;
   left: 0;
   right: 0;
-  height: 30%;
-  background: linear-gradient(0deg, rgba(0, 0, 0, 0.6), transparent);
+  height: 44%;
+  background: linear-gradient(0deg, rgba(8, 5, 14, 0.92), transparent);
 }
 
 .top {
   position: absolute;
-  top: 16px;
-  left: 16px;
-  right: 16px;
+  top: calc(14px + env(safe-area-inset-top));
+  left: 14px;
+  right: 14px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
 }
 
 .who {
   display: flex;
   align-items: center;
   gap: 10px;
+  padding: 5px 12px 5px 5px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(6px);
 }
 
 .who-avatar {
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   object-fit: cover;
 }
@@ -250,40 +317,50 @@ onUnmounted(() => {
 .who-text {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 1px;
   strong {
-    font-size: 16px;
+    font-size: 15px;
+    font-weight: 700;
     color: #fff;
   }
   .free {
-    font-size: 12px;
-    color: #00e397;
+    font-size: 11px;
+    color: var(--eve-green);
   }
   .price {
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    font-size: 12px;
-    color: #ffd36e;
-    img {
-      width: 14px;
-      height: 14px;
-    }
+    font-size: 11px;
+    color: var(--eve-gold);
   }
+}
+
+.hangup-top {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  background: #ff3b50;
+  box-shadow: 0 4px 14px rgba(255, 59, 80, 0.5);
 }
 
 .meter {
   position: absolute;
-  top: 72px;
+  top: calc(64px + env(safe-area-inset-top));
   left: 16px;
   display: flex;
-  flex-direction: column;
-  gap: 4px;
+  align-items: center;
+  gap: 10px;
 }
 
 .timer {
-  font-size: 15px;
+  font-size: 14px;
+  font-weight: 600;
   color: #fff;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
 }
 
 .spent {
@@ -291,23 +368,20 @@ onUnmounted(() => {
   align-items: center;
   gap: 4px;
   font-size: 13px;
-  color: #ffd36e;
-  img {
-    width: 14px;
-    height: 14px;
-  }
+  font-weight: 700;
+  color: var(--eve-gold);
 }
 
 .pip {
   position: absolute;
-  top: 64px;
-  right: 16px;
-  width: 96px;
-  height: 140px;
-  border-radius: 12px;
+  top: calc(62px + env(safe-area-inset-top));
+  right: 14px;
+  width: 92px;
+  height: 132px;
+  border-radius: 14px;
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  background: #3a2526;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: var(--eve-surface);
 
   img {
     width: 100%;
@@ -321,10 +395,7 @@ onUnmounted(() => {
   place-items: center;
   width: 100%;
   height: 100%;
-  img {
-    width: 32px;
-    height: 32px;
-  }
+  color: var(--eve-faint);
 }
 
 .pip-switch {
@@ -334,43 +405,186 @@ onUnmounted(() => {
   width: 26px;
   height: 26px;
   border-radius: 50%;
-  background: rgba(0, 0, 0, 0.45);
+  background: rgba(0, 0, 0, 0.5);
+  color: #fff;
   display: grid;
   place-items: center;
-  img {
-    width: 16px;
-    height: 16px;
-  }
 }
 
-.overlay-msgs {
+.screen-msgs {
   position: absolute;
-  left: 16px;
-  bottom: 130px;
-  max-height: 30vh;
-  max-width: 70%;
+  left: 14px;
+  right: 96px;
+  bottom: 132px;
+  max-height: 34vh;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 7px;
+  -webkit-mask-image: linear-gradient(180deg, transparent, #000 18%);
+  mask-image: linear-gradient(180deg, transparent, #000 18%);
+  &::-webkit-scrollbar {
+    display: none;
+  }
 }
 
-.bubble {
+.msg {
   align-self: flex-start;
-  padding: 6px 12px;
-  border-radius: 16px;
-  background: rgba(0, 0, 0, 0.4);
-  color: #fff;
+  max-width: 100%;
+  padding: 6px 11px;
+  border-radius: 14px;
+  background: rgba(0, 0, 0, 0.42);
+  backdrop-filter: blur(2px);
   font-size: 13px;
-  b {
-    color: #ff5473;
+  line-height: 1.35;
+  color: #fff;
+
+  .from {
+    font-weight: 700;
+    color: #ffb0c8;
+    margin-right: 5px;
+    &.self {
+      color: #c0a3ff;
+    }
+  }
+  .g-txt {
+    color: rgba(255, 255, 255, 0.85);
+  }
+  .g-ico {
+    margin: 0 4px;
+    font-size: 16px;
+    vertical-align: middle;
+  }
+  .g-x {
+    font-weight: 800;
+    color: var(--eve-pink);
+  }
+  &.sys {
+    align-self: center;
+    background: rgba(153, 69, 255, 0.18);
+    border: 1px solid rgba(153, 69, 255, 0.3);
+    .sys-txt {
+      font-size: 12px;
+      color: #d4c2ff;
+    }
+  }
+}
+
+.quick-gifts {
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  bottom: 80px;
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.qg {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  width: 52px;
+  padding: 7px 0 5px;
+  border-radius: 14px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid var(--eve-line);
+  backdrop-filter: blur(4px);
+
+  .qg-ico {
+    font-size: 24px;
+    line-height: 1;
+  }
+  .qg-price {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--eve-gold);
+  }
+}
+
+.dock {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 10px calc(10px + env(safe-area-inset-bottom));
+}
+
+.input-bar {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 44px;
+  padding: 0 6px 0 14px;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  backdrop-filter: blur(8px);
+
+  input {
+    flex: 1;
+    min-width: 0;
+    border: 0;
+    background: transparent;
+    color: #fff;
+    font-size: 14px;
+    &::placeholder {
+      color: rgba(255, 255, 255, 0.55);
+    }
+  }
+  .send {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    color: rgba(255, 255, 255, 0.5);
+    background: rgba(255, 255, 255, 0.1);
+    transition: all 0.2s;
+    &.on {
+      color: #fff;
+      background: var(--eve-grad);
+      box-shadow: var(--eve-glow-pink);
+    }
+  }
+}
+
+.act {
+  flex: 0 0 auto;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.14);
+  backdrop-filter: blur(8px);
+
+  &.gift {
+    color: #fff;
+    background: var(--eve-grad);
+    box-shadow: var(--eve-glow-pink);
   }
 }
 
 .cd {
   width: 280px;
   padding: 28px 24px 22px;
-  background: linear-gradient(180deg, #4a2526, #2c1a1a);
+  background: linear-gradient(180deg, #1d142b, #0b0712);
+  border: 1px solid var(--eve-line);
   border-radius: 24px;
   text-align: center;
 
@@ -379,23 +593,24 @@ onUnmounted(() => {
     height: 64px;
     margin: 0 auto;
     border-radius: 50%;
-    border: 3px solid #eb6300;
+    border: 3px solid var(--eve-pink);
+    box-shadow: var(--eve-glow-pink);
     display: grid;
     place-items: center;
     font-size: 24px;
     font-weight: 800;
-    color: #ffd36e;
+    color: var(--eve-gold);
   }
   .cd-tip {
     margin-top: 16px;
     font-size: 16px;
-    font-weight: 600;
+    font-weight: 700;
     color: #fff;
   }
   .cd-sub {
     margin-top: 6px;
     font-size: 13px;
-    color: #9a8b8b;
+    color: var(--eve-muted);
   }
   .cd-topup {
     width: 100%;
@@ -405,44 +620,13 @@ onUnmounted(() => {
     font-size: 15px;
     font-weight: 700;
     color: #fff;
-    background: linear-gradient(90deg, #ff5473, #eb6300);
+    background: var(--eve-grad);
+    box-shadow: var(--eve-glow-pink);
   }
   .cd-hang {
     margin-top: 12px;
     font-size: 14px;
-    color: #9a8b8b;
-  }
-}
-
-.controls {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  display: flex;
-  align-items: center;
-  justify-content: space-around;
-  padding: 16px 20px calc(16px + env(safe-area-inset-bottom));
-}
-
-.ctrl {
-  width: 52px;
-  height: 52px;
-  border-radius: 50%;
-  background: rgba(76, 84, 90, 0.7);
-  display: grid;
-  place-items: center;
-  img {
-    width: 26px;
-    height: 26px;
-  }
-
-  &.gift img {
-    width: 30px;
-    height: 30px;
-  }
-  &.hangup {
-    background: #ff4d4f;
+    color: var(--eve-muted);
   }
 }
 </style>

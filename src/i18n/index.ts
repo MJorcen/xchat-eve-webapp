@@ -255,7 +255,12 @@ const en = {
     youSent: "You sent",
     you: "You",
     hangUpTitle: "Hang up?",
-    hangUpMessage: "End this video call?"
+    hangUpMessage: "End this video call?",
+    saySomething: "Say something…",
+    sentGift: "sent a gift",
+    joined: "{name} entered the room",
+    greet1: "Hey, you there? 👋",
+    greet2: "You look great today 😊"
   },
   callSummary: {
     callEnded: "Call ended",
@@ -537,7 +542,12 @@ const zh: typeof en = {
     youSent: "你赠送了",
     you: "你",
     hangUpTitle: "挂断通话？",
-    hangUpMessage: "结束本次视频通话？"
+    hangUpMessage: "结束本次视频通话？",
+    saySomething: "说点什么…",
+    sentGift: "送出礼物",
+    joined: "{name} 进入了房间",
+    greet1: "在吗~ 👋",
+    greet2: "今天看起来很棒哦 😊"
   },
   callSummary: {
     callEnded: "通话已结束",
