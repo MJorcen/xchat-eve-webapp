@@ -52,10 +52,9 @@
 
     <!-- 钱包卡 -->
     <button class="coin-card" @click="router.push('/wallet')">
-      <span class="coin-icon"><Coins :size="22" :stroke-width="1.8" /></span>
       <div class="coin-left">
         <span>{{ t("mine.myCoins") }}</span>
-        <strong>{{ user.coins }}</strong>
+        <strong><Coins :size="18" :stroke-width="1.8" /> {{ user.coins }}</strong>
       </div>
       <span class="coin-cta">{{ t("common.recharge") }}</span>
     </button>
@@ -323,38 +322,34 @@ function onLang(a: { value: AppLocale }) {
   background: var(--eve-surface);
   border: 1px solid var(--eve-line);
 
-  .coin-icon {
-    display: grid;
-    place-items: center;
-    width: 38px;
-    height: 38px;
-    border-radius: 12px;
-    color: var(--eve-gold);
-    background: var(--eve-track);
-    border: 1px solid var(--eve-line);
-    flex: 0 0 auto;
-  }
   .coin-left {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    gap: 2px;
+    gap: 3px;
     flex: 1;
+    min-width: 0;
     span {
       font-size: 11px;
       color: var(--eve-faint);
     }
     strong {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
       font-size: 22px;
       font-weight: 800;
       color: var(--eve-gold);
     }
   }
   .coin-cta {
-    padding: 8px 18px;
-    border-radius: 20px;
+    height: 36px;
+    padding: 0 18px;
+    display: grid;
+    place-items: center;
+    border-radius: 18px;
     background: var(--eve-grad);
-    box-shadow: var(--eve-glow-pink);
+    box-shadow: 0 6px 16px rgba(255, 42, 122, 0.35);
     color: #fff;
     font-size: 13px;
     font-weight: 700;
