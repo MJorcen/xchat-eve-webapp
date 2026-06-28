@@ -9,6 +9,11 @@ export type Anchor = {
   inCall?: boolean; // 通话中(忙)
   live?: boolean; // 正在直播
   distance?: number; // 距离(km)
+  height?: number; // cm
+  weight?: number; // kg
+  job?: string;
+  relationship?: string;
+  album?: string[]; // 付费私照
   intro: string;
   followers: number;
   price: number;

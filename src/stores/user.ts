@@ -8,6 +8,8 @@ export const useUserStore = defineStore("user", {
     token: "" as string,
     // 已领取的签到日（持久化，防止刷新/重进重复领取）
     claimedSignDays: [] as number[],
+    // 已领取的累计里程碑（按天数阈值）
+    claimedMilestones: [] as number[],
     // 首充弹窗只展示一次
     firstChargeSeen: false,
     // 界面语言
@@ -30,6 +32,9 @@ export const useUserStore = defineStore("user", {
     },
     claimSignDay(day: number) {
       if (!this.claimedSignDays.includes(day)) this.claimedSignDays.push(day);
+    },
+    claimMilestone(days: number) {
+      if (!this.claimedMilestones.includes(days)) this.claimedMilestones.push(days);
     },
     setFirstChargeSeen() {
       this.firstChargeSeen = true;

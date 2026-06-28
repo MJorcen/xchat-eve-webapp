@@ -11,6 +11,8 @@
       <button class="circle back" @click="router.back()"><ChevronLeft :size="22" :stroke-width="2" /></button>
       <button class="circle more" @click="showActions = true"><MoreHorizontal :size="20" :stroke-width="2" /></button>
 
+      <span v-if="anchor.live" class="live-badge"><i class="d" />LIVE</span>
+
       <button class="follow" :class="{ on: followed }" @click="toggleFollow">
         {{ followed ? t("common.following") : `+ ${t("common.follow")}` }}
       </button>
@@ -38,6 +40,9 @@
             ID: {{ anchor.id }}
             <Copy :size="13" :stroke-width="1.8" />
           </button>
+          <span v-if="anchor.distance != null" class="dist-row">
+            <MapPin :size="12" :stroke-width="1.8" />{{ anchor.distance.toFixed(1) }} km
+          </span>
         </div>
         <div class="head-avatar-ring">
           <van-image round fit="cover" class="head-avatar" :src="anchor.avatar" @click="preview(anchor.avatar)" />
@@ -89,8 +94,25 @@
       <!-- Profile -->
       <div class="section">
         <span class="section-title">{{ t("anchor.profile") }}</span>
+        <div class="profile-fields">
+          <div v-if="anchor.height" class="field"><Ruler :size="14" :stroke-width="1.8" /><span>{{ t("anchor.height") }}</span><b>{{ anchor.height }}cm</b></div>
+          <div v-if="anchor.weight" class="field"><Dumbbell :size="14" :stroke-width="1.8" /><span>{{ t("anchor.weight") }}</span><b>{{ anchor.weight }}kg</b></div>
+          <div v-if="anchor.job" class="field"><Briefcase :size="14" :stroke-width="1.8" /><span>{{ t("anchor.job") }}</span><b>{{ anchor.job }}</b></div>
+          <div v-if="anchor.relationship" class="field"><Heart :size="14" :stroke-width="1.8" /><span>{{ t("anchor.relationship") }}</span><b>{{ anchor.relationship }}</b></div>
+        </div>
         <div class="chips">
           <span v-for="(tag, i) in anchor.tags" :key="tag" class="chip" :class="`c${i % 3}`">{{ tag }}</span>
+        </div>
+      </div>
+
+      <!-- 私密相册(付费) -->
+      <div v-if="anchor.album?.length" class="section">
+        <span class="section-title">{{ t("anchor.privateAlbum") }}</span>
+        <div class="album-grid">
+          <button v-for="(img, i) in anchor.album" :key="i" class="album-item" @click="openAlbum(i, img)">
+            <van-image fit="cover" class="album-img" :class="{ locked: !unlocked.has(i) }" :src="img" />
+            <span v-if="!unlocked.has(i)" class="album-lock"><Lock :size="20" :stroke-width="2" /></span>
+          </button>
         </div>
       </div>
 
@@ -112,13 +134,30 @@
         <Video :size="22" :stroke-width="2" />
         <span class="cta-text">
           {{ t("anchor.videoCall") }}
-          <small><img src="/assets/eve/callDialog/coin_300@2x.png" alt="" />{{ anchor.price }}{{ t("anchor.perMin") }}</small>
+          <small>
+            <img src="/assets/eve/callDialog/coin_300@2x.png" alt="" />
+            <s class="orig">{{ anchor.price }}</s>
+            <b class="now">{{ vipPrice }}{{ t("anchor.perMin") }}</b>
+            <span class="vip-tag">{{ t("anchor.vipBadge") }}</span>
+          </small>
         </span>
       </button>
       <button class="msg-btn" @click="startChat">
         <MessageCircle :size="24" :stroke-width="1.9" />
       </button>
     </div>
+
+    <!-- 付费图片解锁弹窗 -->
+    <van-popup v-model:show="showUnlock" round position="center" teleport="body" :z-index="3600">
+      <div class="unlock-card">
+        <span class="u-ico"><Lock :size="26" :stroke-width="1.8" /></span>
+        <p class="u-title">{{ t("anchor.paidPicture") }}</p>
+        <button class="u-btn" @click="unlockAlbum">
+          <img src="/assets/eve/callDialog/coin_300@2x.png" alt="" />{{ t("anchor.unlockFor", { n: ALBUM_PRICE }) }}
+        </button>
+        <button class="u-cancel" @click="showUnlock = false">{{ t("common.cancel") }}</button>
+      </div>
+    </van-popup>
 
     <van-action-sheet
       v-model:show="showActions"
@@ -135,18 +174,35 @@ import { computed, onMounted, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRoute, useRouter } from "vue-router";
 import { showImagePreview } from "vant";
-import { ChevronLeft, MoreHorizontal, Copy, Cake, Users, Video, MessageCircle } from "lucide-vue-next";
+import {
+  ChevronLeft,
+  MoreHorizontal,
+  Copy,
+  Cake,
+  Users,
+  Video,
+  MessageCircle,
+  Ruler,
+  Dumbbell,
+  Briefcase,
+  Heart,
+  Lock,
+  MapPin
+} from "lucide-vue-next";
 import emitter from "../common/eventBus";
 import { api } from "../services/api";
 import { useCall } from "../composables/useCall";
+import { useUserStore } from "../stores";
 import { countryFlag } from "../utils/assets";
 import type { Anchor, Moment } from "../types/eve";
 
 const { t } = useI18n();
 const route = useRoute();
 const router = useRouter();
+const userStore = useUserStore();
 const { startOutgoing } = useCall();
 
+const ALBUM_PRICE = 50;
 const id = Number(route.params.id);
 const anchor = ref<Anchor | null>(null);
 const moments = ref<Moment[]>([]);
@@ -154,6 +210,14 @@ const followed = ref(false);
 const showActions = ref(false);
 const swipeIndex = ref(0);
 const swipeRef = ref<{ swipeTo: (i: number) => void } | null>(null);
+const unlocked = ref<Set<number>>(new Set());
+const showUnlock = ref(false);
+const pendingIdx = ref(-1);
+
+const isVip = computed(() => userStore.isVip);
+// VIP 视频通话 7 折价
+const vipPrice = computed(() => (anchor.value ? Math.round(anchor.value.price * 0.7) : 0));
+const effectivePrice = computed(() => (isVip.value ? vipPrice.value : anchor.value?.price || 0));
 
 const receivedGifts = [
   { icon: "🌹", count: 120 },
@@ -196,12 +260,39 @@ function toggleFollow() {
 
 function startCall() {
   if (!anchor.value) return;
+  // 余额不足以支付 1 分钟 → 提示并去充值(简化版 VIP/充值拦截)
+  if (userStore.coins < effectivePrice.value) {
+    emitter.emit("toast", t("anchor.notEnoughCoins"));
+    router.push("/recharge");
+    return;
+  }
   startOutgoing(anchor.value);
   router.push(`/call/${id}`);
 }
 
 function startChat() {
   router.push(`/chat/${id}`);
+}
+
+function openAlbum(i: number, img: string) {
+  if (unlocked.value.has(i)) {
+    preview(img);
+    return;
+  }
+  pendingIdx.value = i;
+  showUnlock.value = true;
+}
+
+function unlockAlbum() {
+  if (userStore.coins < ALBUM_PRICE) {
+    showUnlock.value = false;
+    emitter.emit("toast", t("anchor.notEnoughCoins"));
+    router.push("/recharge");
+    return;
+  }
+  userStore.addCoins(-ALBUM_PRICE);
+  unlocked.value = new Set([...unlocked.value, pendingIdx.value]);
+  showUnlock.value = false;
 }
 
 const reportActions = computed(() => [
@@ -564,7 +655,7 @@ onMounted(async () => {
     small {
       display: inline-flex;
       align-items: center;
-      gap: 3px;
+      gap: 4px;
       font-size: 11px;
       font-weight: 500;
       color: rgba(255, 255, 255, 0.85);
@@ -572,7 +663,172 @@ onMounted(async () => {
         width: 12px;
         height: 12px;
       }
+      .orig {
+        text-decoration: line-through;
+        opacity: 0.6;
+      }
+      .now {
+        font-weight: 800;
+        color: #fff;
+      }
+      .vip-tag {
+        margin-left: 2px;
+        padding: 0 6px;
+        border-radius: 6px;
+        font-size: 9px;
+        font-weight: 800;
+        color: #1a1020;
+        background: linear-gradient(135deg, #ffd36e, #ffb800);
+      }
     }
+  }
+}
+
+/* Live 徽标 */
+.live-badge {
+  position: absolute;
+  top: calc(14px + env(safe-area-inset-top));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 11px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  color: #fff;
+  background: var(--eve-grad);
+  box-shadow: var(--eve-glow-pink);
+  .d {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #fff;
+    animation: blink 1.2s ease-in-out infinite;
+  }
+}
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+.dist-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--eve-faint);
+}
+
+/* Profile 结构化字段 */
+.profile-fields {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin: 10px 0 12px;
+  .field {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: var(--eve-surface);
+    border: 1px solid var(--eve-line);
+    font-size: 12px;
+    color: var(--eve-muted);
+    svg {
+      color: var(--eve-pink);
+      flex: 0 0 auto;
+    }
+    span {
+      flex: 1;
+    }
+    b {
+      color: #fff;
+      font-weight: 700;
+    }
+  }
+}
+
+/* 私密相册 */
+.album-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  margin-top: 10px;
+}
+.album-item {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 10px;
+  overflow: hidden;
+  .album-img {
+    width: 100%;
+    height: 100%;
+    &.locked {
+      filter: blur(8px) brightness(0.7);
+    }
+  }
+  .album-lock {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    color: #fff;
+  }
+}
+
+/* 解锁弹窗 */
+.unlock-card {
+  width: 270px;
+  padding: 26px 22px 20px;
+  background: linear-gradient(180deg, #1d142b, #0b0712);
+  border: 1px solid var(--eve-line);
+  border-radius: 22px;
+  text-align: center;
+  .u-ico {
+    display: grid;
+    place-items: center;
+    width: 56px;
+    height: 56px;
+    margin: 0 auto 12px;
+    border-radius: 50%;
+    color: var(--eve-gold);
+    background: rgba(255, 184, 0, 0.12);
+    border: 1px solid rgba(255, 184, 0, 0.3);
+  }
+  .u-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #fff;
+  }
+  .u-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    width: 100%;
+    height: 46px;
+    margin-top: 18px;
+    border-radius: 23px;
+    color: #fff;
+    font-size: 15px;
+    font-weight: 800;
+    background: var(--eve-grad);
+    box-shadow: var(--eve-glow-pink);
+    img {
+      width: 16px;
+      height: 16px;
+    }
+  }
+  .u-cancel {
+    margin-top: 12px;
+    font-size: 14px;
+    color: var(--eve-muted);
   }
 }
 

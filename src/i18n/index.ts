@@ -116,7 +116,14 @@ const en = {
     daysCount: "{count} days",
     rewardClaimed: "Reward claimed!",
     balance: "Balance: {coins} coins",
-    awesome: "Awesome"
+    awesome: "Awesome",
+    renew: "Renew",
+    milestoneTitle: "Cumulative rewards",
+    milestoneDays: "{n} days",
+    claim: "Claim",
+    claimed: "Claimed",
+    vipReward: "{n}-day VIP",
+    milestoneProgress: "Signed {count} days in total"
   },
   membership: {
     title: "Membership",
@@ -275,7 +282,16 @@ const en = {
     copied: "Copied",
     followed: "Followed",
     unfollowed: "Unfollowed",
-    blocked: "Blocked"
+    blocked: "Blocked",
+    privateAlbum: "Private Album",
+    paidPicture: "Paid picture",
+    unlockFor: "Unlock · {n}",
+    height: "Height",
+    weight: "Weight",
+    job: "Job",
+    relationship: "Status",
+    vipBadge: "VIP",
+    notEnoughCoins: "Not enough coins"
   },
   callPage: {
     freeCall: "Free call",
@@ -443,7 +459,14 @@ const zh: typeof en = {
     daysCount: "{count} 天",
     rewardClaimed: "奖励已领取！",
     balance: "余额：{coins} 金币",
-    awesome: "太棒了"
+    awesome: "太棒了",
+    renew: "续费",
+    milestoneTitle: "累计奖励",
+    milestoneDays: "{n} 天",
+    claim: "领取",
+    claimed: "已领取",
+    vipReward: "{n} 天 VIP",
+    milestoneProgress: "累计已签 {count} 天"
   },
   membership: {
     title: "会员",
@@ -602,7 +625,16 @@ const zh: typeof en = {
     copied: "已复制",
     followed: "已关注",
     unfollowed: "已取消关注",
-    blocked: "已拉黑"
+    blocked: "已拉黑",
+    privateAlbum: "私密相册",
+    paidPicture: "付费图片",
+    unlockFor: "解锁 · {n}",
+    height: "身高",
+    weight: "体重",
+    job: "职业",
+    relationship: "状态",
+    vipBadge: "VIP",
+    notEnoughCoins: "金币不足"
   },
   callPage: {
     freeCall: "免费通话",
