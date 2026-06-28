@@ -77,7 +77,7 @@ export type Gift = {
 
 export type ChatMessage = {
   id: number;
-  type: "text" | "image" | "gift" | "voice" | "call" | "system";
+  type: "text" | "image" | "gift" | "voice" | "call" | "system" | "location";
   outgoing: boolean; // true = sent by current user (right-aligned)
   time: string;
   date?: string; // day-group label
@@ -85,6 +85,7 @@ export type ChatMessage = {
   image?: string;
   duration?: number; // seconds, for voice / call
   gift?: { name: string; icon: string; price: number; count: number };
+  location?: { name: string; address: string };
   callStatus?: CallStatus;
   translatedText?: string;
   showTranslation?: boolean;

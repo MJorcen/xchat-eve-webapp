@@ -266,7 +266,13 @@ const en = {
     report: "Report",
     block: "Block",
     reported: "Reported",
-    blocked: "Blocked"
+    blocked: "Blocked",
+    recording: "Recording",
+    releaseCancel: "Release to cancel",
+    swipeUpCancel: "Swipe up to cancel",
+    holdToTalk: "Hold to talk",
+    myLocation: "My location",
+    locationAddr: "Sunset Blvd, Downtown"
   },
   anchor: {
     female: "Female",
@@ -611,7 +617,13 @@ const zh: typeof en = {
     report: "举报",
     block: "拉黑",
     reported: "已举报",
-    blocked: "已拉黑"
+    blocked: "已拉黑",
+    recording: "录音中",
+    releaseCancel: "松开手指,取消发送",
+    swipeUpCancel: "上滑取消",
+    holdToTalk: "按住说话",
+    myLocation: "我的位置",
+    locationAddr: "市中心 · 日落大道"
   },
   anchor: {
     female: "女",

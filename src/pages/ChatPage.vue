@@ -85,6 +85,15 @@
               {{ m.duration }}″
             </button>
 
+            <!-- 位置 -->
+            <div v-else-if="m.type === 'location'" class="loc-bubble" :class="m.outgoing ? 'mine' : 'other'">
+              <div class="loc-map"><MapPin :size="20" :stroke-width="2" /></div>
+              <div class="loc-info">
+                <strong>{{ m.location?.name }}</strong>
+                <span>{{ m.location?.address }}</span>
+              </div>
+            </div>
+
             <!-- 通话记录 -->
             <div v-else-if="m.type === 'call'" class="call-bubble" :class="m.outgoing ? 'mine' : 'other'">
               <img src="/assets/eve/chatRoom/ic_video-off@2x.png" alt="" />
@@ -114,8 +123,18 @@
         <button @click="pickPhoto">
           <img src="/assets/eve/chatRoom/ic_photo_44@2x.png" alt="" />
         </button>
-        <button @click="sendVoice">
-          <img src="/assets/eve/chatRoom/ic_mic_44.png" alt="" />
+        <button
+          class="mic-hold"
+          :class="{ recording }"
+          @pointerdown="onMicDown"
+          @pointerup="onMicUp"
+          @pointercancel="onMicUp"
+          @pointermove="onMicMove"
+        >
+          <Mic :size="24" :stroke-width="1.9" />
+        </button>
+        <button @click="sendLocation">
+          <MapPin :size="24" :stroke-width="1.9" />
         </button>
         <button @click="startCall">
           <img src="/assets/eve/chatRoom/ic_video_fill@2x.png" alt="" />
@@ -125,6 +144,15 @@
         </button>
       </div>
     </footer>
+
+    <!-- 录音浮层 -->
+    <div v-if="recording" class="rec-overlay">
+      <div class="rec-card" :class="{ cancel: recordCancel }">
+        <div class="rec-mic">{{ recordCancel ? "✖" : "🎙" }}</div>
+        <div class="rec-secs">{{ recordSecs }}″</div>
+        <div class="rec-tip">{{ recordCancel ? t("chat.releaseCancel") : t("chat.swipeUpCancel") }}</div>
+      </div>
+    </div>
 
     <input ref="fileInput" type="file" accept="image/*" hidden @change="onFile" />
 
@@ -145,6 +173,7 @@ import { computed, nextTick, onMounted, onUnmounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { showImagePreview, showToast } from "vant";
+import { Mic, MapPin } from "lucide-vue-next";
 import emitter from "../common/eventBus";
 import { api } from "../services/api";
 import { useCall } from "../composables/useCall";
@@ -167,6 +196,13 @@ const showGift = ref(false);
 const showActions = ref(false);
 const scroller = ref<HTMLElement | null>(null);
 const fileInput = ref<HTMLInputElement | null>(null);
+
+// 长按录音状态
+const recording = ref(false);
+const recordSecs = ref(0);
+const recordCancel = ref(false);
+let recordTimer: number | null = null;
+let recordStartY = 0;
 
 let nextId = 1000;
 const timers: number[] = [];
@@ -252,9 +288,47 @@ function onFile(e: Event) {
   scheduleReply();
 }
 
-function sendVoice() {
-  const duration = 1 + Math.floor(Math.random() * 6);
-  push({ type: "voice", outgoing: true, time: nowTime(), duration });
+// 按住录音 → 松手发送;上滑取消
+function onMicDown(e: PointerEvent) {
+  recording.value = true;
+  recordSecs.value = 0;
+  recordCancel.value = false;
+  recordStartY = e.clientY;
+  try {
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+  } catch {
+    /* synthetic/edge pointer */
+  }
+  recordTimer = window.setInterval(() => (recordSecs.value += 1), 1000);
+}
+function onMicMove(e: PointerEvent) {
+  if (!recording.value) return;
+  recordCancel.value = recordStartY - e.clientY > 60;
+}
+function onMicUp() {
+  if (!recording.value) return;
+  if (recordTimer) {
+    window.clearInterval(recordTimer);
+    recordTimer = null;
+  }
+  const secs = Math.max(1, recordSecs.value);
+  const cancel = recordCancel.value;
+  recording.value = false;
+  recordCancel.value = false;
+  if (!cancel) {
+    push({ type: "voice", outgoing: true, time: nowTime(), duration: secs });
+    scheduleReply();
+  }
+}
+
+function sendLocation() {
+  push({
+    type: "location",
+    outgoing: true,
+    time: nowTime(),
+    location: { name: t("chat.myLocation"), address: t("chat.locationAddr") }
+  });
+  scheduleReply();
 }
 
 function playVoice(m: ChatMessage) {
@@ -329,6 +403,7 @@ onMounted(async () => {
 
 onUnmounted(() => {
   timers.forEach((t) => window.clearTimeout(t));
+  if (recordTimer) window.clearInterval(recordTimer);
   emitter.off("message:new", onMessage);
   emitter.off("call:hangup", onHangup);
 });
@@ -339,7 +414,7 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   height: 100vh;
-  background: #2c1a1a;
+  background: var(--eve-bg);
 }
 
 .nav {
@@ -347,8 +422,8 @@ onUnmounted(() => {
   align-items: center;
   gap: 8px;
   padding: 10px 12px;
-  background: #2c1a1a;
-  border-bottom: 1px solid #241213;
+  background: var(--eve-bg);
+  border-bottom: 1px solid var(--eve-line);
 
   .back,
   .more {
@@ -379,13 +454,13 @@ onUnmounted(() => {
     .status {
       font-size: 11px;
       &.online {
-        color: #00e397;
+        color: var(--eve-green);
       }
       &.busy {
-        color: #ffd36e;
+        color: var(--eve-gold);
       }
       &.offline {
-        color: #9a8b8b;
+        color: var(--eve-faint);
       }
     }
   }
@@ -397,11 +472,11 @@ onUnmounted(() => {
     font-size: 12px;
     font-weight: 600;
     color: #fff;
-    background: #eb6300;
+    background: var(--eve-pink);
     &.on {
       background: transparent;
       border: 1px solid rgba(255, 255, 255, 0.4);
-      color: #c8bcbc;
+      color: var(--eve-muted);
     }
   }
 }
@@ -411,14 +486,14 @@ onUnmounted(() => {
   align-items: center;
   justify-content: space-between;
   padding: 6px 16px;
-  background: #241213;
+  background: var(--eve-line);
 
   .coins {
     display: inline-flex;
     align-items: center;
     gap: 5px;
     font-size: 13px;
-    color: #ffd36e;
+    color: var(--eve-gold);
     img {
       width: 16px;
       height: 16px;
@@ -427,7 +502,7 @@ onUnmounted(() => {
   .recharge {
     padding: 4px 14px;
     border-radius: 12px;
-    background: linear-gradient(90deg, #ff5473, #eb6300);
+    background: var(--eve-grad);
     color: #fff;
     font-size: 12px;
   }
@@ -444,7 +519,7 @@ onUnmounted(() => {
   gap: 12px;
   padding: 12px;
   margin-bottom: 14px;
-  background: #3a2526;
+  background: var(--eve-surface);
   border-radius: 16px;
 
   .intro-avatar {
@@ -464,7 +539,7 @@ onUnmounted(() => {
     .age {
       font-size: 11px;
       color: #fff;
-      background: #ff5473;
+      background: var(--eve-pink);
       padding: 1px 7px;
       border-radius: 10px;
     }
@@ -472,7 +547,7 @@ onUnmounted(() => {
   .intro-text {
     margin-top: 4px;
     font-size: 12px;
-    color: #9a8b8b;
+    color: var(--eve-faint);
     line-height: 1.4;
   }
 }
@@ -483,12 +558,12 @@ onUnmounted(() => {
   .day {
     display: block;
     font-size: 11px;
-    color: #9a8b8b;
+    color: var(--eve-faint);
     margin-bottom: 8px;
   }
   .sys-text {
     font-size: 12px;
-    color: #9a8b8b;
+    color: var(--eve-faint);
   }
 }
 
@@ -525,12 +600,12 @@ onUnmounted(() => {
   word-break: break-word;
 
   &.other {
-    background: #3a2526;
+    background: var(--eve-surface);
     color: #fff;
     border-top-left-radius: 4px;
   }
   &.mine {
-    background: #eb6300;
+    background: var(--eve-pink);
     color: #fff;
     border-top-right-radius: 4px;
   }
@@ -542,7 +617,7 @@ onUnmounted(() => {
   gap: 4px;
   margin-top: 5px;
   font-size: 11px;
-  color: #ffd36e;
+  color: var(--eve-gold);
   img {
     width: 14px;
     height: 14px;
@@ -563,11 +638,11 @@ onUnmounted(() => {
   gap: 10px;
   padding: 10px 14px;
   border-radius: 16px;
-  background: #3a2526;
+  background: var(--eve-surface);
 
   &.mine {
     flex-direction: row-reverse;
-    background: linear-gradient(135deg, #ff5473, #eb6300);
+    background: var(--eve-grad);
   }
   .gift-face {
     font-size: 32px;
@@ -589,7 +664,7 @@ onUnmounted(() => {
       align-items: center;
       gap: 3px;
       font-size: 12px;
-      color: #ffd36e;
+      color: var(--eve-gold);
       img {
         width: 12px;
         height: 12px;
@@ -611,10 +686,10 @@ onUnmounted(() => {
     height: 18px;
   }
   &.other {
-    background: #3a2526;
+    background: var(--eve-surface);
   }
   &.mine {
-    background: #eb6300;
+    background: var(--eve-pink);
     flex-direction: row-reverse;
   }
 }
@@ -632,10 +707,10 @@ onUnmounted(() => {
     height: 18px;
   }
   &.other {
-    background: #3a2526;
+    background: var(--eve-surface);
   }
   &.mine {
-    background: #eb6300;
+    background: var(--eve-pink);
     flex-direction: row-reverse;
   }
   .canceled {
@@ -650,8 +725,8 @@ onUnmounted(() => {
 .input-bar {
   flex: 0 0 auto;
   padding: 8px 16px calc(8px + env(safe-area-inset-bottom));
-  background: #3a2526;
-  border-top: 1px solid #241213;
+  background: var(--eve-surface);
+  border-top: 1px solid var(--eve-line);
 }
 
 .quick-row {
@@ -669,8 +744,8 @@ onUnmounted(() => {
   padding: 6px 12px;
   border-radius: 16px;
   font-size: 12px;
-  color: #ece4e4;
-  background: #2c1a1a;
+  color: var(--eve-text);
+  background: var(--eve-bg);
   white-space: nowrap;
 }
 
@@ -684,13 +759,13 @@ onUnmounted(() => {
     height: 40px;
     padding: 0 16px;
     border-radius: 20px;
-    background: #2c1a1a;
+    background: var(--eve-bg);
     color: #fff;
     font-size: 14px;
     border: none;
     outline: none;
     &::placeholder {
-      color: #9a8b8b;
+      color: var(--eve-faint);
     }
   }
   .send img {
@@ -702,11 +777,101 @@ onUnmounted(() => {
 .tool-row {
   display: flex;
   justify-content: space-around;
+  align-items: center;
   padding-top: 10px;
 
+  button {
+    color: var(--eve-muted);
+  }
   button img {
     width: 28px;
     height: 28px;
+  }
+  .mic-hold {
+    touch-action: none;
+    transition: color 0.15s, transform 0.15s;
+    &.recording {
+      color: var(--eve-pink);
+      transform: scale(1.25);
+    }
+  }
+}
+
+/* 位置消息气泡 */
+.loc-bubble {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 200px;
+  padding: 10px;
+  border-radius: 14px;
+  background: var(--eve-surface);
+  border: 1px solid var(--eve-line);
+  &.mine {
+    background: rgba(255, 42, 122, 0.12);
+    border-color: rgba(255, 42, 122, 0.3);
+  }
+  .loc-map {
+    flex: 0 0 auto;
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    color: #fff;
+    background: var(--eve-grad);
+  }
+  .loc-info {
+    min-width: 0;
+    strong {
+      display: block;
+      font-size: 14px;
+      color: #fff;
+    }
+    span {
+      font-size: 12px;
+      color: var(--eve-faint);
+    }
+  }
+}
+
+/* 录音浮层 */
+.rec-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 4000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(8, 5, 14, 0.5);
+}
+.rec-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 180px;
+  padding: 28px 0;
+  border-radius: 20px;
+  background: linear-gradient(180deg, #1d142b, #0b0712);
+  border: 1px solid var(--eve-line);
+  .rec-mic {
+    font-size: 44px;
+  }
+  .rec-secs {
+    font-size: 24px;
+    font-weight: 800;
+    color: #fff;
+  }
+  .rec-tip {
+    font-size: 12px;
+    color: var(--eve-muted);
+  }
+  &.cancel {
+    border-color: #ff3b5c;
+    .rec-tip {
+      color: #ff3b5c;
+    }
   }
 }
 </style>
