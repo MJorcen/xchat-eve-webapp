@@ -65,7 +65,8 @@ onMounted(async () => {
 });
 
 function startMatch(type: string) {
-  router.push({ name: "MatchNew", query: { type } });
+  // 直接进入出人卡片选(跳过「开始匹配」确认页)
+  router.push({ name: "MatchDetail", query: { type } });
 }
 </script>
 

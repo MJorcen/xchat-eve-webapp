@@ -28,7 +28,6 @@ import FeedbackPage from "./pages/FeedbackPage.vue";
 import EditProfilePage from "./pages/EditProfilePage.vue";
 import GameCatPage from "./pages/GameCatPage.vue";
 import NearbyPage from "./pages/NearbyPage.vue";
-import MatchNewPage from "./pages/MatchNewPage.vue";
 import MatchDetailPage from "./pages/MatchDetailPage.vue";
 
 export const tabRouteNames = ["Home", "Match", "Moments", "Messages", "Mine"];
@@ -65,7 +64,6 @@ export const router = createRouter({
     { path: "/membership", name: "Membership", component: MembershipPage },
     { path: "/game", name: "Game", component: GameCatPage },
     { path: "/nearby", name: "Nearby", component: NearbyPage },
-    { path: "/match-new", name: "MatchNew", component: MatchNewPage },
     { path: "/match-detail", name: "MatchDetail", component: MatchDetailPage }
   ],
   scrollBehavior() {

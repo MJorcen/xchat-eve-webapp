@@ -205,25 +205,15 @@ const en = {
     sayPlaceholder: "Say something…"
   },
   nearby: { title: "Nearby", tip: "Based on your location, here are people nearby." },
-  matchNew: {
-    title: "Match",
-    headline: "Thousands of girls are matching now…",
-    perMatch: "/ match",
-    balance: "Balance: {coins} coins",
-    terms: "Each match costs {cost} coins. Coins are non-refundable once a match starts. Be kind and respectful.",
-    startMatch: "Start Match",
+  matchDetail: {
+    title: "Discover",
+    itsAMatch: "It's a Match!",
+    matchSub: "You and {name} liked each other",
+    startVideoCall: "Start Video Call",
+    keepSwiping: "Keep swiping",
+    likedYou: "Likes you",
     insufficientCoins: "Insufficient coins",
     coinsDeducted: "-{cost} coins"
-  },
-  matchDetail: {
-    matchedTitle: "It's a match!",
-    matchingTitle: "Matching…",
-    revealTip: "She'll be hidden in {remain}s — don't miss her",
-    startVideoCall: "Start Video Call",
-    next: "Next",
-    promptMatched: "It's a match! 🎉",
-    promptLikedYou: "She liked you! Tap to like back!",
-    promptTapHeart: "Tap the heart to like her"
   },
   chat: {
     seeTranslation: "See translation",
@@ -498,25 +488,15 @@ const zh: typeof en = {
     sayPlaceholder: "说点什么…"
   },
   nearby: { title: "附近", tip: "根据你的位置，为你推荐附近的人。" },
-  matchNew: {
-    title: "匹配",
-    headline: "成千上万的女生正在匹配中…",
-    perMatch: "/ 次匹配",
-    balance: "余额:{coins} 金币",
-    terms: "每次匹配花费 {cost} 金币。匹配一旦开始,金币不可退还。请友善并尊重他人。",
-    startMatch: "开始匹配",
+  matchDetail: {
+    title: "发现",
+    itsAMatch: "配对成功!",
+    matchSub: "你和 {name} 互相喜欢",
+    startVideoCall: "发起视频通话",
+    keepSwiping: "继续滑动",
+    likedYou: "喜欢你",
     insufficientCoins: "金币不足",
     coinsDeducted: "-{cost} 金币"
-  },
-  matchDetail: {
-    matchedTitle: "配对成功!",
-    matchingTitle: "匹配中…",
-    revealTip: "{remain} 秒后她将隐身,别错过她",
-    startVideoCall: "发起视频通话",
-    next: "下一位",
-    promptMatched: "配对成功!🎉",
-    promptLikedYou: "她喜欢你!点击回赞吧!",
-    promptTapHeart: "点击爱心喜欢她"
   },
   chat: {
     seeTranslation: "查看翻译",
