@@ -1,77 +1,51 @@
 <template>
-  <section class="deck-page">
-    <!-- 顶部:返回 + 标题 + 举报 -->
+  <section v-if="anchor" class="match-deck">
+    <!-- 满屏背景人像 -->
+    <van-image :key="anchor.id" fit="cover" class="bg" :src="anchor.avatar" lazy-load />
+    <div class="scrim" />
+
+    <!-- 顶部:返回 / 标题 / 举报 -->
     <header class="bar">
       <button class="icon-btn" @click="exit"><ChevronLeft :size="22" :stroke-width="2.2" /></button>
       <span class="title">{{ t("matchDetail.title") }}</span>
       <button class="icon-btn" @click="report"><Flag :size="19" :stroke-width="2" /></button>
     </header>
 
-    <!-- 卡片牌堆 -->
-    <div class="deck">
-      <!-- 后面预览卡 -->
-      <article v-if="next" class="card peek" :style="peekStyle">
-        <van-image fit="cover" class="portrait" :src="next.avatar" lazy-load />
-        <div class="scrim" />
-      </article>
+    <div class="spacer" />
 
-      <!-- 顶部可拖拽卡 -->
-      <article
-        v-if="current"
-        class="card top"
-        :style="topStyle"
-        @pointerdown="onDown"
-        @pointermove="onMove"
-        @pointerup="onUp"
-        @pointercancel="onUp"
-      >
-        <van-image fit="cover" class="portrait" :src="current.avatar" lazy-load />
-        <div class="scrim" />
-
-        <span class="stamp like" :style="{ opacity: likeOpacity }">LIKE</span>
-        <span class="stamp nope" :style="{ opacity: nopeOpacity }">NOPE</span>
-
-        <span v-if="likedYou" class="liked-badge"><Heart :size="12" fill="currentColor" :stroke-width="0" /> {{ t("matchDetail.likedYou") }}</span>
-
-        <div class="meta">
-          <div class="meta-top">
-            <span v-if="current.online" class="dot" />
-            <strong class="name">{{ current.nickname }}</strong>
-            <span class="age">{{ current.age }}</span>
-            <img class="flag" :src="countryFlag(current.region)" alt="" />
-          </div>
-          <p class="bio">{{ current.intro }}</p>
-        </div>
-      </article>
-    </div>
-
-    <!-- 操作按钮 -->
-    <div class="controls">
-      <button class="ctrl pass" @click="swipe('left')"><X :size="26" :stroke-width="2.4" /></button>
-      <button class="ctrl call" @click="callCurrent"><Video :size="22" :stroke-width="2.2" /></button>
-      <button class="ctrl like" @click="swipe('right')"><Heart :size="30" fill="currentColor" :stroke-width="0" /></button>
-    </div>
-
-    <!-- 匹配成功遮罩 -->
-    <div v-if="matchedAnchor" class="match-overlay" @click.self="keepSwiping">
-      <p class="m-title">{{ t("matchDetail.itsAMatch") }}</p>
-      <div class="m-avatars">
-        <div class="m-ring"><van-image round fit="cover" class="m-av" :src="me.avatar" lazy-load /></div>
-        <span class="m-heart">❤️</span>
-        <div class="m-ring"><van-image round fit="cover" class="m-av" :src="matchedAnchor.avatar" lazy-load /></div>
+    <!-- 资料 -->
+    <div :key="anchor.id" class="info">
+      <span v-if="likedYou" class="liked-badge"><Heart :size="12" fill="currentColor" :stroke-width="0" /> {{ t("matchDetail.likedYou") }}</span>
+      <div class="name-row">
+        <span v-if="anchor.online" class="dot" />
+        <strong class="name">{{ anchor.nickname }}</strong>
+        <span class="age">{{ anchor.age }}</span>
+        <img class="flag" :src="countryFlag(anchor.region)" alt="" />
       </div>
-      <p class="m-sub">{{ t("matchDetail.matchSub", { name: matchedAnchor.nickname }) }}</p>
-      <button class="m-call" @click="callMatched">{{ t("matchDetail.startVideoCall") }}</button>
-      <button class="m-keep" @click="keepSwiping">{{ t("matchDetail.keepSwiping") }}</button>
+      <p class="bio">{{ anchor.intro }}</p>
+    </div>
+
+    <!-- 底部操作区 -->
+    <div class="dock">
+      <div class="countdown">
+        <i :style="{ width: progress + '%' }" />
+      </div>
+      <p class="auto-tip">{{ t("matchDetail.autoNext", { remain }) }}</p>
+
+      <button class="connect" @click="connect">
+        <Video :size="20" :stroke-width="2.2" />
+        {{ t("matchDetail.videoCall") }}
+      </button>
+      <button class="next" @click="goNext">{{ t("matchDetail.next") }} ›</button>
     </div>
   </section>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from "vue";
+import { computed, onMounted, onUnmounted, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRoute, useRouter } from "vue-router";
-import { ChevronLeft, Flag, X, Heart, Video } from "lucide-vue-next";
+import { ChevronLeft, Flag, Video, Heart } from "lucide-vue-next";
 import emitter from "../common/eventBus";
 import { api } from "../services/api";
 import { useCall } from "../composables/useCall";
@@ -85,121 +59,51 @@ const router = useRouter();
 const { startOutgoing } = useCall();
 const userStore = useUserStore();
 
-const me = computed(() => userStore.user);
 const cost = route.query.type === "Goddess" ? 500 : 300;
+const SECS = 12;
 
 let pool: Anchor[] = [];
-const current = ref<Anchor | null>(null);
-const next = ref<Anchor | null>(null);
+const anchor = ref<Anchor | null>(null);
 const likedYou = ref(false);
-const matchedAnchor = ref<Anchor | null>(null);
+const progress = ref(100);
+let timer: number | null = null;
 
-// 拖拽状态
-const THRESH = 90;
-const dragging = ref(false);
-const dx = ref(0);
-const dy = ref(0);
-const flying = ref<null | "left" | "right">(null);
-let startX = 0;
-let startY = 0;
-
-const likeOpacity = computed(() => Math.max(0, Math.min(1, dx.value / 90)));
-const nopeOpacity = computed(() => Math.max(0, Math.min(1, -dx.value / 90)));
-
-const topStyle = computed(() => {
-  if (flying.value) {
-    const x = flying.value === "right" ? 640 : -640;
-    const rot = flying.value === "right" ? 20 : -20;
-    return { transform: `translate(${x}px, -30px) rotate(${rot}deg)`, transition: "transform .35s ease, opacity .35s ease", opacity: 0 };
-  }
-  if (dragging.value) {
-    return { transform: `translate(${dx.value}px, ${dy.value}px) rotate(${dx.value * 0.04}deg)`, transition: "none" };
-  }
-  if (dx.value) {
-    return { transform: "translate(0,0) rotate(0)", transition: "transform .25s ease" };
-  }
-  return {};
-});
-
-const peekStyle = computed(() => {
-  if (flying.value) return { transform: "scale(1) translateY(0)", opacity: "1", transition: "transform .35s ease, opacity .35s ease" };
-  return {};
-});
+const remain = computed(() => Math.max(1, Math.ceil((progress.value / 100) * SECS)));
 
 function pick(): Anchor {
-  const exclude = new Set([current.value?.id, next.value?.id]);
-  const others = pool.filter((a) => !exclude.has(a.id));
+  const others = pool.filter((a) => a.id !== anchor.value?.id);
   const src = others.length ? others : pool;
   return src[Math.floor(Math.random() * src.length)];
 }
 
-function advance() {
-  current.value = next.value;
-  next.value = pick();
-  likedYou.value = Math.random() < 0.3;
-}
-
-function swipe(dir: "left" | "right") {
-  if (flying.value || matchedAnchor.value || !current.value) return;
-  const willMatch = dir === "right" && (likedYou.value || Math.random() < 0.35);
-  const matchTarget = current.value;
-  flying.value = dir;
-  window.setTimeout(() => {
-    flying.value = null;
-    dx.value = 0;
-    dy.value = 0;
-    if (willMatch) {
-      matchedAnchor.value = matchTarget;
-      // 把已飞走的卡补上,遮罩关闭后直接是新卡
-      advance();
-    } else {
-      advance();
+function startCountdown() {
+  if (timer) window.clearInterval(timer);
+  progress.value = 100;
+  const step = 100 / (SECS * 10); // 每 100ms 递减
+  timer = window.setInterval(() => {
+    progress.value -= step;
+    if (progress.value <= 0) {
+      progress.value = 0;
+      goNext(); // 倒计时结束自动切换下一位
     }
-  }, 350);
+  }, 100);
 }
 
-function onDown(e: PointerEvent) {
-  if (flying.value || matchedAnchor.value) return;
-  dragging.value = true;
-  startX = e.clientX;
-  startY = e.clientY;
-  (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-}
-function onMove(e: PointerEvent) {
-  if (!dragging.value) return;
-  dx.value = e.clientX - startX;
-  dy.value = e.clientY - startY;
-}
-function onUp() {
-  if (!dragging.value) return;
-  dragging.value = false;
-  if (dx.value > THRESH) swipe("right");
-  else if (dx.value < -THRESH) swipe("left");
-  else {
-    dx.value = 0;
-    dy.value = 0;
-  }
+function goNext() {
+  anchor.value = pick();
+  likedYou.value = Math.random() < 0.3;
+  startCountdown();
 }
 
-function keepSwiping() {
-  matchedAnchor.value = null;
-}
-
-function callMatched() {
-  const a = matchedAnchor.value;
-  if (!a) return;
-  startOutgoing(a);
-  router.push(`/call/${a.id}`);
-}
-
-function callCurrent() {
-  if (!current.value) return;
-  startOutgoing(current.value);
-  router.push(`/call/${current.value.id}`);
+function connect() {
+  if (!anchor.value) return;
+  if (timer) window.clearInterval(timer);
+  startOutgoing(anchor.value);
+  router.push(`/call/${anchor.value.id}`);
 }
 
 function report() {
-  if (current.value) router.push(`/block-and-report?id=${current.value.id}`);
+  if (anchor.value) router.push(`/block-and-report?id=${anchor.value.id}`);
 }
 
 function exit() {
@@ -217,25 +121,60 @@ onMounted(async () => {
   }
   userStore.addCoins(-cost);
   emitter.emit("toast", t("matchDetail.coinsDeducted", { cost }));
-  current.value = pool[0];
-  next.value = pool[1] || pool[0];
+  anchor.value = pool[0];
   likedYou.value = Math.random() < 0.3;
+  startCountdown();
+});
+
+onUnmounted(() => {
+  if (timer) window.clearInterval(timer);
 });
 </script>
 
 <style scoped lang="scss">
-.deck-page {
+.match-deck {
+  position: relative;
   height: 100vh;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
-  background:
-    radial-gradient(110% 50% at 50% 0%, rgba(153, 69, 255, 0.16) 0%, transparent 55%),
-    var(--eve-bg);
-  padding-bottom: env(safe-area-inset-bottom);
-  overflow: hidden;
+  background: var(--eve-bg);
+}
+
+.bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  animation: bgIn 0.35s ease;
+}
+@keyframes bgIn {
+  from {
+    opacity: 0;
+    transform: scale(1.04);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.scrim {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(0, 0, 0, 0.5) 0%,
+    transparent 20%,
+    transparent 42%,
+    rgba(8, 5, 14, 0.55) 66%,
+    rgba(8, 5, 14, 0.96) 100%
+  );
 }
 
 .bar {
+  position: relative;
+  z-index: 5;
   flex: 0 0 auto;
   display: flex;
   align-items: center;
@@ -245,6 +184,7 @@ onMounted(async () => {
     font-size: 17px;
     font-weight: 800;
     color: #fff;
+    text-shadow: 0 1px 6px rgba(0, 0, 0, 0.5);
   }
   .icon-btn {
     width: 36px;
@@ -252,252 +192,139 @@ onMounted(async () => {
     display: grid;
     place-items: center;
     border-radius: 50%;
-    color: var(--eve-muted);
-    background: rgba(255, 255, 255, 0.06);
-    border: 1px solid var(--eve-line);
+    color: #fff;
+    background: rgba(0, 0, 0, 0.35);
+    backdrop-filter: blur(6px);
   }
 }
 
-.deck {
+.spacer {
   flex: 1;
-  position: relative;
-  margin: 6px 16px 0;
   min-height: 0;
 }
 
-.card {
-  position: absolute;
-  inset: 0;
-  border-radius: 24px;
-  overflow: hidden;
-  background: var(--eve-surface);
-  border: 1px solid var(--eve-line);
-  .portrait {
-    width: 100%;
-    height: 100%;
+.info {
+  position: relative;
+  z-index: 4;
+  padding: 0 20px 14px;
+  animation: infoIn 0.35s ease;
+
+  .liked-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    margin-bottom: 12px;
+    padding: 6px 12px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #fff;
+    background: var(--eve-grad);
+    box-shadow: var(--eve-glow-pink);
   }
-  .scrim {
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(transparent 48%, rgba(0, 0, 0, 0.82));
-  }
-}
-
-.peek {
-  transform: scale(0.94) translateY(14px);
-  opacity: 0.7;
-  z-index: 1;
-}
-
-.top {
-  z-index: 2;
-  touch-action: none;
-  cursor: grab;
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
-  &:active {
-    cursor: grabbing;
-  }
-}
-
-.stamp {
-  position: absolute;
-  top: 26px;
-  padding: 5px 14px;
-  font-size: 26px;
-  font-weight: 900;
-  letter-spacing: 1px;
-  border-radius: 10px;
-  border: 3px solid currentColor;
-  pointer-events: none;
-}
-.stamp.like {
-  left: 20px;
-  color: #22e58a;
-  transform: rotate(-16deg);
-}
-.stamp.nope {
-  right: 20px;
-  color: #ff3b5c;
-  transform: rotate(16deg);
-}
-
-.liked-badge {
-  position: absolute;
-  top: 16px;
-  left: 16px;
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 5px 11px;
-  border-radius: 999px;
-  font-size: 11px;
-  font-weight: 700;
-  color: #fff;
-  background: var(--eve-grad);
-  box-shadow: var(--eve-glow-pink);
-}
-
-.meta {
-  position: absolute;
-  left: 18px;
-  right: 18px;
-  bottom: 18px;
-  text-align: left;
-  .meta-top {
+  .name-row {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 9px;
   }
   .dot {
-    width: 9px;
-    height: 9px;
+    width: 10px;
+    height: 10px;
     border-radius: 50%;
     background: var(--eve-green);
     box-shadow: 0 0 8px rgba(34, 197, 94, 0.9);
   }
   .name {
-    font-size: 24px;
+    font-size: 27px;
     font-weight: 800;
     color: #fff;
   }
   .age {
-    padding: 2px 9px;
-    border-radius: 10px;
-    background: rgba(255, 255, 255, 0.18);
-    font-size: 13px;
+    padding: 3px 10px;
+    border-radius: 11px;
+    background: rgba(255, 255, 255, 0.2);
+    font-size: 14px;
     color: #fff;
   }
   .flag {
-    width: 22px;
-    height: 15px;
+    width: 24px;
+    height: 16px;
     border-radius: 3px;
     object-fit: cover;
   }
   .bio {
-    margin-top: 7px;
-    font-size: 13px;
-    line-height: 1.45;
-    color: rgba(255, 255, 255, 0.82);
+    margin-top: 9px;
+    font-size: 14px;
+    line-height: 1.5;
+    color: rgba(255, 255, 255, 0.85);
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
 }
-
-.controls {
-  flex: 0 0 auto;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 22px;
-  padding: 18px 0 22px;
-
-  .ctrl {
-    display: grid;
-    place-items: center;
-    border-radius: 50%;
-    border: 1px solid var(--eve-line);
-    background: var(--eve-surface);
-  }
-  .pass {
-    width: 56px;
-    height: 56px;
-    color: #ff5c7a;
-  }
-  .call {
-    width: 50px;
-    height: 50px;
-    color: #b98bff;
-  }
-  .like {
-    width: 66px;
-    height: 66px;
-    color: #fff;
-    border-color: transparent;
-    background: var(--eve-grad);
-    box-shadow: var(--eve-glow-pink);
-  }
-}
-
-.match-overlay {
-  position: fixed;
-  inset: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: min(400PX, 100vw);
-  z-index: 3500;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 16px;
-  padding: 0 28px;
-  background: rgba(8, 5, 14, 0.86);
-  backdrop-filter: blur(10px);
-  animation: overlayIn 0.25s ease;
-
-  .m-title {
-    font-size: 32px;
-    font-weight: 900;
-    background: var(--eve-grad);
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-  }
-  .m-avatars {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-  .m-ring {
-    width: 92px;
-    height: 92px;
-    border-radius: 50%;
-    padding: 3px;
-    background: conic-gradient(from 210deg, #ff2a7a, #9945ff, #ffb800, #ff2a7a);
-  }
-  .m-av {
-    width: 100%;
-    height: 100%;
-    border-radius: 50%;
-    overflow: hidden;
-    border: 3px solid var(--eve-bg);
-  }
-  .m-heart {
-    font-size: 30px;
-    margin: 0 -6px;
-    z-index: 1;
-  }
-  .m-sub {
-    font-size: 14px;
-    color: var(--eve-muted);
-    text-align: center;
-  }
-  .m-call {
-    margin-top: 6px;
-    width: 100%;
-    max-width: 300px;
-    height: 52px;
-    border-radius: 26px;
-    color: #fff;
-    font-size: 16px;
-    font-weight: 800;
-    background: var(--eve-grad);
-    box-shadow: var(--eve-glow-pink);
-  }
-  .m-keep {
-    font-size: 14px;
-    color: var(--eve-muted);
-  }
-}
-
-@keyframes overlayIn {
+@keyframes infoIn {
   from {
     opacity: 0;
+    transform: translateY(10px);
   }
   to {
     opacity: 1;
+    transform: translateY(0);
   }
+}
+
+.dock {
+  position: relative;
+  z-index: 5;
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 24px calc(20px + env(safe-area-inset-bottom));
+}
+
+.countdown {
+  width: 100%;
+  height: 4px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.16);
+  overflow: hidden;
+  i {
+    display: block;
+    height: 100%;
+    border-radius: 4px;
+    background: var(--eve-grad);
+    transition: width 0.1s linear;
+  }
+}
+
+.auto-tip {
+  margin: 8px 0 14px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.connect {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: 240px;
+  height: 54px;
+  padding: 0 36px;
+  border-radius: 27px;
+  color: #fff;
+  font-size: 17px;
+  font-weight: 800;
+  background: var(--eve-grad);
+  box-shadow: var(--eve-glow-pink);
+}
+
+.next {
+  margin-top: 14px;
+  font-size: 15px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.75);
 }
 </style>

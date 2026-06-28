@@ -207,10 +207,9 @@ const en = {
   nearby: { title: "Nearby", tip: "Based on your location, here are people nearby." },
   matchDetail: {
     title: "Discover",
-    itsAMatch: "It's a Match!",
-    matchSub: "You and {name} liked each other",
-    startVideoCall: "Start Video Call",
-    keepSwiping: "Keep swiping",
+    videoCall: "Video Call",
+    next: "Next",
+    autoNext: "Auto-skip in {remain}s",
     likedYou: "Likes you",
     insufficientCoins: "Insufficient coins",
     coinsDeducted: "-{cost} coins"
@@ -490,10 +489,9 @@ const zh: typeof en = {
   nearby: { title: "附近", tip: "根据你的位置，为你推荐附近的人。" },
   matchDetail: {
     title: "发现",
-    itsAMatch: "配对成功!",
-    matchSub: "你和 {name} 互相喜欢",
-    startVideoCall: "发起视频通话",
-    keepSwiping: "继续滑动",
+    videoCall: "视频通话",
+    next: "下一位",
+    autoNext: "{remain} 秒后自动切换",
     likedYou: "喜欢你",
     insufficientCoins: "金币不足",
     coinsDeducted: "-{cost} 金币"
