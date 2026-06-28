@@ -143,11 +143,22 @@ const en = {
     time2m: "2m ago",
     time1h: "1h ago",
     timeYesterday: "Yesterday",
-    time3d: "3d ago"
+    time3d: "3d ago",
+    vipLockTitle: "Subscribe to VIP to see everyone who visited you",
+    vipLockSub: "{count} people visited recently",
+    getVip: "Get VIP"
   },
   followFans: { title: "Follow & Fans", fans: "Fans", emptyFollowing: "Not following anyone yet", emptyFans: "No fans yet" },
   blockListPage: { title: "Block List", unblock: "Unblock", empty: "No blocked users", pleaseWait: "Please wait…", unblocked: "Unblocked" },
-  notification: { title: "Notification", empty: "No notifications" },
+  notification: {
+    title: "Notification",
+    empty: "No notifications",
+    tabInteraction: "Interaction",
+    tabNotice: "Notice",
+    actLiked: "liked your moment",
+    actFollowed: "followed you",
+    actVisited: "visited your profile"
+  },
   report: {
     title: "Block & Report",
     hint: "Select a reason for reporting this user.",
@@ -273,7 +284,18 @@ const en = {
     get: "Get",
     confirm: "Confirm",
     followed: "Followed",
-    unfollowed: "Unfollowed"
+    unfollowed: "Unfollowed",
+    reasonTitle: "Select a hang-up reason to earn coin rewards",
+    reasonOther: "Other",
+    reasonBlackScreen: "Black screen",
+    reasonNoVoice: "No voice",
+    reasonNobody: "Nobody there",
+    reasonStuck: "Video stuck",
+    reasonIgnore: "Ignored me",
+    skip: "Skip",
+    submitOk: "Submitted successfully!",
+    reward: "Thanks for your feedback — {n} coins refunded",
+    ok: "OK"
   },
   momentCard: {
     onlineNow: "Online now",
@@ -432,11 +454,22 @@ const zh: typeof en = {
     time2m: "2分钟前",
     time1h: "1小时前",
     timeYesterday: "昨天",
-    time3d: "3天前"
+    time3d: "3天前",
+    vipLockTitle: "开通 VIP 查看所有访客",
+    vipLockSub: "最近有 {count} 人来访",
+    getVip: "开通 VIP"
   },
   followFans: { title: "关注与粉丝", fans: "粉丝", emptyFollowing: "还没有关注任何人", emptyFans: "暂无粉丝" },
   blockListPage: { title: "黑名单", unblock: "解除拉黑", empty: "暂无已拉黑用户", pleaseWait: "请稍候…", unblocked: "已解除拉黑" },
-  notification: { title: "通知", empty: "暂无通知" },
+  notification: {
+    title: "通知",
+    empty: "暂无通知",
+    tabInteraction: "互动",
+    tabNotice: "通知",
+    actLiked: "赞了你的动态",
+    actFollowed: "关注了你",
+    actVisited: "看了你的主页"
+  },
   report: {
     title: "举报与拉黑",
     hint: "请选择举报该用户的原因。",
@@ -562,7 +595,18 @@ const zh: typeof en = {
     get: "开通",
     confirm: "确认",
     followed: "已关注",
-    unfollowed: "已取消关注"
+    unfollowed: "已取消关注",
+    reasonTitle: "选择挂断原因即可获得金币奖励",
+    reasonOther: "其他",
+    reasonBlackScreen: "黑屏",
+    reasonNoVoice: "没有声音",
+    reasonNobody: "没人接听",
+    reasonStuck: "视频卡顿",
+    reasonIgnore: "被无视了",
+    skip: "跳过",
+    submitOk: "提交成功!",
+    reward: "感谢反馈,已返还你 {n} 金币",
+    ok: "好的"
   },
   momentCard: {
     onlineNow: "当前在线",
