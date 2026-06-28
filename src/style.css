@@ -70,7 +70,8 @@ img {
 }
 
 /* GiftPanel 弹层 teleport 到 body，单独约束到手机外壳宽度并居中（不破坏 Vant 上滑动画） */
-.van-popup.gift-popup {
+.van-popup.gift-popup,
+.van-popup.sheet-shell {
   left: 50%;
   width: min(400PX, 100vw);
   margin-left: calc(min(400PX, 100vw) / -2);

@@ -1,7 +1,7 @@
 <template>
   <section class="membership">
     <header class="nav">
-      <button class="back" @click="router.back()"><van-icon name="arrow-left" /></button>
+      <button class="back" @click="router.back()"><ChevronLeft :size="24" :stroke-width="2.2" /></button>
       <span class="title">{{ t("membership.title") }}</span>
     </header>
 
@@ -10,6 +10,16 @@
       <h1>EVE VIP</h1>
       <p>{{ t("membership.heroSubtitle") }}</p>
     </div>
+
+    <!-- VIP 权益轮播 -->
+    <van-swipe class="benefits" :autoplay="2800" :show-indicators="true" indicator-color="#ff2a7a">
+      <van-swipe-item v-for="b in benefits" :key="b.text">
+        <div class="benefit">
+          <span class="b-ico">{{ b.icon }}</span>
+          <span class="b-text">{{ b.text }}</span>
+        </div>
+      </van-swipe-item>
+    </van-swipe>
 
     <div class="plans">
       <button
@@ -28,32 +38,60 @@
 
     <ul v-if="selected" class="perks">
       <li v-for="perk in selected.perks" :key="perk">
-        <van-icon name="success" /> {{ perk }}
+        <Check :size="16" :stroke-width="2.4" /> {{ perk }}
       </li>
     </ul>
 
     <button class="subscribe" :disabled="!selected" @click="subscribe">
       {{ selected ? `${t("membership.subscribe")} · ${selected.price}` : t("membership.selectPlan") }}
     </button>
+
+    <PaymentSheet
+      v-model:show="showSheet"
+      :title="t('membership.subscribe')"
+      :amount="selected?.price || ''"
+      @pay="onPay"
+    />
   </section>
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { showToast } from "vant";
+import { ChevronLeft, Check } from "lucide-vue-next";
+import PaymentSheet from "../components/PaymentSheet.vue";
 import { api } from "../services/api";
-import type { VipPlan } from "../types/eve";
+import { useUserStore } from "../stores";
+import type { PaymentChannel, VipPlan } from "../types/eve";
 
 const { t } = useI18n();
 const router = useRouter();
+const userStore = useUserStore();
 const plans = ref<VipPlan[]>([]);
 const selected = ref<VipPlan | null>(null);
+const showSheet = ref(false);
+
+const benefits = computed(() => [
+  { icon: "💬", text: t("membership.featChat") },
+  { icon: "🪙", text: t("membership.featCoins") },
+  { icon: "👑", text: t("membership.featBadge") },
+  { icon: "👀", text: t("membership.featVisitors") },
+  { icon: "🎁", text: t("membership.featGifts") }
+]);
 
 function subscribe() {
+  if (selected.value) showSheet.value = true;
+}
+
+function onPay(_channel: PaymentChannel) {
   if (!selected.value) return;
-  showToast(t("membership.subscriptionStarted"));
+  const months = selected.value.months;
+  const end = new Date(Date.now() + months * 30 * 86400000).toISOString().slice(0, 10);
+  userStore.setUser({ vipLevel: selected.value.level, vipValidEnd: end });
+  showSheet.value = false;
+  showToast(t("membership.subscribed"));
 }
 
 onMounted(async () => {
@@ -66,7 +104,9 @@ onMounted(async () => {
 .membership {
   min-height: 100vh;
   padding-bottom: 100px;
-  background: radial-gradient(120% 50% at 50% 0%, #4a2f12 0%, #2c1a1a 55%);
+  background:
+    radial-gradient(120% 50% at 50% 0%, rgba(255, 184, 0, 0.14) 0%, transparent 55%),
+    var(--eve-bg);
 }
 
 .nav {
@@ -76,31 +116,56 @@ onMounted(async () => {
   padding: calc(10px + env(safe-area-inset-top)) 14px 10px;
   .back {
     color: #fff;
-    font-size: 20px;
   }
   .title {
     font-size: 16px;
-    font-weight: 600;
+    font-weight: 700;
     color: #fff;
   }
 }
 
 .hero {
   text-align: center;
-  padding: 16px 24px 26px;
+  padding: 12px 24px 18px;
   .crown {
-    font-size: 56px;
+    font-size: 52px;
   }
   h1 {
     margin: 8px 0 6px;
     font-size: 24px;
     font-weight: 800;
-    color: #ffd36e;
+    color: var(--eve-gold);
   }
   p {
     font-size: 13px;
-    color: #c8b8b8;
+    color: var(--eve-muted);
     line-height: 1.5;
+  }
+}
+
+.benefits {
+  margin: 6px 16px 20px;
+  height: 76px;
+  border-radius: 16px;
+  background: linear-gradient(120deg, #2a1940, #1d142b);
+  border: 1px solid var(--eve-line);
+  :deep(.van-swipe__indicators) {
+    bottom: 8px;
+  }
+}
+.benefit {
+  height: 76px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  .b-ico {
+    font-size: 30px;
+  }
+  .b-text {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--eve-gold);
   }
 }
 
@@ -119,12 +184,12 @@ onMounted(async () => {
   gap: 4px;
   padding: 18px 6px 16px;
   border-radius: 16px;
-  background: #3a2526;
-  border: 1.5px solid transparent;
+  background: var(--eve-surface);
+  border: 1.5px solid var(--eve-line);
 
   &.active {
-    border-color: #ffd36e;
-    background: rgba(255, 211, 110, 0.12);
+    border-color: var(--eve-gold);
+    background: rgba(255, 184, 0, 0.1);
   }
   .badge {
     position: absolute;
@@ -132,22 +197,23 @@ onMounted(async () => {
     padding: 2px 10px;
     border-radius: 99px;
     font-size: 10px;
-    color: #562b00;
+    color: #1a1020;
     background: linear-gradient(90deg, #ffe08a, #ffc24b);
   }
   .plan-name {
     font-size: 15px;
+    font-weight: 700;
     color: #fff;
   }
   .plan-months {
     font-size: 11px;
-    color: #9a8b8b;
+    color: var(--eve-faint);
   }
   .plan-price {
     margin-top: 4px;
     font-size: 18px;
-    font-weight: 700;
-    color: #ffd36e;
+    font-weight: 800;
+    color: var(--eve-gold);
   }
 }
 
@@ -155,7 +221,8 @@ onMounted(async () => {
   margin: 22px 16px 0;
   padding: 16px;
   border-radius: 16px;
-  background: #3a2526;
+  background: var(--eve-surface);
+  border: 1px solid var(--eve-line);
   list-style: none;
 
   li {
@@ -164,9 +231,11 @@ onMounted(async () => {
     gap: 8px;
     padding: 7px 0;
     font-size: 13px;
+    color: var(--eve-text);
     color: #ece4e4;
-    :deep(.van-icon) {
-      color: #ffd36e;
+    svg {
+      color: var(--eve-gold);
+      flex: 0 0 auto;
     }
   }
 }
@@ -178,9 +247,9 @@ onMounted(async () => {
   bottom: 0;
   width: min(400PX, 100vw);
   padding: 14px 16px calc(14px + env(safe-area-inset-bottom));
-  color: #562b00;
+  color: #1a1020;
   font-size: 16px;
-  font-weight: 700;
+  font-weight: 800;
   background: linear-gradient(90deg, #ffe08a, #ffc24b);
 
   &:disabled {

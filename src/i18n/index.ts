@@ -87,7 +87,8 @@ const en = {
     coinsLabel: "Coins",
     bonusLabel: "Bonus",
     totalArrival: "Total arrival",
-    pay: "Pay {price}"
+    pay: "Pay {price}",
+    more: "More options"
   },
   paymentResult: {
     title: "Payment Result",
@@ -125,7 +126,14 @@ const en = {
     months: "months",
     subscribe: "Subscribe",
     selectPlan: "Select a plan",
-    subscriptionStarted: "Mock: subscription started"
+    subscriptionStarted: "Mock: subscription started",
+    subscribed: "VIP activated 👑",
+    benefitsTitle: "VIP privileges",
+    featChat: "Unlimited video chats",
+    featCoins: "8000 bonus coins",
+    featBadge: "Exclusive VIP badge",
+    featVisitors: "See who visited you",
+    featGifts: "Exclusive gifts & effects"
   },
   login: {
     tagline: "Meet someone new tonight.",
@@ -406,7 +414,8 @@ const zh: typeof en = {
     coinsLabel: "金币",
     bonusLabel: "赠送",
     totalArrival: "实际到账",
-    pay: "支付 {price}"
+    pay: "支付 {price}",
+    more: "更多支付方式"
   },
   paymentResult: {
     title: "支付结果",
@@ -444,7 +453,14 @@ const zh: typeof en = {
     months: "个月",
     subscribe: "订阅",
     selectPlan: "选择套餐",
-    subscriptionStarted: "模拟:订阅已开始"
+    subscriptionStarted: "模拟:订阅已开始",
+    subscribed: "VIP 已开通 👑",
+    benefitsTitle: "VIP 特权",
+    featChat: "无限视频聊天",
+    featCoins: "8000 赠币",
+    featBadge: "专属 VIP 徽章",
+    featVisitors: "查看谁来访过",
+    featGifts: "专属礼物与特效"
   },
   login: {
     tagline: "今晚邂逅新的人。",

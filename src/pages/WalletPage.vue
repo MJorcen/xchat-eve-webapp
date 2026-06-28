@@ -44,6 +44,13 @@
     </button>
 
     <button class="continue" @click="goPay">{{ t("common.continue") }}</button>
+
+    <PaymentSheet
+      v-model:show="showSheet"
+      :title="t('payment.paymentMethod')"
+      :amount="selectedPkg?.price || ''"
+      @pay="onPay"
+    />
   </section>
 </template>
 
@@ -52,20 +59,35 @@ import { computed, onMounted, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
 import TopBar from "../components/TopBar.vue";
+import PaymentSheet from "../components/PaymentSheet.vue";
 import { api } from "../services/api";
 import { useUserStore } from "../stores";
-import type { WalletPackage } from "../types/eve";
+import type { PaymentChannel, WalletPackage } from "../types/eve";
 
 const { t } = useI18n();
 const router = useRouter();
 const userStore = useUserStore();
 const packages = ref<WalletPackage[]>([]);
 const selected = ref<number>(0);
+const showSheet = ref(false);
 
 const coins = computed(() => userStore.coins);
+const selectedPkg = computed(() => packages.value.find((p) => p.id === selected.value));
 
 function goPay() {
-  router.push({ path: "/payment", query: { packageId: selected.value } });
+  if (selectedPkg.value) showSheet.value = true;
+}
+
+function onPay(channel: PaymentChannel) {
+  const pkg = selectedPkg.value;
+  if (!pkg) return;
+  const arrival = pkg.coins + pkg.bonus;
+  userStore.addCoins(arrival);
+  showSheet.value = false;
+  router.replace({
+    path: "/payment-result",
+    query: { status: "success", coins: arrival, amount: pkg.price, method: channel.name }
+  });
 }
 
 onMounted(async () => {
@@ -78,23 +100,23 @@ onMounted(async () => {
 .wallet {
   min-height: 100vh;
   padding-bottom: 96px;
-  background: #2c1a1a;
+  background: var(--eve-bg);
 }
 
 .records {
   font-size: 13px;
-  color: #ffd36e;
+  color: var(--eve-gold);
 }
 
 .balance {
   margin: 8px 16px 0;
   padding: 22px 18px;
   border-radius: 18px;
-  background: linear-gradient(135deg, #5a3a1a 0%, #3a2526 100%);
+  background: linear-gradient(135deg, #2a1940 0%, var(--eve-surface) 100%);
 
   .label {
     font-size: 13px;
-    color: #e8d6b8;
+    color: var(--eve-muted);
   }
   .amount {
     display: flex;
@@ -108,12 +130,12 @@ onMounted(async () => {
     strong {
       font-size: 34px;
       font-weight: 800;
-      color: #ffd36e;
+      color: var(--eve-gold);
     }
   }
   .tip {
     font-size: 12px;
-    color: #c8b8b8;
+    color: var(--eve-muted);
     line-height: 1.4;
   }
 }
@@ -130,7 +152,7 @@ onMounted(async () => {
   }
   span {
     font-size: 12px;
-    color: #9a8b8b;
+    color: var(--eve-faint);
   }
 }
 
@@ -149,12 +171,12 @@ onMounted(async () => {
   gap: 5px;
   padding: 18px 8px 14px;
   border-radius: 14px;
-  background: #3a2526;
+  background: var(--eve-surface);
   border: 1.5px solid transparent;
 
   &.active {
-    border-color: #eb6300;
-    background: rgba(235, 99, 0, 0.1);
+    border-color: var(--eve-pink);
+    background: rgba(255, 42, 122, 0.08);
   }
   .tag {
     position: absolute;
@@ -164,7 +186,7 @@ onMounted(async () => {
     border-radius: 99px;
     font-size: 10px;
     color: #fff;
-    background: linear-gradient(90deg, #ff5473, #eb6300);
+    background: var(--eve-grad);
   }
   .pkg-coins {
     display: flex;
@@ -182,7 +204,7 @@ onMounted(async () => {
   }
   .pkg-bonus {
     font-size: 12px;
-    color: #ffd36e;
+    color: var(--eve-gold);
   }
   .pkg-price {
     margin-top: 4px;
@@ -200,7 +222,7 @@ onMounted(async () => {
   margin: 18px 16px 0;
   padding: 14px 16px;
   border-radius: 14px;
-  background: linear-gradient(120deg, #5a3a1a, #8a5a22);
+  background: linear-gradient(120deg, #2a1940, #3b1230);
   color: #fff;
 
   .vip-left {
@@ -211,11 +233,11 @@ onMounted(async () => {
       margin-top: 2px;
       font-size: 11px;
       font-weight: 400;
-      color: #ffe8c6;
+      color: var(--eve-muted);
     }
   }
   :deep(.van-icon) {
-    color: #ffe8c6;
+    color: var(--eve-muted);
   }
 }
 
@@ -229,6 +251,6 @@ onMounted(async () => {
   color: #fff;
   font-size: 16px;
   font-weight: 700;
-  background: linear-gradient(90deg, #ff5473, #eb6300);
+  background: var(--eve-grad);
 }
 </style>
