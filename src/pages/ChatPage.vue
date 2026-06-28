@@ -446,10 +446,18 @@ onUnmounted(() => {
   }
   .nav-text {
     min-width: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 2px;
+    line-height: 1.2;
     strong {
-      display: block;
       font-size: 15px;
+      font-weight: 700;
       color: #fff;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
     .status {
       font-size: 11px;
