@@ -10,9 +10,11 @@
     </header>
 
     <AppSkeleton v-if="loading" type="list" />
-    <div v-else class="feed">
-      <MomentCard v-for="item in moments" :key="item.id" :moment="item" />
-    </div>
+    <van-pull-refresh v-else v-model="refreshing" @refresh="onRefresh">
+      <van-list v-model:loading="listLoading" :finished="listFinished" :finished-text="t('moments.noMore')" @load="onLoad">
+        <MomentCard v-for="item in display" :key="item.id" :moment="item" />
+      </van-list>
+    </van-pull-refresh>
 
     <button class="compose" @click="router.push('/video-upload-dynamic')">
       <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round">
@@ -23,13 +25,14 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import MomentCard from "../components/MomentCard.vue";
 import AppSkeleton from "../components/AppSkeleton.vue";
 import { api } from "../services/api";
 import { useMomentsStore } from "../stores";
+import type { Moment } from "../types/eve";
 
 defineOptions({ name: "MomentsPage" });
 
@@ -44,6 +47,38 @@ const moments = computed(() =>
   tab.value === "recommend" ? momentsStore.list : momentsStore.list.filter((_, i) => i % 2 === 0)
 );
 
+// 下拉刷新 + 上拉加载(mock:循环克隆已有动态)
+const extra = ref<Moment[]>([]);
+const display = computed(() => [...moments.value, ...extra.value]);
+const refreshing = ref(false);
+const listLoading = ref(false);
+const listFinished = ref(false);
+let cloneSeq = 1;
+
+function onLoad() {
+  const base = moments.value;
+  if (!base.length || display.value.length >= 24) {
+    listFinished.value = true;
+    listLoading.value = false;
+    return;
+  }
+  const clones = base.slice(0, 4).map((m) => ({ ...m, id: -cloneSeq++ }));
+  extra.value.push(...clones);
+  listLoading.value = false;
+  if (display.value.length >= 24) listFinished.value = true;
+}
+
+function onRefresh() {
+  extra.value = [];
+  listFinished.value = false;
+  window.setTimeout(() => (refreshing.value = false), 600);
+}
+
+watch(tab, () => {
+  extra.value = [];
+  listFinished.value = false;
+});
+
 onMounted(async () => {
   momentsStore.seed(await api.getMoments());
   loading.value = false;
@@ -55,7 +90,7 @@ onMounted(async () => {
   height: 100vh;
   overflow-y: auto;
   padding-bottom: 84px;
-  background: #2c1a1a;
+  background: var(--eve-bg);
 }
 
 .top-tabs {
@@ -66,14 +101,14 @@ onMounted(async () => {
   align-items: flex-end;
   gap: 22px;
   padding: calc(14px + env(safe-area-inset-top)) 16px 12px;
-  background: #2c1a1a;
+  background: var(--eve-bg);
 }
 
 .top-tab {
   position: relative;
   font-size: 18px;
-  font-weight: 700;
-  color: #888;
+  font-weight: 800;
+  color: var(--eve-faint);
 
   .underline {
     position: absolute;
@@ -87,15 +122,20 @@ onMounted(async () => {
 
   &.active {
     font-size: 21px;
-    color: #eb6300;
+    color: #fff;
     .underline {
-      background: #eb6300;
+      background: var(--eve-grad);
+      box-shadow: var(--eve-glow-pink);
     }
   }
 }
 
-.feed {
-  margin-top: 4px;
+:deep(.van-pull-refresh__head) {
+  color: var(--eve-faint);
+}
+:deep(.van-list__finished-text),
+:deep(.van-list__loading) {
+  color: var(--eve-faint);
 }
 
 .compose {
@@ -106,8 +146,8 @@ onMounted(async () => {
   width: 52px;
   height: 52px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #ff5473, #eb6300);
-  box-shadow: 0 8px 20px rgba(235, 99, 0, 0.45);
+  background: var(--eve-grad);
+  box-shadow: var(--eve-glow-pink);
   display: grid;
   place-items: center;
 }

@@ -80,7 +80,7 @@ const likeCount = computed(() => props.moment.likes + (liked.value && !props.mom
 <style scoped lang="scss">
 .moment-card {
   padding: 14px 16px;
-  border-bottom: 8px solid #241213;
+  border-bottom: 8px solid var(--eve-track);
 }
 
 .head {
@@ -116,7 +116,7 @@ const likeCount = computed(() => props.moment.likes + (liked.value && !props.mom
   }
   .sub {
     font-size: 11px;
-    color: #9a8b8b;
+    color: var(--eve-faint);
   }
   .more img {
     width: 22px;
@@ -129,7 +129,7 @@ const likeCount = computed(() => props.moment.likes + (liked.value && !props.mom
   margin: 10px 0 6px;
   font-size: 14px;
   line-height: 1.5;
-  color: #ece4e4;
+  color: var(--eve-text);
 }
 
 .translate {
@@ -178,7 +178,7 @@ const likeCount = computed(() => props.moment.likes + (liked.value && !props.mom
     align-items: center;
     gap: 6px;
     font-size: 13px;
-    color: #c8bcbc;
+    color: var(--eve-muted);
     img {
       width: 18px;
       height: 18px;
@@ -193,8 +193,8 @@ const likeCount = computed(() => props.moment.likes + (liked.value && !props.mom
   button {
     padding: 6px 16px;
     border-radius: 16px;
-    background: #3a2526;
-    color: #ece4e4;
+    background: var(--eve-surface);
+    color: var(--eve-text);
     font-size: 12px;
   }
 }

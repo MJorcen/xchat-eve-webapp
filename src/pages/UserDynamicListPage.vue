@@ -51,15 +51,15 @@ onMounted(async () => {
 .page {
   min-height: 100vh;
   padding-bottom: 84px;
-  background: #2c1a1a;
+  background: var(--eve-bg);
 }
 .profile {
   display: flex;
   align-items: center;
   gap: 12px;
   padding: 16px;
-  background: #3a2526;
-  border-bottom: 8px solid #241213;
+  background: var(--eve-surface);
+  border-bottom: 8px solid var(--eve-line);
   .avatar {
     width: 64px;
     height: 64px;
@@ -92,7 +92,7 @@ onMounted(async () => {
   .id,
   .sub {
     font-size: 12px;
-    color: #9a8b8b;
+    color: var(--eve-faint);
   }
   .follow {
     flex: 0 0 auto;
@@ -102,11 +102,11 @@ onMounted(async () => {
     font-size: 12px;
     font-weight: 600;
     color: #fff;
-    background: #eb6300;
+    background: var(--eve-pink);
     &.on {
       background: transparent;
       border: 1px solid rgba(255, 255, 255, 0.4);
-      color: #c8bcbc;
+      color: var(--eve-muted);
     }
   }
 }
