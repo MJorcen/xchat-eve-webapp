@@ -98,8 +98,8 @@ onMounted(async () => {
 .home {
   height: 100vh;
   overflow-y: auto;
-  padding-bottom: 84px;
-  background: #2c1a1a;
+  padding-bottom: 78px;
+  background: var(--eve-bg);
 }
 
 .top-tabs {
@@ -110,14 +110,14 @@ onMounted(async () => {
   align-items: flex-end;
   gap: 22px;
   padding: calc(14px + env(safe-area-inset-top)) 16px 10px;
-  background: #2c1a1a;
+  background: var(--eve-bg);
 }
 
 .top-tab {
   position: relative;
   font-size: 18px;
-  font-weight: 700;
-  color: #888;
+  font-weight: 800;
+  color: var(--eve-faint);
   transition: color 0.2s;
 
   .underline {
@@ -132,9 +132,10 @@ onMounted(async () => {
 
   &.active {
     font-size: 22px;
-    color: #eb6300;
+    color: #fff;
     .underline {
-      background: #eb6300;
+      background: var(--eve-grad);
+      box-shadow: var(--eve-glow-pink);
     }
   }
 }
@@ -154,15 +155,18 @@ onMounted(async () => {
   flex: 0 0 auto;
   height: 30px;
   padding: 0 14px;
-  font-size: 13px;
-  color: #c8bcbc;
-  background: #3a2526;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--eve-muted);
+  background: var(--eve-surface);
+  border: 1px solid var(--eve-line);
   border-radius: 20px;
   white-space: nowrap;
 
   &.active {
     color: #fff;
-    background: linear-gradient(135deg, #ff5473, #eb6300);
+    background: var(--eve-grad);
+    border-color: transparent;
   }
 }
 
@@ -180,8 +184,9 @@ onMounted(async () => {
   flex: 0 0 auto;
   width: 116px;
   height: 150px;
-  border-radius: 14px;
+  border-radius: 16px;
   overflow: hidden;
+  border: 1px solid var(--eve-line);
   .live-cover {
     width: 100%;
     height: 100%;
@@ -237,6 +242,6 @@ onMounted(async () => {
 .empty {
   margin-top: 80px;
   text-align: center;
-  color: #6f5b5b;
+  color: var(--eve-faint);
 }
 </style>

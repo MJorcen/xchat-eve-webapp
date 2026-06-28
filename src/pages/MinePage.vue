@@ -2,19 +2,21 @@
   <section class="mine">
     <div class="hero">
       <button class="edit" @click="router.push('/edit-profile')">
-        <img src="/assets/eve/mine/ic_edit-data@2x%20(2).png" alt="" />
+        <SquarePen :size="18" :stroke-width="1.8" />
       </button>
 
       <div class="profile">
-        <van-image round fit="cover" class="avatar" :src="user.avatar" lazy-load />
+        <div class="avatar-ring">
+          <van-image round fit="cover" class="avatar" :src="user.avatar" lazy-load />
+        </div>
         <div class="profile-info">
           <div class="name-row">
             <strong class="name">{{ user.nickname }}</strong>
-            <img class="sex" src="/assets/eve/mine/sex.png" alt="" />
+            <span class="sex-badge">♀</span>
           </div>
           <button class="id-row" @click="copyId">
             ID: {{ user.id }}
-            <img src="/assets/eve/mine/ic_copy@2x.png" alt="" />
+            <Copy :size="13" :stroke-width="1.8" />
           </button>
         </div>
       </div>
@@ -40,8 +42,9 @@
 
     <!-- VIP 横幅 -->
     <button class="vip-banner" @click="router.push('/membership')">
+      <span class="vip-icon"><Crown :size="20" :stroke-width="1.8" /></span>
       <div class="vip-text">
-        <strong class="gold">{{ t("mine.becomeVip") }}</strong>
+        <strong>{{ t("mine.becomeVip") }}</strong>
         <small>{{ t("mine.vipDesc") }}</small>
       </div>
       <span class="vip-cta">{{ t("mine.go") }} ›</span>
@@ -49,6 +52,7 @@
 
     <!-- 钱包卡 -->
     <button class="coin-card" @click="router.push('/wallet')">
+      <span class="coin-icon"><Coins :size="22" :stroke-width="1.8" /></span>
       <div class="coin-left">
         <span>{{ t("mine.myCoins") }}</span>
         <strong>{{ user.coins }}</strong>
@@ -59,25 +63,25 @@
     <!-- 设置列表 -->
     <nav class="settings">
       <button class="row" @click="router.push('/game')">
-        <img src="/assets/eve/gc.png" alt="" />
-        <span>{{ t("mine.games") }}</span>
-        <img class="arrow" src="/assets/eve/mine/list_arrow-right-gray-20@2x.png" alt="" />
+        <span class="row-ico g-pink"><Gamepad2 :size="18" :stroke-width="1.8" /></span>
+        <span class="label">{{ t("mine.games") }}</span>
+        <ChevronRight class="arrow" :size="18" :stroke-width="1.8" />
       </button>
       <button class="row" @click="router.push('/block-list')">
-        <img src="/assets/eve/mine/ic_block%20List@2x.png" alt="" />
-        <span>{{ t("mine.blockList") }}</span>
-        <img class="arrow" src="/assets/eve/mine/list_arrow-right-gray-20@2x.png" alt="" />
+        <span class="row-ico g-purple"><Ban :size="18" :stroke-width="1.8" /></span>
+        <span class="label">{{ t("mine.blockList") }}</span>
+        <ChevronRight class="arrow" :size="18" :stroke-width="1.8" />
       </button>
       <button class="row" @click="router.push('/feedback')">
-        <img src="/assets/eve/mine/ic_feedback@2x.png" alt="" />
-        <span>{{ t("mine.feedback") }}</span>
-        <img class="arrow" src="/assets/eve/mine/list_arrow-right-gray-20@2x.png" alt="" />
+        <span class="row-ico g-gold"><MessageSquareWarning :size="18" :stroke-width="1.8" /></span>
+        <span class="label">{{ t("mine.feedback") }}</span>
+        <ChevronRight class="arrow" :size="18" :stroke-width="1.8" />
       </button>
       <button class="row" @click="showLang = true">
-        <img src="/assets/eve/mine/ic_settings@2x.png" alt="" />
-        <span>{{ t("mine.language") }}</span>
+        <span class="row-ico g-green"><Languages :size="18" :stroke-width="1.8" /></span>
+        <span class="label">{{ t("mine.language") }}</span>
         <span class="lang-val">{{ t(`lang.${userStore.lang}`) }}</span>
-        <img class="arrow" src="/assets/eve/mine/list_arrow-right-gray-20@2x.png" alt="" />
+        <ChevronRight class="arrow" :size="18" :stroke-width="1.8" />
       </button>
     </nav>
 
@@ -96,6 +100,17 @@ import { computed, ref } from "vue";
 import { useRouter } from "vue-router";
 import { showToast } from "vant";
 import { useI18n } from "vue-i18n";
+import {
+  SquarePen,
+  Copy,
+  Crown,
+  Coins,
+  Gamepad2,
+  Ban,
+  MessageSquareWarning,
+  Languages,
+  ChevronRight
+} from "lucide-vue-next";
 import { eveMockApi } from "../services/eveMockApi";
 import { useUserStore } from "../stores";
 import type { AppLocale } from "../i18n";
@@ -130,24 +145,31 @@ function onLang(a: { value: AppLocale }) {
 .mine {
   height: 100vh;
   overflow-y: auto;
-  padding: 0 0 84px;
-  background: #2c1a1a;
+  padding: 0 0 78px;
+  background: var(--eve-bg);
 }
 
 .hero {
   position: relative;
-  padding: 50px 16px 18px;
-  background: linear-gradient(180deg, #4a2526 0%, #2c1a1a 100%);
+  padding: calc(44px + env(safe-area-inset-top)) 16px 20px;
+  background:
+    radial-gradient(120% 80% at 0% 0%, rgba(153, 69, 255, 0.18) 0%, transparent 55%),
+    radial-gradient(120% 80% at 100% 0%, rgba(255, 42, 122, 0.16) 0%, transparent 55%),
+    var(--eve-bg);
 }
 
 .edit {
   position: absolute;
-  top: 16px;
+  top: calc(16px + env(safe-area-inset-top));
   right: 16px;
-  img {
-    width: 26px;
-    height: 26px;
-  }
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--eve-muted);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--eve-line);
 }
 
 .profile {
@@ -156,31 +178,55 @@ function onLang(a: { value: AppLocale }) {
   gap: 14px;
 }
 
+.avatar-ring {
+  position: relative;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  padding: 2.5px;
+  background: conic-gradient(from 210deg, #ff2a7a, #9945ff, #ffb800, #ff2a7a);
+  flex: 0 0 auto;
+}
+
 .avatar {
-  width: 68px;
-  height: 68px;
+  width: 100%;
+  height: 100%;
   border-radius: 50%;
   overflow: hidden;
-  border: 2px solid rgba(255, 255, 255, 0.2);
+  border: 2.5px solid var(--eve-bg);
 }
 
 .profile-info {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 9px;
+  flex: 1;
+  min-width: 0;
 }
 
 .name-row {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
+  min-width: 0;
   .name {
     font-size: 19px;
-    font-weight: 700;
+    font-weight: 800;
     color: #fff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
-  .sex {
+  .sex-badge {
+    display: grid;
+    place-items: center;
+    width: 18px;
     height: 18px;
+    border-radius: 50%;
+    font-size: 11px;
+    color: #fff;
+    background: var(--eve-pink);
+    flex: 0 0 auto;
   }
 }
 
@@ -189,111 +235,138 @@ function onLang(a: { value: AppLocale }) {
   align-items: center;
   gap: 6px;
   font-size: 12px;
-  color: #c8bcbc;
-  img {
-    width: 14px;
-    height: 14px;
-  }
+  color: var(--eve-muted);
 }
 
 .stats {
   display: flex;
   align-items: center;
-  margin-top: 20px;
+  margin-top: 22px;
 
   .stat {
     flex: 1;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 4px;
+    gap: 5px;
     strong {
-      font-size: 17px;
+      font-size: 18px;
+      font-weight: 800;
       color: #fff;
     }
     span {
       font-size: 11px;
-      color: #b0a0a0;
+      color: var(--eve-faint);
     }
   }
   .shu {
     width: 1px;
     height: 24px;
-    background: rgba(255, 255, 255, 0.12);
+    background: var(--eve-line);
   }
 }
 
 .vip-banner {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 12px;
   width: calc(100% - 32px);
   margin: 16px;
   padding: 14px 16px;
-  border-radius: 16px;
-  background: linear-gradient(120deg, #5a3a1a 0%, #8a5a22 100%);
+  border-radius: 18px;
+  background: linear-gradient(120deg, #2a1940 0%, #3b1230 100%);
+  border: 1px solid var(--eve-line);
   text-align: left;
 
+  .vip-icon {
+    display: grid;
+    place-items: center;
+    width: 38px;
+    height: 38px;
+    border-radius: 12px;
+    color: #1a1020;
+    background: linear-gradient(135deg, #ffd36e, #ffb800);
+    flex: 0 0 auto;
+  }
   .vip-text {
     display: flex;
     flex-direction: column;
     gap: 3px;
+    flex: 1;
+    min-width: 0;
     strong {
-      font-size: 16px;
-      color: #fff;
+      font-size: 15px;
+      font-weight: 800;
+      color: var(--eve-gold);
     }
     small {
-      font-size: 12px;
-      color: #e8d6b8;
+      font-size: 11px;
+      color: var(--eve-muted);
     }
-  }
-  .gold {
-    color: #ffec93;
   }
   .vip-cta {
     font-size: 13px;
-    color: #ffec93;
+    font-weight: 600;
+    color: var(--eve-gold);
+    flex: 0 0 auto;
   }
 }
 
 .coin-card {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 12px;
   width: calc(100% - 32px);
   margin: 0 16px 16px;
   padding: 16px;
-  border-radius: 16px;
-  background: linear-gradient(120deg, #3a2526 0%, #4a2e30 100%);
+  border-radius: 18px;
+  background: var(--eve-surface);
+  border: 1px solid var(--eve-line);
 
+  .coin-icon {
+    display: grid;
+    place-items: center;
+    width: 38px;
+    height: 38px;
+    border-radius: 12px;
+    color: var(--eve-gold);
+    background: var(--eve-track);
+    border: 1px solid var(--eve-line);
+    flex: 0 0 auto;
+  }
   .coin-left {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
     gap: 2px;
+    flex: 1;
     span {
-      font-size: 12px;
-      color: #b0a0a0;
+      font-size: 11px;
+      color: var(--eve-faint);
     }
     strong {
       font-size: 22px;
-      color: #ffd36e;
+      font-weight: 800;
+      color: var(--eve-gold);
     }
   }
   .coin-cta {
-    padding: 7px 18px;
+    padding: 8px 18px;
     border-radius: 20px;
-    background: linear-gradient(135deg, #ff5473, #eb6300);
+    background: var(--eve-grad);
+    box-shadow: var(--eve-glow-pink);
     color: #fff;
     font-size: 13px;
-    font-weight: 600;
+    font-weight: 700;
+    flex: 0 0 auto;
   }
 }
 
 .settings {
   margin: 0 16px;
-  background: #3a2526;
-  border-radius: 16px;
+  background: var(--eve-surface);
+  border: 1px solid var(--eve-line);
+  border-radius: 18px;
   overflow: hidden;
 
   .row {
@@ -301,30 +374,50 @@ function onLang(a: { value: AppLocale }) {
     align-items: center;
     gap: 12px;
     width: 100%;
-    padding: 15px 14px;
+    padding: 13px 14px;
     text-align: left;
 
     & + .row {
-      border-top: 1px solid rgba(255, 255, 255, 0.06);
+      border-top: 1px solid var(--eve-line);
     }
-    & > img:first-child {
-      width: 22px;
-      height: 22px;
+    .row-ico {
+      display: grid;
+      place-items: center;
+      width: 32px;
+      height: 32px;
+      border-radius: 10px;
+      flex: 0 0 auto;
+      &.g-pink {
+        color: var(--eve-pink);
+        background: rgba(255, 42, 122, 0.12);
+      }
+      &.g-purple {
+        color: #a98bff;
+        background: rgba(153, 69, 255, 0.14);
+      }
+      &.g-gold {
+        color: var(--eve-gold);
+        background: rgba(255, 184, 0, 0.12);
+      }
+      &.g-green {
+        color: #34d399;
+        background: rgba(34, 197, 94, 0.12);
+      }
     }
-    span {
+    .label {
       flex: 1;
       font-size: 14px;
-      color: #ece4e4;
+      font-weight: 500;
+      color: var(--eve-text);
     }
     .lang-val {
       flex: 0 0 auto;
       font-size: 13px;
-      color: #9a8b8b;
+      color: var(--eve-faint);
     }
     .arrow {
-      width: 16px;
-      height: 16px;
-      opacity: 0.6;
+      color: var(--eve-faint);
+      flex: 0 0 auto;
     }
   }
 }

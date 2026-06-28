@@ -24,11 +24,9 @@
       </div>
     </div>
 
-    <!-- 通话按钮（右下角） -->
+    <!-- 视频通话按钮（右下角） -->
     <button class="call-btn" @click.stop="openCall(anchor)">
-      <svg viewBox="0 0 24 24" width="22" height="22" fill="#fff">
-        <path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.5.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1C10.7 21 3 13.3 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.2.2 2.4.6 3.5.1.4 0 .8-.2 1l-2.3 2.3z" />
-      </svg>
+      <Video :size="18" :stroke-width="2" />
     </button>
   </article>
 </template>
@@ -36,6 +34,7 @@
 <script setup lang="ts">
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
+import { Video } from "lucide-vue-next";
 import { useCall } from "../composables/useCall";
 import type { Anchor } from "../types/eve";
 import { countryFlag } from "../utils/assets";
@@ -52,9 +51,10 @@ const { openCall } = useCall();
   position: relative;
   width: 100%;
   aspect-ratio: 3 / 4;
-  border-radius: 12px;
+  border-radius: 16px;
   overflow: hidden;
-  background: #3a2526;
+  background: var(--eve-surface);
+  border: 1px solid var(--eve-line);
   cursor: pointer;
 }
 
@@ -67,7 +67,7 @@ const { openCall } = useCall();
 .ph-skeleton {
   width: 100%;
   height: 100%;
-  background: linear-gradient(135deg, #4a3132, #2c1a1a);
+  background: linear-gradient(135deg, #1d142b, #0b0712);
 }
 
 .status-pill {
@@ -77,23 +77,26 @@ const { openCall } = useCall();
   display: flex;
   align-items: center;
   gap: 5px;
-  height: 22px;
-  padding: 0 9px;
-  font-size: 11px;
+  height: 21px;
+  padding: 0 8px;
+  font-size: 10px;
+  font-weight: 600;
   color: #fff;
-  background: rgba(0, 0, 0, 0.35);
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(4px);
   border-radius: 20px;
 }
 
 .status-pill .dot {
-  width: 7px;
-  height: 7px;
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
-  background: #c7c4cc;
+  background: #8a8594;
 }
 
 .status-pill .dot.on {
-  background: #00e397;
+  background: var(--eve-green);
+  box-shadow: 0 0 6px rgba(34, 197, 94, 0.8);
 }
 
 .card-bottom {
@@ -101,14 +104,15 @@ const { openCall } = useCall();
   left: 0;
   right: 0;
   bottom: 0;
-  padding: 22px 10px 9px;
-  background: linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.65) 100%);
+  padding: 24px 10px 10px;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.75) 100%);
 }
 
 .name {
-  font-size: 15px;
-  font-weight: 700;
+  font-size: 14px;
+  font-weight: 800;
   color: #fff;
+  letter-spacing: 0.2px;
 }
 
 .meta-row {
@@ -124,10 +128,10 @@ const { openCall } = useCall();
   gap: 2px;
   height: 18px;
   padding: 0 7px;
-  font-size: 11px;
-  font-weight: 600;
+  font-size: 10px;
+  font-weight: 700;
   color: #fff;
-  background: #ff5473;
+  background: var(--eve-pink);
   border-radius: 20px;
 }
 
@@ -141,12 +145,13 @@ const { openCall } = useCall();
 .call-btn {
   position: absolute;
   right: 9px;
-  bottom: 44px;
-  width: 38px;
-  height: 38px;
+  bottom: 46px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
-  background: #f9577e;
-  box-shadow: 0 4px 12px rgba(249, 87, 126, 0.5);
+  color: #fff;
+  background: var(--eve-grad);
+  box-shadow: var(--eve-glow-pink);
   display: flex;
   align-items: center;
   justify-content: center;

@@ -5,7 +5,13 @@ export default {
     extend: {
       colors: {
         brand: "#ff4d67",
-        "brand-dark": "#29191a"
+        "brand-dark": "#29191a",
+        "eve-bg": "#0b0712",
+        "eve-surface": "#181226",
+        "eve-line": "#2a1f3d",
+        "eve-pink": "#ff2a7a",
+        "eve-purple": "#9945ff",
+        "eve-gold": "#ffb800"
       }
     }
   },

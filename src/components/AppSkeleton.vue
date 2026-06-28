@@ -25,7 +25,7 @@ withDefaults(defineProps<{ type?: "grid" | "list"; count?: number }>(), {
 
 <style scoped lang="scss">
 .sk {
-  background: linear-gradient(90deg, #3a2526 25%, #4a3132 37%, #3a2526 63%);
+  background: linear-gradient(90deg, #181226 25%, #251a3a 37%, #181226 63%);
   background-size: 400% 100%;
   animation: shimmer 1.4s ease infinite;
 }
@@ -46,7 +46,7 @@ withDefaults(defineProps<{ type?: "grid" | "list"; count?: number }>(), {
 }
 .sk-card {
   aspect-ratio: 3 / 4;
-  border-radius: 12px;
+  border-radius: 16px;
 }
 
 .sk-list {

@@ -8,10 +8,8 @@
         </van-swipe-item>
       </van-swipe>
 
-      <button class="circle back" @click="router.back()"><van-icon name="arrow-left" /></button>
-      <button class="circle more" @click="showActions = true">
-        <img src="/assets/eve/anchorDetail/sandian.png" alt="" />
-      </button>
+      <button class="circle back" @click="router.back()"><ChevronLeft :size="22" :stroke-width="2" /></button>
+      <button class="circle more" @click="showActions = true"><MoreHorizontal :size="20" :stroke-width="2" /></button>
 
       <button class="follow" :class="{ on: followed }" @click="toggleFollow">
         {{ followed ? t("common.following") : `+ ${t("common.follow")}` }}
@@ -38,22 +36,24 @@
           </div>
           <button class="id-row" @click="copyId">
             ID: {{ anchor.id }}
-            <img src="/assets/eve/anchorDetail/ic_copyid@2x.png" alt="" />
+            <Copy :size="13" :stroke-width="1.8" />
           </button>
         </div>
-        <van-image round fit="cover" class="head-avatar" :src="anchor.avatar" @click="preview(anchor.avatar)" />
+        <div class="head-avatar-ring">
+          <van-image round fit="cover" class="head-avatar" :src="anchor.avatar" @click="preview(anchor.avatar)" />
+        </div>
       </div>
 
       <p class="bio">{{ anchor.intro }}</p>
 
       <div class="stats">
         <div class="stat">
-          <img src="/assets/eve/anchorDetail/ic_gender@2x.png" alt="" />
+          <span class="g">♀</span>
           <span>{{ t("anchor.female") }}</span>
         </div>
         <i class="div" />
         <div class="stat">
-          <img src="/assets/eve/anchorDetail/ic_age@2x.png" alt="" />
+          <Cake :size="15" :stroke-width="1.8" class="ic" />
           <span>{{ anchor.age }}</span>
         </div>
         <i class="div" />
@@ -63,7 +63,7 @@
         </div>
         <i class="div" />
         <div class="stat">
-          <img src="/assets/eve/anchorDetail/ic_followers@2x.png" alt="" />
+          <Users :size="15" :stroke-width="1.8" class="ic" />
           <span>{{ anchor.followers }}</span>
         </div>
       </div>
@@ -109,14 +109,14 @@
     <!-- 底部操作栏 -->
     <div class="bottom-bar">
       <button class="cta" @click="startCall">
-        <img src="/assets/eve/anchorDetail/ic_call_video@2x.png" alt="" />
+        <Video :size="22" :stroke-width="2" />
         <span class="cta-text">
           {{ t("anchor.videoCall") }}
           <small><img src="/assets/eve/callDialog/coin_300@2x.png" alt="" />{{ anchor.price }}{{ t("anchor.perMin") }}</small>
         </span>
       </button>
       <button class="msg-btn" @click="startChat">
-        <img src="/assets/eve/anchorDetail/ic_call_message@2x.png" alt="" />
+        <MessageCircle :size="24" :stroke-width="1.9" />
       </button>
     </div>
 
@@ -135,6 +135,7 @@ import { computed, onMounted, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRoute, useRouter } from "vue-router";
 import { showImagePreview } from "vant";
+import { ChevronLeft, MoreHorizontal, Copy, Cake, Users, Video, MessageCircle } from "lucide-vue-next";
 import emitter from "../common/eventBus";
 import { api } from "../services/api";
 import { useCall } from "../composables/useCall";
@@ -227,7 +228,7 @@ onMounted(async () => {
 <style scoped lang="scss">
 .detail {
   min-height: 100vh;
-  background: #2c1a1a;
+  background: var(--eve-bg);
   padding-bottom: 84px;
 }
 
@@ -242,21 +243,16 @@ onMounted(async () => {
 
 .circle {
   position: absolute;
-  top: 14px;
+  top: calc(14px + env(safe-area-inset-top));
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: rgba(0, 0, 0, 0.35);
+  background: rgba(0, 0, 0, 0.4);
   backdrop-filter: blur(6px);
   display: grid;
   place-items: center;
   z-index: 10;
   color: #fff;
-  font-size: 18px;
-  img {
-    width: 18px;
-    height: 18px;
-  }
 }
 .back {
   left: 14px;
@@ -274,13 +270,15 @@ onMounted(async () => {
   padding: 0 16px;
   border-radius: 15px;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 700;
   color: #fff;
-  background: linear-gradient(90deg, #ff5473, #eb6300);
+  background: var(--eve-grad);
+  box-shadow: var(--eve-glow-pink);
 
   &.on {
-    background: rgba(0, 0, 0, 0.3);
-    border: 1px solid rgba(255, 255, 255, 0.5);
+    background: rgba(0, 0, 0, 0.35);
+    box-shadow: none;
+    border: 1px solid rgba(255, 255, 255, 0.45);
   }
 }
 
@@ -299,22 +297,22 @@ onMounted(async () => {
   img {
     width: 48px;
     height: 48px;
-    border-radius: 6px;
+    border-radius: 8px;
     object-fit: cover;
     flex: 0 0 auto;
     border: 2px solid transparent;
     &.active {
-      border-color: #fff;
+      border-color: var(--eve-pink);
     }
   }
 }
 
 .panel {
   position: relative;
-  margin-top: -20px;
-  padding: 18px 16px 8px;
-  border-radius: 20px 20px 0 0;
-  background: #2c1a1a;
+  margin-top: -22px;
+  padding: 20px 16px 8px;
+  border-radius: 22px 22px 0 0;
+  background: var(--eve-bg);
 }
 
 .head-row {
@@ -333,8 +331,8 @@ onMounted(async () => {
   align-items: center;
   gap: 10px;
   h2 {
-    font-size: 20px;
-    font-weight: 700;
+    font-size: 21px;
+    font-weight: 800;
     color: #fff;
   }
   .status {
@@ -348,15 +346,16 @@ onMounted(async () => {
       border-radius: 50%;
       margin-right: 5px;
       background: currentColor;
+      box-shadow: 0 0 6px currentColor;
     }
     &.online {
-      color: #00e397;
+      color: var(--eve-green);
     }
     &.busy {
-      color: #ffd36e;
+      color: var(--eve-gold);
     }
     &.offline {
-      color: #9a8b8b;
+      color: var(--eve-faint);
     }
   }
 }
@@ -367,26 +366,31 @@ onMounted(async () => {
   gap: 5px;
   margin-top: 8px;
   font-size: 12px;
-  color: #9a8b8b;
-  img {
-    width: 14px;
-    height: 14px;
-  }
+  color: var(--eve-faint);
 }
 
-.head-avatar {
-  width: 64px;
-  height: 64px;
+.head-avatar-ring {
+  width: 66px;
+  height: 66px;
   border-radius: 50%;
-  overflow: hidden;
+  padding: 2px;
+  background: conic-gradient(from 210deg, #ff2a7a, #9945ff, #ffb800, #ff2a7a);
   flex: 0 0 auto;
 }
 
+.head-avatar {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 2px solid var(--eve-bg);
+}
+
 .bio {
-  margin: 12px 0;
+  margin: 14px 0;
   font-size: 13px;
-  line-height: 1.5;
-  color: #c8b8b8;
+  line-height: 1.55;
+  color: var(--eve-muted);
 }
 
 .stats {
@@ -394,7 +398,7 @@ onMounted(async () => {
   align-items: center;
   justify-content: space-between;
   padding: 14px 0;
-  border-top: 1px solid #241213;
+  border-top: 1px solid var(--eve-line);
 
   .stat {
     flex: 1;
@@ -402,8 +406,13 @@ onMounted(async () => {
     flex-direction: column;
     align-items: center;
     gap: 5px;
-    img {
-      height: 16px;
+    .ic {
+      color: var(--eve-muted);
+    }
+    .g {
+      font-size: 15px;
+      line-height: 1;
+      color: var(--eve-pink);
     }
     .flag {
       width: 20px;
@@ -419,8 +428,8 @@ onMounted(async () => {
   }
   .div {
     width: 1px;
-    height: 24px;
-    background: #241213;
+    height: 22px;
+    background: var(--eve-line);
   }
 }
 
@@ -437,13 +446,13 @@ onMounted(async () => {
 
 .section-title {
   font-size: 15px;
-  font-weight: 600;
+  font-weight: 800;
   color: #fff;
 }
 
 .more-link {
   font-size: 12px;
-  color: #9a8b8b;
+  color: var(--eve-faint);
 }
 
 .moment-grid {
@@ -453,7 +462,7 @@ onMounted(async () => {
   .moment-thumb {
     width: 100%;
     aspect-ratio: 1;
-    border-radius: 8px;
+    border-radius: 10px;
     overflow: hidden;
   }
 }
@@ -464,20 +473,25 @@ onMounted(async () => {
   gap: 8px;
   margin-top: 10px;
   .chip {
-    padding: 6px 12px;
+    padding: 6px 13px;
     border-radius: 14px;
     font-size: 12px;
+    font-weight: 600;
+    border: 1px solid transparent;
     &.c0 {
-      background: rgba(235, 99, 0, 0.15);
-      color: #eb6300;
+      background: rgba(255, 42, 122, 0.12);
+      border-color: rgba(255, 42, 122, 0.28);
+      color: #ff7aa8;
     }
     &.c1 {
-      background: rgba(255, 84, 115, 0.15);
-      color: #ff5473;
+      background: rgba(153, 69, 255, 0.14);
+      border-color: rgba(153, 69, 255, 0.3);
+      color: #c0a3ff;
     }
     &.c2 {
-      background: rgba(0, 227, 151, 0.12);
-      color: #00e397;
+      background: rgba(255, 184, 0, 0.12);
+      border-color: rgba(255, 184, 0, 0.28);
+      color: #ffcf5c;
     }
   }
 }
@@ -494,14 +508,20 @@ onMounted(async () => {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 4px;
+    gap: 6px;
     flex: 0 0 auto;
+    width: 56px;
+    padding: 10px 0;
+    border-radius: 14px;
+    background: var(--eve-surface);
+    border: 1px solid var(--eve-line);
     .face {
-      font-size: 34px;
+      font-size: 30px;
     }
     .count {
       font-size: 12px;
-      color: #ffd36e;
+      font-weight: 700;
+      color: var(--eve-gold);
     }
   }
 }
@@ -517,8 +537,9 @@ onMounted(async () => {
   align-items: center;
   gap: 12px;
   padding: 10px 14px calc(10px + env(safe-area-inset-bottom));
-  background: #2c1a1a;
-  border-top: 1px solid #241213;
+  background: rgba(11, 7, 18, 0.92);
+  backdrop-filter: blur(14px);
+  border-top: 1px solid var(--eve-line);
 }
 
 .cta {
@@ -529,18 +550,16 @@ onMounted(async () => {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  background: linear-gradient(90deg, #ff5473, #eb6300);
-  img {
-    width: 24px;
-    height: 24px;
-  }
+  color: #fff;
+  background: var(--eve-grad);
+  box-shadow: var(--eve-glow-pink);
   .cta-text {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
     color: #fff;
     font-size: 15px;
-    font-weight: 700;
+    font-weight: 800;
     line-height: 1.1;
     small {
       display: inline-flex;
@@ -548,7 +567,7 @@ onMounted(async () => {
       gap: 3px;
       font-size: 11px;
       font-weight: 500;
-      color: #ffe1c0;
+      color: rgba(255, 255, 255, 0.85);
       img {
         width: 12px;
         height: 12px;
@@ -561,12 +580,10 @@ onMounted(async () => {
   width: 52px;
   height: 52px;
   border-radius: 18px;
-  background: #3a2526;
+  background: var(--eve-surface);
+  border: 1px solid var(--eve-line);
+  color: var(--eve-text);
   display: grid;
   place-items: center;
-  img {
-    width: 26px;
-    height: 26px;
-  }
 }
 </style>

@@ -2,6 +2,25 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── Dark-neon design tokens (foot-webapp inspired) ───────── */
+:root {
+  --eve-bg: #0b0712;        /* page · near-black, faint purple */
+  --eve-surface: #181226;   /* card */
+  --eve-surface-2: #1d142b; /* elevated / alt card */
+  --eve-line: #2a1f3d;      /* hairline border */
+  --eve-track: #140d1f;     /* progress / inset track */
+  --eve-pink: #ff2a7a;
+  --eve-purple: #9945ff;
+  --eve-gold: #ffb800;
+  --eve-green: #22c55e;
+  --eve-text: #f1f5f9;
+  --eve-muted: #a1a1aa;     /* secondary text */
+  --eve-faint: #71717a;     /* tertiary text */
+  --eve-grad: linear-gradient(135deg, #ff2a7a, #9945ff);
+  --eve-grad-warm: linear-gradient(135deg, #ff2a7a, #ffb800);
+  --eve-glow-pink: 0 0 16px rgba(255, 42, 122, 0.45);
+}
+
 * {
   box-sizing: border-box;
 }
@@ -13,8 +32,8 @@ body,
   min-height: 100%;
   margin: 0;
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  background: #1c1112;
-  color: #fff;
+  background: var(--eve-bg);
+  color: var(--eve-text);
 }
 
 button,
@@ -43,54 +62,11 @@ img {
   margin: 0 auto;
   position: relative;
   overflow-x: hidden;
-  background: #2c1a1a;
+  background: var(--eve-bg);
 }
 
 .phone-shell.dark {
-  background: #2c1a1a;
-}
-
-/* 底部 Tabbar */
-.tabbar {
-  position: fixed;
-  left: 50%;
-  bottom: 0;
-  transform: translateX(-50%);
-  width: min(400PX, 100vw);
-  height: 72px;
-  padding-bottom: env(safe-area-inset-bottom);
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  background: #241213;
-  border-top: 1px solid #3a2526;
-  z-index: 30;
-}
-
-.tabbar button {
-  position: relative;
-  display: grid;
-  place-items: center;
-}
-
-.tabbar img {
-  width: 40px;
-  height: 40px;
-  object-fit: contain;
-}
-
-.tabbar b {
-  position: absolute;
-  right: 26px;
-  top: 6px;
-  min-width: 18px;
-  height: 18px;
-  padding: 0 5px;
-  border-radius: 999px;
-  background: #ff5473;
-  color: #fff;
-  font-size: 11px;
-  display: grid;
-  place-items: center;
+  background: var(--eve-bg);
 }
 
 /* GiftPanel 弹层 teleport 到 body，单独约束到手机外壳宽度并居中（不破坏 Vant 上滑动画） */
