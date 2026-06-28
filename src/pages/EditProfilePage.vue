@@ -31,6 +31,12 @@
       />
     </div>
 
+    <!-- 相册 -->
+    <div class="bio-block">
+      <span class="label">{{ t("editProfile.photos") }}</span>
+      <van-uploader v-model="photos" multiple :max-count="9" accept="image/*" class="uploader" />
+    </div>
+
     <!-- 性别 -->
     <button class="row" @click="showGender = true">
       <span class="label">{{ t("editProfile.gender") }}</span>
@@ -101,6 +107,13 @@ const form = reactive({
   region: u.region || "ind"
 });
 
+// 相册:预填用户已有照片,可增删(mock)
+const photos = ref<UploaderFileListItem[]>([
+  { url: u.avatar || "https://randomuser.me/api/portraits/women/65.jpg" },
+  { url: "https://randomuser.me/api/portraits/women/44.jpg" },
+  { url: "https://randomuser.me/api/portraits/women/68.jpg" }
+]);
+
 const showGender = ref(false);
 const showAge = ref(false);
 const showRegion = ref(false);
@@ -141,15 +154,29 @@ function save() {
 <style scoped lang="scss">
 .page {
   min-height: 100vh;
-  background: #2c1a1a;
+  background: var(--eve-bg);
 }
 .save {
   padding: 6px 16px;
   border-radius: 16px;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 700;
   color: #fff;
-  background: linear-gradient(90deg, #ff5473, #eb6300);
+  background: var(--eve-grad);
+}
+.uploader {
+  margin-top: 4px;
+  :deep(.van-uploader__upload) {
+    background: var(--eve-surface);
+    border: 1px solid var(--eve-line);
+    border-radius: 12px;
+  }
+  :deep(.van-uploader__upload-icon) {
+    color: var(--eve-faint);
+  }
+  :deep(.van-uploader__preview-image) {
+    border-radius: 12px;
+  }
 }
 .row {
   display: flex;
@@ -157,7 +184,7 @@ function save() {
   justify-content: space-between;
   width: 100%;
   padding: 14px 16px;
-  border-bottom: 1px solid #241213;
+  border-bottom: 1px solid var(--eve-line);
   .label {
     font-size: 15px;
     color: #fff;
@@ -167,7 +194,7 @@ function save() {
     align-items: center;
     gap: 6px;
     font-size: 14px;
-    color: #9a8b8b;
+    color: var(--eve-faint);
   }
   .flag {
     width: 20px;
@@ -184,7 +211,7 @@ function save() {
     color: #fff;
   }
   :deep(.van-field__control::placeholder) {
-    color: #9a8b8b;
+    color: var(--eve-faint);
   }
 }
 .avatar-row .avatar {
@@ -195,7 +222,7 @@ function save() {
 }
 .bio-block {
   padding: 14px 16px;
-  border-bottom: 1px solid #241213;
+  border-bottom: 1px solid var(--eve-line);
   .label {
     display: block;
     margin-bottom: 8px;
@@ -203,17 +230,17 @@ function save() {
     color: #fff;
   }
   :deep(.van-field) {
-    background: #3a2526;
+    background: var(--eve-surface);
     border-radius: 12px;
   }
   :deep(.van-field__control) {
     color: #fff;
   }
   :deep(.van-field__control::placeholder) {
-    color: #9a8b8b;
+    color: var(--eve-faint);
   }
   :deep(.van-field__word-limit) {
-    color: #9a8b8b;
+    color: var(--eve-faint);
   }
 }
 </style>

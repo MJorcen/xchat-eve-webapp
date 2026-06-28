@@ -16,12 +16,33 @@
       </button>
     </div>
 
-    <div class="block-row">
-      <span>{{ t("report.blockToo") }}</span>
-      <van-switch v-model="alsoBlock" size="22px" active-color="#eb6300" inactive-color="#3a2526" />
+    <!-- 问题描述(必填) -->
+    <div class="field-wrap">
+      <label><i>*</i> {{ t("report.descLabel") }}</label>
+      <div class="field">
+        <van-field
+          v-model="desc"
+          type="textarea"
+          rows="4"
+          maxlength="200"
+          show-word-limit
+          :placeholder="t('report.descPlaceholder')"
+        />
+      </div>
     </div>
 
-    <button class="submit" :disabled="!selected" @click="submit">{{ t("common.submit") }}</button>
+    <!-- 凭证上传 -->
+    <div class="field-wrap">
+      <label>{{ t("report.uploadLabel") }}</label>
+      <van-uploader v-model="pics" multiple :max-count="6" accept="image/*" class="uploader" />
+    </div>
+
+    <div class="block-row">
+      <span>{{ t("report.blockToo") }}</span>
+      <van-switch v-model="alsoBlock" size="22px" active-color="#ff2a7a" inactive-color="#2a1f3d" />
+    </div>
+
+    <button class="submit" :disabled="!desc.trim()" @click="submit">{{ t("common.submit") }}</button>
   </section>
 </template>
 
@@ -30,6 +51,7 @@ import { ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { showLoadingToast, closeToast, showToast } from "vant";
+import type { UploaderFileListItem } from "vant";
 import TopBar from "../components/TopBar.vue";
 
 const { t } = useI18n();
@@ -38,6 +60,8 @@ const router = useRouter();
 // 被举报用户 id(由 AnchorDetail / MatchDetail 通过 ?id 传入)
 const targetId = Number(route.query.id) || 0;
 const selected = ref("");
+const desc = ref("");
+const pics = ref<UploaderFileListItem[]>([]);
 const alsoBlock = ref(false);
 const reasons = [
   { key: "pornographic", label: "report.reasonPornographic" },
@@ -50,7 +74,10 @@ const reasons = [
 ];
 
 function submit() {
-  if (!selected.value) return;
+  if (!desc.value.trim()) {
+    showToast(t("report.emptyDesc"));
+    return;
+  }
   showLoadingToast({ message: t("report.submitting"), forbidClick: true });
   window.setTimeout(() => {
     // mock:针对 targetId 提交举报(+可选拉黑)
@@ -65,12 +92,12 @@ function submit() {
 .page {
   min-height: 100vh;
   padding-bottom: 96px;
-  background: #2c1a1a;
+  background: var(--eve-bg);
 }
 .hint {
   padding: 16px;
   font-size: 13px;
-  color: #9a8b8b;
+  color: var(--eve-muted);
 }
 .reason {
   display: flex;
@@ -78,7 +105,7 @@ function submit() {
   justify-content: space-between;
   width: 100%;
   padding: 14px 16px;
-  border-bottom: 1px solid #241213;
+  border-bottom: 1px solid var(--eve-line);
   font-size: 15px;
   color: #fff;
   text-align: left;
@@ -86,27 +113,71 @@ function submit() {
     width: 20px;
     height: 20px;
     border-radius: 50%;
-    border: 2px solid #6b5656;
+    border: 2px solid var(--eve-faint);
     position: relative;
     &.on {
-      border-color: #eb6300;
+      border-color: var(--eve-pink);
       &::after {
         content: "";
         position: absolute;
         inset: 3px;
         border-radius: 50%;
-        background: #eb6300;
+        background: var(--eve-pink);
       }
     }
+  }
+}
+.field-wrap {
+  padding: 16px 16px 0;
+  label {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 15px;
+    color: #fff;
+    i {
+      color: var(--eve-pink);
+      font-style: normal;
+    }
+  }
+}
+.field {
+  border-radius: 12px;
+  background: var(--eve-surface);
+  border: 1px solid var(--eve-line);
+  overflow: hidden;
+  :deep(.van-field) {
+    background: transparent;
+  }
+  :deep(.van-field__control) {
+    color: #fff;
+  }
+  :deep(.van-field__control::placeholder) {
+    color: var(--eve-faint);
+  }
+  :deep(.van-field__word-limit) {
+    color: var(--eve-faint);
+  }
+}
+.uploader {
+  :deep(.van-uploader__upload) {
+    background: var(--eve-surface);
+    border: 1px solid var(--eve-line);
+    border-radius: 12px;
+  }
+  :deep(.van-uploader__upload-icon) {
+    color: var(--eve-faint);
+  }
+  :deep(.van-uploader__preview-image) {
+    border-radius: 12px;
   }
 }
 .block-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px;
+  padding: 20px 16px 0;
   font-size: 14px;
-  color: #ece4e4;
+  color: var(--eve-text);
 }
 .submit {
   position: fixed;
@@ -118,10 +189,10 @@ function submit() {
   color: #fff;
   font-size: 16px;
   font-weight: 700;
-  background: #eb6300;
+  background: var(--eve-grad);
   &:disabled {
-    background: #3a2526;
-    color: #9a8b8b;
+    background: var(--eve-surface);
+    color: var(--eve-faint);
   }
 }
 </style>

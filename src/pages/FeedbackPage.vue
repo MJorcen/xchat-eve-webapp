@@ -17,6 +17,11 @@
     </div>
 
     <div class="field-wrap">
+      <label>{{ t("feedbackPage.uploadLabel") }}</label>
+      <van-uploader v-model="pics" multiple :max-count="6" accept="image/*" class="uploader" />
+    </div>
+
+    <div class="field-wrap">
       <label>{{ t("feedbackPage.contact") }}</label>
       <div class="field">
         <van-field v-model="contact" :placeholder="t('feedbackPage.contactPlaceholder')" />
@@ -32,12 +37,14 @@ import { ref } from "vue";
 import { useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { showLoadingToast, closeToast, showToast } from "vant";
+import type { UploaderFileListItem } from "vant";
 import TopBar from "../components/TopBar.vue";
 
 const { t } = useI18n();
 const router = useRouter();
 const content = ref("");
 const contact = ref("");
+const pics = ref<UploaderFileListItem[]>([]);
 
 function submit() {
   if (!content.value.trim()) {
@@ -57,7 +64,7 @@ function submit() {
 .page {
   min-height: 100vh;
   padding-bottom: 96px;
-  background: #2c1a1a;
+  background: var(--eve-bg);
 }
 .field-wrap {
   padding: 16px 16px 0;
@@ -67,14 +74,15 @@ function submit() {
     font-size: 15px;
     color: #fff;
     i {
-      color: #ff5473;
+      color: var(--eve-pink);
       font-style: normal;
     }
   }
 }
 .field {
   border-radius: 12px;
-  background: #3a2526;
+  background: var(--eve-surface);
+  border: 1px solid var(--eve-line);
   overflow: hidden;
   :deep(.van-field) {
     background: transparent;
@@ -83,10 +91,23 @@ function submit() {
     color: #fff;
   }
   :deep(.van-field__control::placeholder) {
-    color: #9a8b8b;
+    color: var(--eve-faint);
   }
   :deep(.van-field__word-limit) {
-    color: #9a8b8b;
+    color: var(--eve-faint);
+  }
+}
+.uploader {
+  :deep(.van-uploader__upload) {
+    background: var(--eve-surface);
+    border: 1px solid var(--eve-line);
+    border-radius: 12px;
+  }
+  :deep(.van-uploader__upload-icon) {
+    color: var(--eve-faint);
+  }
+  :deep(.van-uploader__preview-image) {
+    border-radius: 12px;
   }
 }
 .submit {
@@ -99,6 +120,6 @@ function submit() {
   color: #fff;
   font-size: 16px;
   font-weight: 700;
-  background: #eb6300;
+  background: var(--eve-grad);
 }
 </style>

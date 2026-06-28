@@ -8,6 +8,7 @@
       <div class="profile">
         <div class="avatar-ring">
           <van-image round fit="cover" class="avatar" :src="user.avatar" lazy-load />
+          <img class="flag" :src="countryFlag(user.region)" alt="" />
         </div>
         <div class="profile-info">
           <div class="name-row">
@@ -40,14 +41,14 @@
       </div>
     </div>
 
-    <!-- VIP 横幅 -->
+    <!-- VIP 横幅:会员显示有效期,非会员显示开通引导 -->
     <button class="vip-banner" @click="router.push('/membership')">
       <span class="vip-icon"><Crown :size="20" :stroke-width="1.8" /></span>
       <div class="vip-text">
-        <strong>{{ t("mine.becomeVip") }}</strong>
-        <small>{{ t("mine.vipDesc") }}</small>
+        <strong>{{ isVip ? t("mine.vipActive") : t("mine.becomeVip") }}</strong>
+        <small>{{ isVip ? t("mine.vipValidUntil", { date: user.vipValidEnd }) : t("mine.vipDesc") }}</small>
       </div>
-      <span class="vip-cta">{{ t("mine.go") }} ›</span>
+      <span class="vip-cta">{{ isVip ? "›" : `${t("mine.go")} ›` }}</span>
     </button>
 
     <!-- 钱包卡 -->
@@ -112,6 +113,7 @@ import {
 } from "lucide-vue-next";
 import { eveMockApi } from "../services/eveMockApi";
 import { useUserStore } from "../stores";
+import { countryFlag } from "../utils/assets";
 import type { AppLocale } from "../i18n";
 import type { CurrentUser } from "../types/eve";
 
@@ -122,6 +124,7 @@ const router = useRouter();
 const userStore = useUserStore();
 // 金币走 store（与充值/礼物/通话计费同源），其余资料字段回退到 mock
 const user = computed<CurrentUser>(() => ({ ...eveMockApi.getCurrentUser(), ...userStore.user } as CurrentUser));
+const isVip = computed(() => userStore.isVip);
 
 const showLang = ref(false);
 const langActions = [
@@ -185,6 +188,16 @@ function onLang(a: { value: AppLocale }) {
   padding: 2.5px;
   background: conic-gradient(from 210deg, #ff2a7a, #9945ff, #ffb800, #ff2a7a);
   flex: 0 0 auto;
+  .flag {
+    position: absolute;
+    right: -1px;
+    bottom: 0;
+    width: 22px;
+    height: 15px;
+    border-radius: 3px;
+    object-fit: cover;
+    border: 1.5px solid var(--eve-bg);
+  }
 }
 
 .avatar {
