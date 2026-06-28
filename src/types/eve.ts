@@ -6,6 +6,9 @@ export type Anchor = {
   avatar: string;
   online: boolean;
   onDuty: boolean;
+  inCall?: boolean; // 通话中(忙)
+  live?: boolean; // 正在直播
+  distance?: number; // 距离(km)
   intro: string;
   followers: number;
   price: number;

@@ -22,7 +22,15 @@
     </button>
 
     <div class="images" :class="`count-${moment.images.length}`">
-      <van-image v-for="image in moment.images" :key="image" fit="cover" class="img" :src="image" lazy-load />
+      <van-image
+        v-for="(image, i) in moment.images"
+        :key="image"
+        fit="cover"
+        class="img"
+        :src="image"
+        lazy-load
+        @click="preview(i)"
+      />
     </div>
 
     <footer class="actions">
@@ -49,6 +57,7 @@
 import { computed, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
+import { showImagePreview } from "vant";
 import { useCall } from "../composables/useCall";
 import type { Moment } from "../types/eve";
 import { countryFlag } from "../utils/assets";
@@ -57,6 +66,10 @@ const props = defineProps<{ moment: Moment }>();
 const { t } = useI18n();
 const router = useRouter();
 const { openCall } = useCall();
+
+function preview(startPosition: number) {
+  showImagePreview({ images: props.moment.images, startPosition });
+}
 
 const liked = ref(props.moment.liked);
 const translated = ref(false);

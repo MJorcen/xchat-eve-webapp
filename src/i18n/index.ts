@@ -11,8 +11,10 @@ const en = {
     submit: "Submit",
     continue: "Continue",
     later: "Maybe later",
-    online: "online",
-    offline: "offline",
+    online: "Online",
+    offline: "Offline",
+    live: "Live",
+    busy: "Busy",
     records: "Records"
   },
   home: {
@@ -300,6 +302,8 @@ const zh: typeof en = {
     later: "以后再说",
     online: "在线",
     offline: "离线",
+    live: "直播中",
+    busy: "通话中",
     records: "明细"
   },
   home: {

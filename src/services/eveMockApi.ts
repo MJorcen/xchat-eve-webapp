@@ -19,14 +19,24 @@ const avatarSeeds = ["Lina", "Ava", "Mira", "Nora", "Sia", "Isha", "Zara", "Riya
 // 真实 SFW 人像占位图（randomuser），数据层统一，后续可一键替换为真实后端头像
 const portraitIds = [44, 68, 21, 32, 9, 75, 12, 51];
 
+// 在线状态展示 4 态:Live / Online / Busy(通话中) / Offline
+const onlineArr = [true, true, true, true, false, true, true, true];
+const onDutyArr = [true, true, true, true, false, true, true, true];
+const liveArr = [true, false, false, false, false, false, false, false];
+const inCallArr = [false, false, true, false, false, false, true, false];
+const distanceArr = [0.8, 1.2, 2.4, 3.1, 5.6, 0.5, 1.9, 4.2]; // km
+
 const anchors: Anchor[] = avatarSeeds.map((name, index) => ({
   id: 860120 + index,
   nickname: name,
   age: [22, 24, 21, 26, 23, 25, 20, 27][index],
   region: ["bgd", "phl", "idn", "bra", "egy", "vnm", "col", "esp"][index],
   avatar: `https://randomuser.me/api/portraits/women/${portraitIds[index]}.jpg`,
-  online: index % 3 !== 1,
-  onDuty: index % 2 === 0,
+  online: onlineArr[index],
+  onDuty: onDutyArr[index],
+  live: liveArr[index],
+  inCall: inCallArr[index],
+  distance: distanceArr[index],
   intro: "Open minded, sweet voice, love music and night talks. Say hi and let's make today less boring.",
   followers: 1200 + index * 486,
   price: [300, 260, 280, 320, 220, 300, 260, 340][index],

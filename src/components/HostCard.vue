@@ -9,41 +9,63 @@
       </template>
     </van-image>
 
-    <!-- 在线状态（左上角） -->
-    <div class="status-pill">
-      <span class="dot" :class="{ on: anchor.online }" />
-      {{ anchor.online ? t("common.online") : t("common.offline") }}
+    <!-- 在线状态(左上角):Live / Online / Busy / Offline -->
+    <div class="status-pill" :class="status">
+      <span class="dot" />
+      {{ statusText }}
     </div>
 
     <!-- 底部渐变 + 信息 -->
     <div class="card-bottom">
-      <strong class="name">{{ anchor.nickname }}</strong>
+      <div class="name-line">
+        <strong class="name">{{ anchor.nickname }}</strong>
+        <span v-if="anchor.distance != null" class="dist">
+          <MapPin :size="10" :stroke-width="2.2" />{{ anchor.distance.toFixed(1) }}km
+        </span>
+      </div>
       <div class="meta-row">
         <span class="age-pill"><span class="sex">♀</span>{{ anchor.age }}</span>
         <img class="flag" :src="countryFlag(anchor.region)" alt="" />
       </div>
     </div>
 
-    <!-- 视频通话按钮（右下角） -->
-    <button class="call-btn" @click.stop="openCall(anchor)">
+    <!-- 可呼叫 → 视频按钮;忙/离线 → 私信按钮 -->
+    <button v-if="callable" class="fab call" @click.stop="openCall(anchor)">
       <Video :size="18" :stroke-width="2" />
+    </button>
+    <button v-else class="fab chat" @click.stop="router.push(`/chat/${anchor.id}`)">
+      <MessageCircle :size="18" :stroke-width="2" />
     </button>
   </article>
 </template>
 
 <script setup lang="ts">
+import { computed } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
-import { Video } from "lucide-vue-next";
+import { Video, MessageCircle, MapPin } from "lucide-vue-next";
 import { useCall } from "../composables/useCall";
 import type { Anchor } from "../types/eve";
 import { countryFlag } from "../utils/assets";
 
-defineProps<{ anchor: Anchor }>();
+const props = defineProps<{ anchor: Anchor }>();
 
 const { t } = useI18n();
 const router = useRouter();
 const { openCall } = useCall();
+
+const status = computed(() => {
+  const a = props.anchor;
+  if (a.live) return "live";
+  if (a.inCall) return "busy";
+  if (a.online && a.onDuty) return "online";
+  return "offline";
+});
+
+const statusText = computed(() => t(`common.${status.value}`));
+
+// 在线在岗且不在通话中 → 可直接视频呼叫
+const callable = computed(() => props.anchor.online && props.anchor.onDuty && !props.anchor.inCall);
 </script>
 
 <style scoped lang="scss">
@@ -85,18 +107,36 @@ const { openCall } = useCall();
   background: rgba(0, 0, 0, 0.4);
   backdrop-filter: blur(4px);
   border-radius: 20px;
+
+  .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #8a8594;
+  }
+  &.online .dot {
+    background: var(--eve-green);
+    box-shadow: 0 0 6px rgba(34, 197, 94, 0.8);
+  }
+  &.busy .dot {
+    background: var(--eve-gold);
+  }
+  &.live {
+    background: var(--eve-grad);
+    .dot {
+      background: #fff;
+      animation: blink 1.2s ease-in-out infinite;
+    }
+  }
 }
 
-.status-pill .dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #8a8594;
-}
-
-.status-pill .dot.on {
-  background: var(--eve-green);
-  box-shadow: 0 0 6px rgba(34, 197, 94, 0.8);
+@keyframes blink {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
 }
 
 .card-bottom {
@@ -108,11 +148,23 @@ const { openCall } = useCall();
   background: linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.75) 100%);
 }
 
+.name-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
 .name {
+  flex: 0 1 auto;
+  min-width: 0;
   font-size: 14px;
   font-weight: 800;
   color: #fff;
   letter-spacing: 0.2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .meta-row {
@@ -142,7 +194,18 @@ const { openCall } = useCall();
   object-fit: cover;
 }
 
-.call-btn {
+.dist {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+  font-size: 10px;
+  font-weight: 600;
+  white-space: nowrap;
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.fab {
   position: absolute;
   right: 9px;
   bottom: 46px;
@@ -150,10 +213,18 @@ const { openCall } = useCall();
   height: 36px;
   border-radius: 50%;
   color: #fff;
-  background: var(--eve-grad);
-  box-shadow: var(--eve-glow-pink);
   display: flex;
   align-items: center;
   justify-content: center;
+
+  &.call {
+    background: var(--eve-grad);
+    box-shadow: var(--eve-glow-pink);
+  }
+  &.chat {
+    background: rgba(0, 0, 0, 0.45);
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    backdrop-filter: blur(4px);
+  }
 }
 </style>
