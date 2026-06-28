@@ -37,7 +37,7 @@ onMounted(async () => {
 <style scoped lang="scss">
 .detail {
   min-height: 100vh;
-  background: #2c1a1a;
+  background: var(--eve-bg);
 }
 
 .list {
@@ -51,7 +51,7 @@ onMounted(async () => {
   padding: 14px 0;
 
   & + .record {
-    border-top: 1px solid #241213;
+    border-top: 1px solid var(--eve-line);
   }
 
   .ic {
@@ -82,17 +82,17 @@ onMounted(async () => {
     }
     span {
       font-size: 12px;
-      color: #9a8b8b;
+      color: var(--eve-faint);
     }
   }
   .amount {
     font-size: 16px;
     font-weight: 700;
     &.income {
-      color: #00e397;
+      color: var(--eve-green);
     }
     &.expense {
-      color: #ff5473;
+      color: var(--eve-pink);
     }
   }
 }
@@ -100,6 +100,6 @@ onMounted(async () => {
 .empty {
   margin-top: 80px;
   text-align: center;
-  color: #6f5b5b;
+  color: var(--eve-faint);
 }
 </style>

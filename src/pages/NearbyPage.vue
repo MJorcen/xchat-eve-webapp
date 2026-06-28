@@ -90,7 +90,7 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   height: 100vh;
-  background: #2c1a1a;
+  background: var(--eve-bg);
 }
 .map {
   position: relative;
@@ -100,7 +100,7 @@ onUnmounted(() => {
   background:
     repeating-linear-gradient(0deg, rgba(255, 84, 115, 0.06) 0 1px, transparent 1px 28px),
     repeating-linear-gradient(90deg, rgba(255, 84, 115, 0.06) 0 1px, transparent 1px 28px),
-    radial-gradient(120% 80% at 50% 0%, #4a2330 0%, #2c1a1a 60%, #241213 100%);
+    radial-gradient(120% 80% at 50% 0%, #2a1940 0%, var(--eve-bg) 60%, var(--eve-line) 100%);
 }
 .ring {
   position: absolute;
@@ -132,7 +132,7 @@ onUnmounted(() => {
     height: 56px;
     border-radius: 50%;
     overflow: hidden;
-    border: 3px solid #eb6300;
+    border: 3px solid var(--eve-pink);
     box-shadow: 0 0 20px rgba(235, 99, 0, 0.5);
   }
   .me-label {
@@ -155,10 +155,10 @@ onUnmounted(() => {
   height: 0;
   border-left: 7px solid transparent;
   border-right: 7px solid transparent;
-  border-top: 9px solid #eb6300;
+  border-top: 9px solid var(--eve-pink);
   margin-top: -2px;
   &.online {
-    border-top-color: #00e397;
+    border-top-color: var(--eve-green);
   }
 }
 .pin {
@@ -174,13 +174,13 @@ onUnmounted(() => {
     overflow: hidden;
     border: 2px solid rgba(255, 84, 115, 0.7);
     &.online {
-      border-color: #00e397;
+      border-color: var(--eve-green);
     }
   }
   .tail {
     border-top: 8px solid rgba(255, 84, 115, 0.7);
     &.online {
-      border-top-color: #00e397;
+      border-top-color: var(--eve-green);
     }
   }
   .km {
@@ -200,7 +200,7 @@ onUnmounted(() => {
   padding: 0 24px;
   text-align: center;
   font-size: 12px;
-  color: #9a8b8b;
+  color: var(--eve-faint);
   pointer-events: none;
 }
 .strip {
@@ -209,7 +209,7 @@ onUnmounted(() => {
   gap: 10px;
   padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
   overflow-x: auto;
-  background: #241213;
+  background: var(--eve-line);
   &::-webkit-scrollbar {
     display: none;
   }
@@ -220,7 +220,7 @@ onUnmounted(() => {
   width: 108px;
   border-radius: 14px;
   overflow: hidden;
-  background: #3a2526;
+  background: var(--eve-surface);
   .cover {
     width: 108px;
     height: 132px;
@@ -248,7 +248,7 @@ onUnmounted(() => {
     font-size: 11px;
     font-weight: 700;
     color: #fff;
-    background: linear-gradient(90deg, #ff5473, #eb6300);
+    background: var(--eve-grad);
   }
   .name {
     display: block;

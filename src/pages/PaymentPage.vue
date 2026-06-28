@@ -98,14 +98,14 @@ onMounted(async () => {
 .payment {
   min-height: 100vh;
   padding-bottom: 96px;
-  background: #2c1a1a;
+  background: var(--eve-bg);
 }
 
 .order {
   margin: 14px 16px 0;
   padding: 18px 16px;
   border-radius: 16px;
-  background: #3a2526;
+  background: var(--eve-surface);
 
   .price {
     font-size: 30px;
@@ -115,7 +115,7 @@ onMounted(async () => {
   .coins {
     margin-top: 6px;
     font-size: 13px;
-    color: #9a8b8b;
+    color: var(--eve-faint);
     display: flex;
     align-items: center;
     gap: 6px;
@@ -124,7 +124,7 @@ onMounted(async () => {
       height: 18px;
     }
     .bonus {
-      color: #ffd36e;
+      color: var(--eve-gold);
     }
   }
 }
@@ -141,7 +141,7 @@ onMounted(async () => {
   }
   span {
     font-size: 12px;
-    color: #9a8b8b;
+    color: var(--eve-faint);
   }
 }
 
@@ -153,12 +153,12 @@ onMounted(async () => {
   margin: 0 16px 10px;
   padding: 14px;
   border-radius: 14px;
-  background: #3a2526;
+  background: var(--eve-surface);
   border: 1.5px solid transparent;
   text-align: left;
 
   &.active {
-    border-color: #eb6300;
+    border-color: var(--eve-pink);
     background: rgba(235, 99, 0, 0.1);
   }
   .mark {
@@ -172,7 +172,7 @@ onMounted(async () => {
     font-weight: 700;
     font-style: normal;
     color: #fff;
-    background: linear-gradient(135deg, #ff5473, #eb6300);
+    background: var(--eve-grad);
   }
   .info {
     flex: 1;
@@ -194,14 +194,14 @@ onMounted(async () => {
         padding: 1px 7px;
         border-radius: 99px;
         color: #fff;
-        background: linear-gradient(90deg, #ff5473, #eb6300);
+        background: var(--eve-grad);
       }
     }
     .desc {
       display: block;
       margin-top: 2px;
       font-size: 11px;
-      color: #9a8b8b;
+      color: var(--eve-faint);
     }
   }
   .radio {
@@ -209,16 +209,16 @@ onMounted(async () => {
     width: 20px;
     height: 20px;
     border-radius: 50%;
-    border: 2px solid #6b5656;
+    border: 2px solid var(--eve-faint);
     position: relative;
     &.on {
-      border-color: #eb6300;
+      border-color: var(--eve-pink);
       &::after {
         content: "";
         position: absolute;
         inset: 3px;
         border-radius: 50%;
-        background: #eb6300;
+        background: var(--eve-pink);
       }
     }
   }
@@ -228,23 +228,23 @@ onMounted(async () => {
   margin: 14px 16px 0;
   padding: 6px 16px;
   border-radius: 16px;
-  background: #3a2526;
+  background: var(--eve-surface);
 
   .row {
     display: flex;
     justify-content: space-between;
     padding: 11px 0;
     font-size: 13px;
-    color: #9a8b8b;
+    color: var(--eve-faint);
     & + .row {
-      border-top: 1px solid #241213;
+      border-top: 1px solid var(--eve-line);
     }
     b {
       color: #fff;
       font-weight: 600;
     }
     .gold {
-      color: #ffd36e;
+      color: var(--eve-gold);
     }
     &.total b {
       font-size: 16px;
@@ -263,7 +263,7 @@ onMounted(async () => {
   color: #fff;
   font-size: 16px;
   font-weight: 700;
-  background: linear-gradient(90deg, #ff5473, #eb6300);
+  background: var(--eve-grad);
 
   &:disabled {
     opacity: 0.6;

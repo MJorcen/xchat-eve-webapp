@@ -42,14 +42,14 @@ onMounted(async () => (blocked.value = [...(await api.getBlockedUsers())]));
 <style scoped lang="scss">
 .page {
   min-height: 100vh;
-  background: #2c1a1a;
+  background: var(--eve-bg);
 }
 .row {
   display: flex;
   align-items: center;
   gap: 12px;
   padding: 12px 16px;
-  border-bottom: 1px solid #241213;
+  border-bottom: 1px solid var(--eve-line);
 }
 .avatar {
   width: 48px;
@@ -71,7 +71,7 @@ onMounted(async () => (blocked.value = [...(await api.getBlockedUsers())]));
   }
   .id {
     font-size: 13px;
-    color: #eb6300;
+    color: var(--eve-pink);
   }
 }
 .unblock {
@@ -81,6 +81,6 @@ onMounted(async () => (blocked.value = [...(await api.getBlockedUsers())]));
   font-size: 13px;
   font-weight: 600;
   color: #fff;
-  background: linear-gradient(90deg, #ff5473, #eb6300);
+  background: var(--eve-grad);
 }
 </style>

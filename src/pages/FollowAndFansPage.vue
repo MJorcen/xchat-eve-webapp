@@ -51,18 +51,18 @@ onMounted(async () => {
 <style scoped lang="scss">
 .page {
   min-height: 100vh;
-  background: #2c1a1a;
+  background: var(--eve-bg);
 }
 .tabs {
   display: flex;
-  border-bottom: 1px solid #241213;
+  border-bottom: 1px solid var(--eve-line);
 }
 .tab {
   position: relative;
   flex: 1;
   padding: 14px 0;
   font-size: 15px;
-  color: #9a8b8b;
+  color: var(--eve-faint);
   i {
     position: absolute;
     left: 50%;
@@ -77,7 +77,7 @@ onMounted(async () => {
     color: #fff;
     font-weight: 600;
     i {
-      background: linear-gradient(90deg, #ff5473, #eb6300);
+      background: var(--eve-grad);
     }
   }
 }
@@ -86,7 +86,7 @@ onMounted(async () => {
   align-items: center;
   gap: 12px;
   padding: 12px 16px;
-  border-bottom: 1px solid #241213;
+  border-bottom: 1px solid var(--eve-line);
 }
 .avatar-wrap {
   position: relative;
@@ -105,8 +105,8 @@ onMounted(async () => {
   width: 11px;
   height: 11px;
   border-radius: 50%;
-  background: #00e397;
-  border: 2px solid #2c1a1a;
+  background: var(--eve-green);
+  border: 2px solid var(--eve-bg);
 }
 .body {
   flex: 1;
@@ -121,10 +121,10 @@ onMounted(async () => {
   }
   .id {
     font-size: 13px;
-    color: #eb6300;
+    color: var(--eve-pink);
   }
 }
 .arrow {
-  color: #6f5b5b;
+  color: var(--eve-faint);
 }
 </style>

@@ -115,14 +115,14 @@ onUnmounted(() => {
 }
 .body span {
   font-size: 12px;
-  color: #c8bcbc;
+  color: var(--eve-muted);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .arrow {
-  color: #9a8b8b;
+  color: var(--eve-faint);
   flex: 0 0 auto;
 }
 

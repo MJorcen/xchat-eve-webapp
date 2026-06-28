@@ -46,7 +46,7 @@ const method = computed(() => (Array.isArray(route.query.method) ? route.query.m
 .result {
   min-height: 100vh;
   padding-bottom: 40px;
-  background: #2c1a1a;
+  background: var(--eve-bg);
   text-align: center;
 }
 
@@ -54,7 +54,7 @@ const method = computed(() => (Array.isArray(route.query.method) ? route.query.m
   margin: 28px 16px 0;
   padding: 28px 16px;
   border-radius: 18px;
-  background: #3a2526;
+  background: var(--eve-surface);
 
   .badge {
     width: 72px;
@@ -65,10 +65,10 @@ const method = computed(() => (Array.isArray(route.query.method) ? route.query.m
     place-items: center;
     font-size: 38px;
     color: #fff;
-    background: #00e397;
+    background: var(--eve-green);
     animation: pop 0.45s ease-out;
     &.fail {
-      background: #ff5473;
+      background: var(--eve-pink);
     }
   }
   h1 {
@@ -80,7 +80,7 @@ const method = computed(() => (Array.isArray(route.query.method) ? route.query.m
   p {
     margin-top: 6px;
     font-size: 13px;
-    color: #9a8b8b;
+    color: var(--eve-faint);
     line-height: 1.5;
   }
 }
@@ -112,7 +112,7 @@ const method = computed(() => (Array.isArray(route.query.method) ? route.query.m
   strong {
     font-size: 26px;
     font-weight: 800;
-    color: #ffd36e;
+    color: var(--eve-gold);
   }
 }
 
@@ -120,7 +120,7 @@ const method = computed(() => (Array.isArray(route.query.method) ? route.query.m
   margin: 20px 16px 0;
   padding: 6px 16px;
   border-radius: 16px;
-  background: #3a2526;
+  background: var(--eve-surface);
   text-align: left;
 
   .row {
@@ -128,19 +128,19 @@ const method = computed(() => (Array.isArray(route.query.method) ? route.query.m
     justify-content: space-between;
     padding: 12px 0;
     font-size: 13px;
-    color: #9a8b8b;
+    color: var(--eve-faint);
     & + .row {
-      border-top: 1px solid #241213;
+      border-top: 1px solid var(--eve-line);
     }
     b {
       color: #fff;
       font-weight: 600;
     }
     .ok {
-      color: #00e397;
+      color: var(--eve-green);
     }
     .bad {
-      color: #ff5473;
+      color: var(--eve-pink);
     }
   }
 }
@@ -154,7 +154,7 @@ const method = computed(() => (Array.isArray(route.query.method) ? route.query.m
   color: #fff;
   font-size: 16px;
   font-weight: 700;
-  background: linear-gradient(90deg, #ff5473, #eb6300);
+  background: var(--eve-grad);
 }
 
 .secondary {
@@ -166,6 +166,6 @@ const method = computed(() => (Array.isArray(route.query.method) ? route.query.m
   color: #fff;
   font-size: 15px;
   background: transparent;
-  border: 1.5px solid #3a2526;
+  border: 1.5px solid var(--eve-surface);
 }
 </style>

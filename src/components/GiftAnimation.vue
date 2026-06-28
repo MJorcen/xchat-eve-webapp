@@ -103,14 +103,14 @@ onUnmounted(() => {
   opacity: 0;
   animation: spark-burst 1.2s ease-out forwards;
 }
-.s1 { background: #ff5473; --x: 90px; --y: -70px; }
-.s2 { background: #ffd36e; --x: -90px; --y: -60px; }
-.s3 { background: #eb6300; --x: 100px; --y: 60px; }
-.s4 { background: #00e397; --x: -100px; --y: 70px; }
-.s5 { background: #ffd36e; --x: 0px; --y: -110px; }
-.s6 { background: #ff5473; --x: 0px; --y: 110px; }
-.s7 { background: #00e397; --x: 120px; --y: 0px; }
-.s8 { background: #eb6300; --x: -120px; --y: 0px; }
+.s1 { background: var(--eve-pink); --x: 90px; --y: -70px; }
+.s2 { background: var(--eve-gold); --x: -90px; --y: -60px; }
+.s3 { background: var(--eve-pink); --x: 100px; --y: 60px; }
+.s4 { background: var(--eve-green); --x: -100px; --y: 70px; }
+.s5 { background: var(--eve-gold); --x: 0px; --y: -110px; }
+.s6 { background: var(--eve-pink); --x: 0px; --y: 110px; }
+.s7 { background: var(--eve-green); --x: 120px; --y: 0px; }
+.s8 { background: var(--eve-pink); --x: -120px; --y: 0px; }
 
 @keyframes spark-burst {
   0% {
@@ -129,7 +129,7 @@ onUnmounted(() => {
   text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
 }
 .gift-caption b {
-  color: #ffd36e;
+  color: var(--eve-gold);
 }
 
 .gift-fade-enter-active,

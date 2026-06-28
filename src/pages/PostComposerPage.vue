@@ -112,14 +112,14 @@ function publish() {
 .composer {
   min-height: 100vh;
   padding-bottom: 96px;
-  background: #2c1a1a;
+  background: var(--eve-bg);
 }
 .post-link {
   font-size: 15px;
   font-weight: 600;
-  color: #9a8b8b;
+  color: var(--eve-faint);
   &.on {
-    color: #eb6300;
+    color: var(--eve-pink);
   }
 }
 .text-card {
@@ -129,7 +129,7 @@ function publish() {
     font-weight: 600;
     color: #fff;
     i {
-      color: #ff5473;
+      color: var(--eve-pink);
       font-style: normal;
       margin-right: 2px;
     }
@@ -140,7 +140,7 @@ function publish() {
   margin-top: 12px;
   padding: 14px;
   border-radius: 12px;
-  background: #3a2526;
+  background: var(--eve-surface);
   textarea {
     width: 100%;
     min-height: 140px;
@@ -152,7 +152,7 @@ function publish() {
     font-size: 15px;
     line-height: 1.5;
     &::placeholder {
-      color: #9a8b8b;
+      color: var(--eve-faint);
     }
   }
   .counter {
@@ -160,7 +160,7 @@ function publish() {
     right: 14px;
     bottom: 10px;
     font-size: 12px;
-    color: #9a8b8b;
+    color: var(--eve-faint);
   }
 }
 .photos {
@@ -206,7 +206,7 @@ function publish() {
     height: 88px;
     border-radius: 10px;
     border: 1px dashed #5a4546;
-    color: #9a8b8b;
+    color: var(--eve-faint);
     font-size: 30px;
     display: grid;
     place-items: center;
@@ -222,7 +222,7 @@ function publish() {
   color: #fff;
   font-size: 16px;
   font-weight: 700;
-  background: linear-gradient(90deg, #ff5473, #eb6300);
+  background: var(--eve-grad);
   &:disabled {
     opacity: 0.5;
   }

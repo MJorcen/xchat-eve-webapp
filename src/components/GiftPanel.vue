@@ -17,7 +17,7 @@
         </span>
       </div>
 
-      <van-swipe class="gift-swipe" :show-indicators="pages.length > 1" indicator-color="#eb6300">
+      <van-swipe class="gift-swipe" :show-indicators="pages.length > 1" indicator-color="var(--eve-pink)">
         <van-swipe-item v-for="(page, pi) in pages" :key="pi">
           <div class="gift-page">
             <button
@@ -132,7 +132,7 @@ function onSend() {
 .gift-panel {
   height: 58vh;
   padding: 16px 16px 0;
-  background: linear-gradient(135deg, #3a2526 0%, #2c1a1a 100%);
+  background: linear-gradient(135deg, var(--eve-surface) 0%, var(--eve-bg) 100%);
   display: flex;
   flex-direction: column;
 }
@@ -153,7 +153,7 @@ function onSend() {
     align-items: center;
     gap: 4px;
     font-size: 14px;
-    color: #ffd36e;
+    color: var(--eve-gold);
     img {
       width: 16px;
       height: 16px;
@@ -184,7 +184,7 @@ function onSend() {
   border: 1.5px solid transparent;
 
   &.is-active {
-    border-color: #ff5473;
+    border-color: var(--eve-pink);
     background: rgba(255, 84, 115, 0.08);
     box-shadow: 0 0 8px rgba(255, 84, 115, 0.5);
   }
@@ -206,7 +206,7 @@ function onSend() {
     align-items: center;
     gap: 2px;
     font-size: 12px;
-    color: #ffd36e;
+    color: var(--eve-gold);
     img {
       width: 12px;
       height: 12px;
@@ -219,7 +219,7 @@ function onSend() {
   align-items: center;
   justify-content: space-between;
   padding: 12px 0 calc(12px + env(safe-area-inset-bottom));
-  border-top: 1px solid #241213;
+  border-top: 1px solid var(--eve-line);
 }
 
 .recharge {
@@ -233,7 +233,7 @@ function onSend() {
     height: 16px;
   }
   :deep(.van-icon) {
-    color: #9a8b8b;
+    color: var(--eve-faint);
   }
 }
 
@@ -255,7 +255,7 @@ function onSend() {
   height: 36px;
   padding: 0 22px;
   border-radius: 18px;
-  background: linear-gradient(90deg, #ff5473 0%, #eb6300 100%);
+  background: linear-gradient(90deg, var(--eve-pink) 0%, var(--eve-pink) 100%);
   color: #fff;
   font-size: 15px;
   font-weight: 600;

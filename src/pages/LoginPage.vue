@@ -75,7 +75,7 @@ function comingSoon() {
   align-items: center;
   justify-content: flex-end;
   padding: 0 24px calc(28px + env(safe-area-inset-bottom));
-  background: #2c1a1a;
+  background: var(--eve-bg);
 }
 
 .hero {
@@ -114,7 +114,7 @@ function comingSoon() {
 .tagline {
   margin-top: 8px;
   font-size: 15px;
-  color: #9a8b8b;
+  color: var(--eve-faint);
 }
 
 .actions {
@@ -128,7 +128,7 @@ function comingSoon() {
   font-size: 16px;
   font-weight: 600;
   color: #fff;
-  background: linear-gradient(90deg, #ff5473, #eb6300);
+  background: var(--eve-grad);
   box-shadow: 0 8px 24px rgba(235, 99, 0, 0.4);
 
   &:active {
@@ -145,7 +145,7 @@ function comingSoon() {
   gap: 12px;
   margin: 20px 0;
   font-size: 13px;
-  color: #9a8b8b;
+  color: var(--eve-faint);
   i {
     flex: 1;
     height: 1px;
@@ -160,7 +160,7 @@ function comingSoon() {
     flex: 1;
     height: 48px;
     border-radius: 24px;
-    background: #3a2526;
+    background: var(--eve-surface);
     border: 1px solid rgba(255, 255, 255, 0.08);
     color: #fff;
     font-size: 15px;
@@ -174,9 +174,9 @@ function comingSoon() {
   text-align: center;
   font-size: 12px;
   line-height: 1.5;
-  color: #9a8b8b;
+  color: var(--eve-faint);
   a {
-    color: #eb6300;
+    color: var(--eve-pink);
   }
 }
 </style>

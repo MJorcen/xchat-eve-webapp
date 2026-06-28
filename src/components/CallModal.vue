@@ -96,7 +96,7 @@ onUnmounted(() => emitter.off("call:incoming", onIncoming));
   width: min(400PX, 100vw);
   z-index: 9920;
   overflow: hidden;
-  background: #2c1a1a;
+  background: var(--eve-bg);
 }
 
 .bg {
@@ -151,7 +151,7 @@ onUnmounted(() => emitter.off("call:incoming", onIncoming));
   font-size: 12px;
   font-weight: 700;
   color: #fff;
-  background: linear-gradient(90deg, #ff5473, #eb6300);
+  background: var(--eve-grad);
 }
 
 .price {
@@ -159,7 +159,7 @@ onUnmounted(() => emitter.off("call:incoming", onIncoming));
   align-items: center;
   gap: 5px;
   font-size: 14px;
-  color: #ffd36e;
+  color: var(--eve-gold);
   img {
     width: 18px;
     height: 18px;

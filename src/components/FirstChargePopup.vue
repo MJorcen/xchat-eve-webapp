@@ -73,7 +73,7 @@ onUnmounted(() => {
 .fc {
   width: 300px;
   padding: 0 0 22px;
-  background: linear-gradient(180deg, #5a2a3a 0%, #2c1a1a 45%);
+  background: linear-gradient(180deg, #5a2a3a 0%, var(--eve-bg) 45%);
   border-radius: 24px;
   overflow: hidden;
   text-align: center;
@@ -128,7 +128,7 @@ onUnmounted(() => {
     }
     strong {
       font-size: 17px;
-      color: #ffd36e;
+      color: var(--eve-gold);
     }
   }
   .price {
@@ -145,13 +145,13 @@ onUnmounted(() => {
   font-size: 16px;
   font-weight: 700;
   color: #fff;
-  background: linear-gradient(90deg, #ff5473, #eb6300);
+  background: var(--eve-grad);
   box-shadow: 0 8px 20px rgba(235, 99, 0, 0.4);
 }
 
 .fc-close {
   margin-top: 12px;
   font-size: 14px;
-  color: #9a8b8b;
+  color: var(--eve-faint);
 }
 </style>
