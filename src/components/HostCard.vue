@@ -17,12 +17,11 @@
 
     <!-- 底部渐变 + 信息 -->
     <div class="card-bottom">
-      <div class="name-line">
-        <strong class="name">{{ anchor.nickname }}</strong>
-        <span v-if="anchor.distance != null" class="dist">
-          <MapPin :size="10" :stroke-width="2.2" />{{ anchor.distance.toFixed(1) }}km
-        </span>
-      </div>
+      <!-- 距离胶囊(参考 disBox,独占一行,位于名字上方,不与名字争行宽) -->
+      <span v-if="anchor.distance != null" class="dist-pill">
+        <MapPin :size="10" :stroke-width="2.2" />{{ anchor.distance.toFixed(1) }}km
+      </span>
+      <strong class="name">{{ anchor.nickname }}</strong>
       <div class="meta-row">
         <img class="flag" :src="countryFlag(anchor.region)" alt="" />
         <span class="region">{{ anchor.region.toUpperCase() }}·{{ anchor.age }}</span>
@@ -144,20 +143,26 @@ const callable = computed(() => props.anchor.online && props.anchor.onDuty && !p
   left: 0;
   right: 0;
   bottom: 0;
-  padding: 24px 10px 10px;
-  background: linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.75) 100%);
+  padding: 22px 52PX 9px 10px;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.78) 100%);
 }
 
-.name-line {
-  display: flex;
+.dist-pill {
+  display: inline-flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 6px;
+  gap: 2px;
+  margin-bottom: 7px;
+  padding: 2px 8px 2px 6px;
+  font-size: 10px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.92);
+  background: rgba(0, 0, 0, 0.42);
+  backdrop-filter: blur(4px);
+  border-radius: 999px;
 }
 
 .name {
-  flex: 0 1 auto;
-  min-width: 0;
+  display: block;
   font-size: 14px;
   font-weight: 800;
   color: #fff;
@@ -170,21 +175,21 @@ const callable = computed(() => props.anchor.online && props.anchor.onDuty && !p
 .meta-row {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 4px;
   margin-top: 5px;
   min-width: 0;
 }
 
 .flag {
-  width: 19px;
-  height: 13px;
+  width: 16px;
+  height: 11px;
   border-radius: 3px;
   object-fit: cover;
   flex: 0 0 auto;
 }
 
 .region {
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 700;
   color: rgba(255, 255, 255, 0.85);
   white-space: nowrap;
@@ -192,23 +197,12 @@ const callable = computed(() => props.anchor.online && props.anchor.onDuty && !p
   text-overflow: ellipsis;
 }
 
-.dist {
-  flex: 0 0 auto;
-  display: inline-flex;
-  align-items: center;
-  gap: 1px;
-  font-size: 10px;
-  font-weight: 600;
-  white-space: nowrap;
-  color: rgba(255, 255, 255, 0.82);
-}
-
 .fab {
   position: absolute;
-  right: 9px;
-  bottom: 46px;
-  width: 36px;
-  height: 36px;
+  right: 8PX;
+  bottom: 9PX;
+  width: 40PX;
+  height: 40PX;
   border-radius: 50%;
   color: #fff;
   display: flex;
