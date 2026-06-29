@@ -1,5 +1,6 @@
 // 主播发现流（真实后端 /user/anchor/feed：在线主播,不忙碌优先 + 综合档排序）。
 import { http } from "./http";
+import { getUserCard } from "./auth";
 import type { Anchor } from "@/types/eve";
 
 interface RawAnchor {
@@ -69,4 +70,24 @@ export function getAnchorsPage(offset = 0, limit = 20, area?: string): Promise<A
 /** 主播发现流（仅取列表;分页/总数用 getAnchorsPage）。 */
 export function getAnchors(area?: string, offset = 0, limit = 30): Promise<Anchor[]> {
   return getAnchorsPage(offset, limit, area).then((p) => p.items);
+}
+
+/** 真实大卡覆盖：详情页用，返回可叠加到 Anchor 的身份字段 + 当前关注态 relationStatus。 */
+export async function fetchAnchorCard(
+  id: number,
+  requestUserId?: number
+): Promise<{ overlay: Partial<Anchor>; relationStatus: number }> {
+  const c = await getUserCard(id, requestUserId);
+  const u = c.user ?? {};
+  const overlay: Partial<Anchor> = {};
+  if (u.id != null) overlay.id = u.id as number;
+  if (u.nickname) overlay.nickname = u.nickname;
+  if (u.icon) overlay.avatar = u.icon as string;
+  const region = (u.country as string) || (u.area as string);
+  if (region) overlay.region = region;
+  if (typeof u.aboutMe === "string" && u.aboutMe) overlay.intro = u.aboutMe;
+  const age = ageFromBirthdate(u.birthdate);
+  if (age > 0) overlay.age = age;
+  if (c.relation?.fansCount != null) overlay.followers = c.relation.fansCount;
+  return { overlay, relationStatus: c.relation?.relationStatus ?? 0 };
 }

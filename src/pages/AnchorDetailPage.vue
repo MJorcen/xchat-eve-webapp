@@ -13,10 +13,6 @@
 
       <span v-if="anchor.live" class="live-badge"><i class="d" />LIVE</span>
 
-      <button class="follow" :class="{ on: followed }" @click="toggleFollow">
-        {{ followed ? t("common.following") : `+ ${t("common.follow")}` }}
-      </button>
-
       <div v-if="gallery.length > 1" class="thumbs">
         <img
           v-for="(img, i) in gallery"
@@ -44,8 +40,13 @@
             <MapPin :size="12" :stroke-width="1.8" />{{ anchor.distance.toFixed(1) }} km
           </span>
         </div>
-        <div class="head-avatar-ring">
-          <van-image round fit="cover" class="head-avatar" :src="anchor.avatar" @click="preview(anchor.avatar)" />
+        <div class="head-right">
+          <div class="head-avatar-ring">
+            <van-image round fit="cover" class="head-avatar" :src="anchor.avatar" @click="preview(anchor.avatar)" />
+          </div>
+          <button class="follow" :class="{ on: followed }" @click="toggleFollow">
+            {{ followed ? t("common.following") : `+ ${t("common.follow")}` }}
+          </button>
         </div>
       </div>
 
@@ -191,7 +192,7 @@ import {
 } from "lucide-vue-next";
 import emitter from "../common/eventBus";
 import { api } from "../services/api";
-import { getUserCard } from "../services/auth";
+import { fetchAnchorCard } from "../services/anchor";
 import { followUser, unfollowUser, isFollowing } from "../services/relation";
 import { ApiError } from "../services/http";
 import { useCall } from "../composables/useCall";
@@ -330,10 +331,14 @@ onMounted(async () => {
   const [a, m] = await Promise.all([api.getAnchor(id), api.getUserMoments(id)]);
   anchor.value = a;
   moments.value = m;
-  // 真实关注态：查看他人大卡的 relation（失败则保持未关注）
-  getUserCard(id, userStore.user.id)
-    .then((c) => (followed.value = isFollowing(c.relation?.relationStatus ?? 0)))
-    .catch(() => {});
+  // 真实大卡覆盖身份 + 关注态(mock 主播无真实卡 → 保留 mock 展示)
+  try {
+    const { overlay, relationStatus } = await fetchAnchorCard(id, userStore.user.id);
+    anchor.value = { ...a, ...overlay };
+    followed.value = isFollowing(relationStatus);
+  } catch {
+    /* 真实卡不可用,退回 mock 展示 */
+  }
 });
 </script>
 
@@ -373,24 +378,29 @@ onMounted(async () => {
   right: 14px;
 }
 
+.head-right {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  flex: 0 0 auto;
+}
+
 .follow {
-  position: absolute;
-  right: 14px;
-  bottom: 58px;
-  z-index: 10;
   height: 30px;
-  padding: 0 16px;
+  padding: 0 18px;
   border-radius: 15px;
   font-size: 13px;
   font-weight: 700;
+  white-space: nowrap;
   color: #fff;
   background: var(--eve-grad);
   box-shadow: var(--eve-glow-pink);
 
   &.on {
-    background: rgba(0, 0, 0, 0.35);
+    background: rgba(255, 255, 255, 0.1);
     box-shadow: none;
-    border: 1px solid rgba(255, 255, 255, 0.45);
+    border: 1px solid rgba(255, 255, 255, 0.35);
   }
 }
 
