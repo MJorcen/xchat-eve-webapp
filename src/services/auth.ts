@@ -9,7 +9,7 @@ import type { CurrentUser } from "@/types/eve";
 
 const USER_SVC = "/user";
 
-/** 后端 MiniUser（登录/注册返回的用户信息，字段为后端命名）。 */
+/** 后端 MiniUser（signIn 与 /user/info/get 返回的用户信息，字段为后端命名）。 */
 export interface MiniUser {
   id: number;
   cuteId?: string;
@@ -17,7 +17,11 @@ export interface MiniUser {
   icon?: string;
   gender?: number;
   status?: number;
+  area?: string;
   country?: string;
+  birthdate?: number;
+  aboutMe?: string;
+  familyId?: number;
   vipLevel?: number;
   [k: string]: unknown;
 }
@@ -44,7 +48,15 @@ export function deviceSignIn(): Promise<SignInVo> {
   );
 }
 
-/** facade 大卡（完整资料卡）。targetId 传自己 id 即为「我的资料」。 */
+/**
+ * 当前登录用户的基础资料（对齐 panjoy：GET /user/info/get → MiniUser，按 JWT 取自己）。
+ * 这是「我的资料」的规范接口；查看他人请用 getUserCard（大卡）。
+ */
+export function getMyInfo(): Promise<MiniUser> {
+  return http.get<MiniUser>(`${USER_SVC}/info/get`);
+}
+
+/** facade 大卡（完整资料卡，用于查看其他用户）。 */
 export interface UserCard {
   user: {
     id: number;
@@ -104,35 +116,44 @@ function ageFromBirthdate(ms: number): number {
 }
 
 /**
- * 登录后/启动时拉真实资料写入 store：用大卡填充资料字段。
- * 过渡期：卡片不含金币/会员有效期，暂用 mock 补齐，便于其余仍走 mock 的页面正常显示。
+ * 登录后/启动时拉真实资料写入 store（对齐 panjoy：GET /user/info/get）。
+ * 过渡期：关注数/粉丝数/金币/会员等级该接口不返回，暂用 mock 补齐，待各自真实接口接入后替换。
  */
 export async function hydrateCurrentUser(): Promise<void> {
   const store = useUserStore();
-  const id = store.user.id;
-  if (!id) return;
+  if (!store.user.id) return;
   try {
-    const card = await getUserCard(id, id);
-    store.setUser(cardToCurrentUser(card));
+    const me = await getMyInfo();
+    if (me) store.setUser(toCurrentUser(me));
   } catch {
-    /* 资料卡加载失败不阻塞（登录响应已给出昵称/头像等基础信息） */
+    /* 拉取失败不阻塞（登录响应已给出昵称/头像等基础信息） */
   }
   if (store.user.coins == null) {
     try {
       const demo = await api.getCurrentUser();
-      store.setUser({ coins: demo.coins, vipValidEnd: demo.vipValidEnd });
+      store.setUser({
+        coins: demo.coins,
+        vipValidEnd: demo.vipValidEnd,
+        vipLevel: demo.vipLevel,
+        following: demo.following,
+        followers: demo.followers
+      });
     } catch {
       /* mock 兜底失败忽略 */
     }
   }
 }
 
-/** 后端 MiniUser → 前端 CurrentUser 部分字段映射（其余展示字段当前阶段仍由 mock 补齐）。 */
+/** 后端 MiniUser → 前端 CurrentUser（关注/粉丝/金币/会员不在该结构里，由 mock 或各自接口补齐）。 */
 export function toCurrentUser(m: MiniUser): Partial<CurrentUser> {
-  return {
+  const out: Partial<CurrentUser> = {
     id: m.id,
     nickname: m.nickname ?? "",
     avatar: (m.icon as string) ?? "",
-    gender: m.gender != null ? String(m.gender) : undefined
+    region: (m.country || m.area || "") as string
   };
+  if (m.gender != null) out.gender = String(m.gender);
+  if (typeof m.aboutMe === "string") out.intro = m.aboutMe;
+  if (typeof m.birthdate === "number" && m.birthdate > 0) out.age = ageFromBirthdate(m.birthdate);
+  return out;
 }
