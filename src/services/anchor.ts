@@ -51,9 +51,9 @@ function toAnchor(r: RawAnchor): Anchor {
   };
 }
 
-/** 主播发现流。 */
-export function getAnchors(offset = 0, limit = 30): Promise<Anchor[]> {
+/** 主播发现流（按地区筛选 + 在线/不忙/档位排序;area 不传则后端取当前用户地区）。 */
+export function getAnchors(area?: string, offset = 0, limit = 30): Promise<Anchor[]> {
   return http
-    .get<{ list?: RawAnchor[] }>("/user/anchor/feed", { offset, limit })
+    .get<{ list?: RawAnchor[] }>("/user/anchor/list", { area, offset, limit })
     .then((r) => (r?.list ?? []).filter((x) => x.user?.id != null).map(toAnchor));
 }
