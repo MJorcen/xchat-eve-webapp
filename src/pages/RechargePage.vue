@@ -26,7 +26,7 @@
           <img src="/assets/eve/wallet/coin_20@2x.png" alt="" />
           <strong>{{ item.coins }}</strong>
         </div>
-        <span class="pkg-bonus">+{{ item.bonus }} {{ t("recharge.bonus") }}</span>
+        <span v-if="item.bonus > 0" class="pkg-bonus">+{{ item.bonus }} {{ t("recharge.bonus") }}</span>
         <span class="pkg-price">{{ item.price }}</span>
       </button>
     </div>
@@ -54,7 +54,7 @@ import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
 import TopBar from "../components/TopBar.vue";
 import PaymentSheet from "../components/PaymentSheet.vue";
-import { api } from "../services/api";
+import { getRechargeProducts } from "../services/recharge";
 import { useUserStore } from "../stores";
 import type { PaymentChannel, WalletPackage } from "../types/eve";
 
@@ -72,6 +72,8 @@ function goPay() {
   if (selectedPkg.value) showSheet.value = true;
 }
 
+// 占位:支付未接真实(H5/dev 仅原生 IAP 渠道解析、第三方网关 dev 未配,无法闭环)。
+// 真实流程应为 POST /trade/recharge/create → 拿 redirectUrl 跳转支付,完成后由网关回调入账。
 function onPay(channel: PaymentChannel) {
   const pkg = selectedPkg.value;
   if (!pkg) return;
@@ -85,7 +87,7 @@ function onPay(channel: PaymentChannel) {
 }
 
 onMounted(async () => {
-  packages.value = await api.getWalletPackages();
+  packages.value = await getRechargeProducts().catch(() => []);
   selected.value = packages.value.find((p) => p.selected)?.id || packages.value[0]?.id || 0;
 });
 </script>
