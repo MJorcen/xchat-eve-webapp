@@ -41,22 +41,27 @@ import { useI18n } from "vue-i18n";
 import { Lock, Crown } from "lucide-vue-next";
 import TopBar from "../components/TopBar.vue";
 import EmptyState from "../components/EmptyState.vue";
-import { api } from "../services/api";
+import { getVisitorList, type RelationUser } from "../services/relation";
 import { useUserStore } from "../stores";
-import type { Anchor } from "../types/eve";
 
 const { t } = useI18n();
 const router = useRouter();
 const userStore = useUserStore();
 const isVip = computed(() => userStore.isVip);
-const visitors = ref<Anchor[]>([]);
+const visitors = ref<RelationUser[]>([]);
 
 function open(id: number) {
   if (!isVip.value) return; // 非会员锁定,不可进入
   router.push(`/anchor/${id}`);
 }
 
-onMounted(async () => (visitors.value = await api.getVisitors()));
+onMounted(async () => {
+  try {
+    visitors.value = (await getVisitorList()).items;
+  } catch {
+    /* 加载失败:留空 */
+  }
+});
 </script>
 
 <style scoped lang="scss">

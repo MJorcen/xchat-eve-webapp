@@ -51,6 +51,11 @@ export function getFansList(offset = 0, limit = 50) {
   return fetchPage("/facade/relation/fans/page", offset, limit);
 }
 
+/** 我的访客列表（facade 聚合，已补全用户信息）。 */
+export function getVisitorList(offset = 0, limit = 50) {
+  return fetchPage("/facade/visitor/list", offset, limit);
+}
+
 /** 关注某用户，返回新的 relationStatus。 */
 export function followUser(targetId: number, referer = "mine"): Promise<number> {
   return http
