@@ -70,7 +70,10 @@
 
             <!-- 礼物 -->
             <div v-else-if="m.type === 'gift'" class="gift-bubble" :class="{ mine: m.outgoing }">
-              <span class="gift-face">{{ m.gift?.icon }}</span>
+              <span class="gift-face">
+                <img v-if="m.gift?.icon?.startsWith('http')" :src="m.gift.icon" alt="" />
+                <template v-else>{{ m.gift?.icon }}</template>
+              </span>
               <div class="gift-info">
                 <strong>{{ m.gift?.name }} <i class="x">×{{ m.gift?.count }}</i></strong>
                 <span class="gift-coins">
@@ -654,6 +657,12 @@ onUnmounted(() => {
   }
   .gift-face {
     font-size: 32px;
+    img {
+      width: 1em;
+      height: 1em;
+      object-fit: contain;
+      vertical-align: middle;
+    }
   }
   .gift-info {
     display: flex;

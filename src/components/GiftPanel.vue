@@ -27,7 +27,10 @@
               :class="{ 'is-active': selected?.id === gift.id }"
               @click="selected = gift"
             >
-              <span class="face">{{ gift.icon }}</span>
+              <span class="face">
+                <img v-if="gift.icon.startsWith('http')" :src="gift.icon" alt="" />
+                <template v-else>{{ gift.icon }}</template>
+              </span>
               <span class="name">{{ gift.name }}</span>
               <span class="price">
                 <img src="/assets/eve/chatRoom/coin_16@2x.png" alt="" />{{ gift.price }}
@@ -57,7 +60,7 @@ import { computed, onMounted, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { showToast } from "vant";
-import { api } from "../services/api";
+import { getGifts } from "../services/gift";
 import { useUserStore } from "../stores";
 import { useGiftAnimation } from "../composables/useGiftAnimation";
 import type { Anchor, Gift } from "../types/eve";
@@ -86,7 +89,11 @@ const pages = computed(() => {
 });
 
 onMounted(async () => {
-  gifts.value = await api.getGifts();
+  try {
+    gifts.value = await getGifts();
+  } catch {
+    /* 加载失败:留空 */
+  }
 });
 
 // 每次打开重置选择
@@ -192,6 +199,12 @@ function onSend() {
   .face {
     font-size: 36px;
     line-height: 1;
+    img {
+      width: 1em;
+      height: 1em;
+      object-fit: contain;
+      vertical-align: middle;
+    }
   }
   .name {
     font-size: 12px;

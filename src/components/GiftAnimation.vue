@@ -3,7 +3,10 @@
   <Transition name="gift-fade">
     <div v-if="anim.state.current" class="gift-overlay" aria-hidden="true">
       <div class="gift-stage">
-        <span class="gift-face">{{ anim.state.current.gift.icon }}</span>
+        <span class="gift-face">
+          <img v-if="anim.state.current.gift.icon.startsWith('http')" :src="anim.state.current.gift.icon" alt="" />
+          <template v-else>{{ anim.state.current.gift.icon }}</template>
+        </span>
         <span v-for="i in 8" :key="i" class="spark" :class="`s${i}`" />
       </div>
       <p class="gift-caption">
@@ -32,6 +35,8 @@ function onGiftReceived(p: { fromId: number; giftId: number; count: number }) {
 }
 
 onMounted(async () => {
+  // catalog 仅用于 mock 实时层"收到他人礼物"的 id 查找（mock giftId）；
+  // 自己送礼走 anim.play(真实礼物对象)，其图标 URL 由模板按图片渲染。
   catalog = await api.getGifts();
   emitter.on("gift:received", onGiftReceived);
 });
@@ -71,6 +76,12 @@ onUnmounted(() => {
   line-height: 1;
   animation: gift-pop 1.8s ease-out forwards;
   filter: drop-shadow(0 8px 24px rgba(255, 84, 115, 0.5));
+}
+.gift-face img {
+  width: 1em;
+  height: 1em;
+  object-fit: contain;
+  vertical-align: middle;
 }
 
 @keyframes gift-pop {
