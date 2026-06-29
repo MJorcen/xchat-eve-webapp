@@ -25,7 +25,8 @@ const en = {
     new: "New",
     nearby: "Nearby",
     dance: "Dance",
-    empty: "No one here yet"
+    empty: "No one here yet",
+    noMore: "No more"
   },
   match: { title: "Match", subtitle: "Meet someone new in one tap", random: "Random", goddess: "Goddess", perMatch: "/ match" },
   moments: { discover: "Discover", following: "Following", noMore: "No more moments" },
@@ -380,7 +381,8 @@ const zh: typeof en = {
     new: "最新",
     nearby: "附近",
     dance: "热舞",
-    empty: "这里还没有人"
+    empty: "这里还没有人",
+    noMore: "没有更多了"
   },
   match: { title: "匹配", subtitle: "一键遇见新朋友", random: "随机", goddess: "女神", perMatch: "/ 次" },
   moments: { discover: "发现", following: "关注", noMore: "没有更多了" },

@@ -51,9 +51,22 @@ function toAnchor(r: RawAnchor): Anchor {
   };
 }
 
-/** 主播发现流（按地区筛选 + 在线/不忙/档位排序;area 不传则后端取当前用户地区）。 */
-export function getAnchors(area?: string, offset = 0, limit = 30): Promise<Anchor[]> {
+export interface AnchorPage {
+  items: Anchor[];
+  total: number;
+}
+
+/** 主播发现流分页（按地区筛选 + 在线/不忙/档位排序;area 不传则后端取当前用户地区）。 */
+export function getAnchorsPage(offset = 0, limit = 20, area?: string): Promise<AnchorPage> {
   return http
-    .get<{ list?: RawAnchor[] }>("/user/anchor/list", { area, offset, limit })
-    .then((r) => (r?.list ?? []).filter((x) => x.user?.id != null).map(toAnchor));
+    .get<{ list?: RawAnchor[]; total?: number }>("/user/anchor/list", { area, offset, limit })
+    .then((r) => ({
+      items: (r?.list ?? []).filter((x) => x.user?.id != null).map(toAnchor),
+      total: r?.total ?? 0
+    }));
+}
+
+/** 主播发现流（仅取列表;分页/总数用 getAnchorsPage）。 */
+export function getAnchors(area?: string, offset = 0, limit = 30): Promise<Anchor[]> {
+  return getAnchorsPage(offset, limit, area).then((p) => p.items);
 }

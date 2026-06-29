@@ -34,25 +34,27 @@
       </button>
     </div>
 
-    <!-- 主播照片栅格 -->
+    <!-- 主播照片栅格（上拉加载更多） -->
     <AppSkeleton v-if="loading" type="grid" />
     <template v-else>
-      <div class="host-grid">
-        <HostCard v-for="anchor in anchors" :key="anchor.id" :anchor="anchor" />
-      </div>
-      <p v-if="!anchors.length" class="empty">{{ t("home.empty") }}</p>
+      <van-list v-model:loading="listLoading" :finished="listFinished" :finished-text="t('home.noMore')" @load="onLoad">
+        <div class="host-grid">
+          <HostCard v-for="anchor in anchors" :key="anchor.id" :anchor="anchor" />
+        </div>
+      </van-list>
+      <p v-if="!anchors.length && listFinished" class="empty">{{ t("home.empty") }}</p>
     </template>
   </section>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import HostCard from "../components/HostCard.vue";
 import AppSkeleton from "../components/AppSkeleton.vue";
 import { api } from "../services/api";
-import { getAnchors } from "../services/anchor";
+import { getAnchorsPage } from "../services/anchor";
 import type { Anchor, LiveRoom } from "../types/eve";
 
 defineOptions({ name: "HomePage" });
@@ -68,6 +70,13 @@ const loading = ref(true);
 const recommended = ref<Anchor[]>([]);
 const following = ref<Anchor[]>([]);
 const lives = ref<LiveRoom[]>([]);
+
+// 推荐流分页（上拉加载更多）
+const PAGE = 20;
+const recoOffset = ref(0);
+const recoTotal = ref(0);
+const listLoading = ref(false);
+const listFinished = ref(false);
 const anchors = computed(() => {
   const base = tab.value === "recommend" ? recommended.value : following.value;
   if (category.value === "hot") return base.filter((a) => a.online);
@@ -85,12 +94,43 @@ function onChip(c: string) {
   else category.value = c;
 }
 
+// 上拉加载：仅推荐流分页(真实主播 feed);关注流是 mock,不分页
+async function onLoad() {
+  if (tab.value !== "recommend") {
+    listFinished.value = true;
+    listLoading.value = false;
+    return;
+  }
+  try {
+    const { items, total } = await getAnchorsPage(recoOffset.value, PAGE);
+    recommended.value.push(...items);
+    recoOffset.value += items.length;
+    recoTotal.value = total;
+    if (items.length === 0 || recommended.value.length >= total) listFinished.value = true;
+  } catch {
+    listFinished.value = true;
+  } finally {
+    listLoading.value = false;
+  }
+}
+
+watch(tab, (v) => {
+  listFinished.value = v === "follow" ? true : recoTotal.value > 0 && recommended.value.length >= recoTotal.value;
+});
+
 onMounted(async () => {
-  [recommended.value, following.value, lives.value] = await Promise.all([
-    getAnchors().catch(() => []), // 真实主播发现流（在线 + 不忙碌优先 + 综合档排序）
+  // 首屏直接加载推荐流第一页(保证有内容),后续滚动由 van-list @load 续拉;关注流/直播条走 mock
+  const [f, l, first] = await Promise.all([
     api.getFollowing(),
-    api.getLiveRooms()
+    api.getLiveRooms(),
+    getAnchorsPage(0, PAGE).catch(() => ({ items: [] as Anchor[], total: 0 }))
   ]);
+  following.value = f;
+  lives.value = l;
+  recommended.value = first.items;
+  recoOffset.value = first.items.length;
+  recoTotal.value = first.total;
+  listFinished.value = recommended.value.length >= recoTotal.value;
   loading.value = false;
 });
 </script>
