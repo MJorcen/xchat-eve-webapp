@@ -109,12 +109,17 @@ onMounted(async () => {
     display: flex;
     align-items: center;
     gap: 6px;
+    min-width: 0;
     strong {
       font-size: 16px;
       font-weight: 600;
       color: #fff;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
     .flag {
+      flex: 0 0 auto;
       width: 18px;
       height: 13px;
       border-radius: 2px;

@@ -22,7 +22,7 @@
       <p v-if="listFinished && !display.length" class="empty">{{ t("moments.empty") }}</p>
     </van-pull-refresh>
 
-    <button class="compose" @click="router.push('/video-upload-dynamic')">
+    <button v-show="composeVisible" class="compose" @click="router.push('/video-upload-dynamic')">
       <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round">
         <path d="M12 5v14M5 12h14" />
       </svg>
@@ -31,11 +31,12 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from "vue";
+import { computed, onActivated, onDeactivated, onMounted, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import MomentCard from "../components/MomentCard.vue";
 import AppSkeleton from "../components/AppSkeleton.vue";
+import { useCall } from "../composables/useCall";
 import { getMomentsFeed } from "../services/moment";
 import { useMomentsStore } from "../stores";
 import type { Moment } from "../types/eve";
@@ -60,6 +61,13 @@ const loading = ref(true);
 const refreshing = ref(false);
 const listLoading = ref(false);
 const listFinished = ref(false);
+
+// keep-alive tab:离开/通话时隐藏 position:fixed 的悬浮发布按钮,否则会残留在其它页/来电弹窗上
+const { callState } = useCall();
+const tabActive = ref(true);
+onActivated(() => (tabActive.value = true));
+onDeactivated(() => (tabActive.value = false));
+const composeVisible = computed(() => tabActive.value && callState.phase === "idle");
 
 // 推荐流顶部叠加本地新发布(momentsStore，去重);关注流直接用真实流
 const display = computed<Moment[]>(() => {
