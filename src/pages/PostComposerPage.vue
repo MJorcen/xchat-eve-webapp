@@ -37,6 +37,9 @@ import { showToast } from "vant";
 import TopBar from "../components/TopBar.vue";
 import { useUserStore, useMomentsStore } from "../stores";
 import { fileToDataUrl } from "../utils/image";
+import { uploadFile } from "../services/upload";
+import { publishMoment } from "../services/moment";
+import { ApiError } from "../services/http";
 import type { Anchor, Moment } from "../types/eve";
 
 const { t } = useI18n();
@@ -45,22 +48,25 @@ const userStore = useUserStore();
 const momentsStore = useMomentsStore();
 
 const text = ref("");
-const images = ref<string[]>([]);
+const images = ref<string[]>([]); // data URL 预览
+const files = ref<File[]>([]); // 与 images 同序,发布时上传 COS
 const fileInput = ref<HTMLInputElement | null>(null);
+const publishing = ref(false);
 
-const canPost = computed(() => text.value.trim().length > 0);
+const canPost = computed(() => text.value.trim().length > 0 && !publishing.value);
 
 async function onFiles(e: Event) {
   const input = e.target as HTMLInputElement;
-  const files = input.files;
-  if (!files) return;
+  const picked = input.files;
+  if (!picked) return;
   let failed = false;
   try {
-    for (const f of Array.from(files)) {
+    for (const f of Array.from(picked)) {
       if (images.value.length >= 9) break;
       try {
-        // 缩放成 data URL:可持久化、刷新不失效
+        // 预览用 data URL;原始 File 留作发布时上传 COS
         images.value.push(await fileToDataUrl(f));
+        files.value.push(f);
       } catch {
         failed = true; // 跳过无法解码的文件,继续处理其余
       }
@@ -73,38 +79,54 @@ async function onFiles(e: Event) {
 
 function removeImage(i: number) {
   images.value.splice(i, 1);
+  files.value.splice(i, 1);
 }
 
-function publish() {
-  if (!canPost.value) {
+async function publish() {
+  if (publishing.value) return;
+  if (!text.value.trim()) {
     showToast(t("composer.pleaseWrite"));
     return;
   }
-  const u = userStore.user;
-  const author: Anchor = {
-    id: u.id || 778899,
-    nickname: u.nickname || "Me",
-    age: u.age || 24,
-    region: u.region || "ind",
-    avatar: u.avatar || "",
-    online: true,
-    onDuty: false,
-    intro: "",
-    followers: 0,
-    price: 0,
-    tags: []
-  };
-  const moment: Moment = {
-    id: Date.now(),
-    user: author,
-    content: text.value.trim(),
-    images: [...images.value],
-    likes: 0,
-    liked: false
-  };
-  momentsStore.prepend(moment);
-  showToast(t("composer.posted"));
-  router.back();
+  publishing.value = true;
+  try {
+    // 图片先上传到 COS,拿到公开地址作为 mediaUrls
+    const mediaUrls: string[] = [];
+    for (const f of files.value) mediaUrls.push(await uploadFile(f, "moment"));
+    const id = await publishMoment(text.value.trim(), mediaUrls);
+    // 即时插入推荐流顶部(真实图片地址 + 当前用户),刷新后由真实流接管
+    const u = userStore.user;
+    const author: Anchor = {
+      id: u.id || 0,
+      nickname: u.nickname || "Me",
+      age: u.age || 0,
+      region: u.region || "",
+      avatar: u.avatar || "",
+      online: true,
+      onDuty: false,
+      intro: "",
+      followers: 0,
+      price: 0,
+      tags: []
+    };
+    const moment: Moment = {
+      id: id || Date.now(),
+      user: author,
+      content: text.value.trim(),
+      images: mediaUrls,
+      likes: 0,
+      liked: false
+    };
+    momentsStore.prepend(moment);
+    showToast(t("composer.posted"));
+    router.back();
+  } catch (e) {
+    // 后端可读消息(含空格)直接展示;否则(原始 i18n key 如 dongtai_jiayuan_cishu)显示通用文案
+    const msg = e instanceof ApiError ? e.message : "";
+    showToast(msg && /\s/.test(msg) ? msg : t("composer.failed"));
+  } finally {
+    publishing.value = false;
+  }
 }
 </script>
 

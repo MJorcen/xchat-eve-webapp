@@ -237,7 +237,8 @@ const en = {
     addPhotos: "Add photos",
     someImagesFailed: "Some images couldn't be added",
     pleaseWrite: "Please write something",
-    posted: "Posted"
+    posted: "Posted",
+    failed: "Failed to post"
   },
   userDynamic: { moment: "Moment", followers: "followers", followCta: "+ Follow", noMoments: "No moments yet" },
   live: {
@@ -593,7 +594,8 @@ const zh: typeof en = {
     addPhotos: "添加照片",
     someImagesFailed: "部分图片无法添加",
     pleaseWrite: "请写点内容",
-    posted: "已发布"
+    posted: "已发布",
+    failed: "发布失败"
   },
   userDynamic: { moment: "动态", followers: "粉丝", followCta: "+ 关注", noMoments: "暂无动态" },
   live: {

@@ -42,3 +42,12 @@ export function getMomentsFeed(listType: 0 | 1, offset = 0, limit = 10): Promise
     .get<{ list?: RawPost[]; total?: number }>("/facade/post/list", { listType, offset, limit })
     .then((r) => ({ items: (r?.list ?? []).map(toMoment), total: r?.total ?? 0 }));
 }
+
+/** 发布动态（moment-svc /moment/post/publish；userId 取 JWT）。contentType 1=文 2=图 3=图文。返回新动态 id。 */
+export function publishMoment(content: string, mediaUrls: string[]): Promise<number> {
+  const hasText = content.trim().length > 0;
+  const contentType = hasText && mediaUrls.length ? 3 : mediaUrls.length ? 2 : 1;
+  return http
+    .post<{ id?: number }>("/moment/post/publish", { content, contentType, mediaUrls, visibility: 0, allowComment: 1 })
+    .then((r) => r?.id ?? 0);
+}
