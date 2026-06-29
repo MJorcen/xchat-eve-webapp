@@ -27,6 +27,11 @@ export const useUserStore = defineStore("user", {
     setToken(token: string) {
       this.token = token;
     },
+    // 设备登录成功后写入登录态：token + 用户基础信息（合并，不清掉已有字段）。
+    setAuth(token: string, user?: Partial<CurrentUser>) {
+      this.token = token;
+      if (user) this.user = { ...this.user, ...user };
+    },
     addCoins(delta: number) {
       this.user.coins = (this.user.coins ?? 0) + delta;
     },

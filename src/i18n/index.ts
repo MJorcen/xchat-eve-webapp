@@ -153,7 +153,9 @@ const en = {
     and: "and",
     privacyPolicy: "Privacy Policy",
     signingIn: "Signing you in…",
-    comingSoon: "Coming soon"
+    comingSoon: "Coming soon",
+    quickSignIn: "Quick sign in",
+    signInFailed: "Sign-in failed, please try again"
   },
   visitor: {
     title: "Visitor",
@@ -504,7 +506,9 @@ const zh: typeof en = {
     and: "和",
     privacyPolicy: "隐私政策",
     signingIn: "正在登录…",
-    comingSoon: "敬请期待"
+    comingSoon: "敬请期待",
+    quickSignIn: "快捷登录",
+    signInFailed: "登录失败，请重试"
   },
   visitor: {
     title: "访客",

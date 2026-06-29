@@ -8,14 +8,7 @@
     </div>
 
     <div class="actions">
-      <button class="guest" :disabled="loading" @click="loginAsGuest">{{ t("login.continueAsGuest") }}</button>
-
-      <div class="or"><i /><span>{{ t("login.orContinueWith") }}</span><i /></div>
-
-      <div class="oauth">
-        <button @click="comingSoon">Google</button>
-        <button @click="comingSoon">Apple</button>
-      </div>
+      <button class="guest" :disabled="loading" @click="quickSignIn">{{ loading ? t("login.signingIn") : t("login.quickSignIn") }}</button>
 
       <p class="terms">
         {{ t("login.termsPrefix") }}
@@ -27,40 +20,40 @@
 </template>
 
 <script setup lang="ts">
-import { onUnmounted, ref } from "vue";
-import { useRouter } from "vue-router";
+import { ref } from "vue";
+import { useRoute, useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
-import { showLoadingToast, closeToast, showToast } from "vant";
-import { api } from "../services/api";
+import { showToast } from "vant";
+import { deviceSignIn, toCurrentUser, hydrateCurrentUser } from "../services/auth";
+import { ApiError } from "../services/http";
 import { useUserStore } from "../stores";
 
 const { t } = useI18n();
 const router = useRouter();
+const route = useRoute();
 const userStore = useUserStore();
 const loading = ref(false);
-let loginTimer: number | null = null;
 
-function loginAsGuest() {
+// 设备快捷登录：用持久化设备密钥换取登录态（首次自动注册），成功后回跳来源页或首页。
+async function quickSignIn() {
   if (loading.value) return;
-  loading.value = true;
-  showLoadingToast({ message: t("login.signingIn"), forbidClick: true, duration: 0 });
-  loginTimer = window.setTimeout(async () => {
-    loginTimer = null;
-    const user = await api.getCurrentUser();
-    userStore.setUser(user);
-    userStore.setToken(`guest-${Date.now()}`);
-    closeToast();
+  loading.value = true; // 登录中：按钮内联态（禁用 + 文案），避免常驻 toast 跨页关闭问题
+  try {
+    const vo = await deviceSignIn();
+    if (!vo.authToken) throw new ApiError(-1, t("login.signInFailed"));
+    // 后端返回的 authToken 自带 "Bearer " 前缀，存裸 token，发请求时再统一加 Bearer。
+    const token = vo.authToken.replace(/^Bearer\s+/i, "");
+    userStore.setAuth(token, toCurrentUser(vo.user));
+    // 拉真实资料（大卡）写入 store，不阻塞跳转；失败时已有登录响应的基础信息兜底。
+    void hydrateCurrentUser();
+    const redirect = typeof route.query.redirect === "string" ? route.query.redirect : "/";
+    router.replace(redirect);
+  } catch (e) {
+    showToast(e instanceof ApiError ? e.message : t("login.signInFailed"));
+  } finally {
     loading.value = false;
-    router.replace("/");
-  }, 800);
-}
-
-onUnmounted(() => {
-  if (loginTimer) {
-    window.clearTimeout(loginTimer);
-    closeToast();
   }
-});
+}
 
 function comingSoon() {
   showToast(t("login.comingSoon"));

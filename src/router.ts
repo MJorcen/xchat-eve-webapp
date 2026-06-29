@@ -29,6 +29,7 @@ import EditProfilePage from "./pages/EditProfilePage.vue";
 import GameCatPage from "./pages/GameCatPage.vue";
 import NearbyPage from "./pages/NearbyPage.vue";
 import MatchDetailPage from "./pages/MatchDetailPage.vue";
+import { useUserStore } from "./stores";
 
 export const tabRouteNames = ["Home", "Match", "Moments", "Messages", "Mine"];
 
@@ -68,5 +69,16 @@ export const router = createRouter({
   ],
   scrollBehavior() {
     return { top: 0 };
+  }
+});
+
+// 登录守卫：未登录一律跳登录页（带 redirect 回跳）；已登录访问登录页则回首页。
+router.beforeEach((to) => {
+  const store = useUserStore();
+  if (!store.isLogin && to.name !== "Login") {
+    return { name: "Login", query: to.fullPath !== "/" ? { redirect: to.fullPath } : undefined };
+  }
+  if (store.isLogin && to.name === "Login") {
+    return { name: "Home" };
   }
 });
