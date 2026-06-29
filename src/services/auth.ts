@@ -77,6 +77,20 @@ export function getMyInfo(): Promise<MiniUser> {
   return http.get<MiniUser>(`${USER_SVC}/info/get`);
 }
 
+/** 编辑资料请求（对齐 panjoy user/info/profile/update；后端不含地区/相册字段）。 */
+export interface ProfileUpdate {
+  nickname?: string;
+  icon?: string;
+  gender?: number;
+  birthdate?: string; // ISO-8601
+  aboutMe?: string;
+}
+
+/** 更新当前用户资料，返回更新后的用户。 */
+export function updateProfile(req: ProfileUpdate): Promise<MiniUser> {
+  return http.post<MiniUser>(`${USER_SVC}/info/profile/update`, req);
+}
+
 /** facade 大卡（完整资料卡，用于查看其他用户）。 */
 export interface UserCard {
   user: {

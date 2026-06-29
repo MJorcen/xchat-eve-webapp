@@ -1,7 +1,7 @@
 <template>
   <section class="page">
     <TopBar :title="t('editProfile.title')">
-      <button class="save" @click="save">{{ t("common.save") }}</button>
+      <button class="save" :disabled="saving" @click="save">{{ saving ? t("editProfile.saving") : t("common.save") }}</button>
     </TopBar>
 
     <!-- 头像 -->
@@ -86,10 +86,12 @@
 import { reactive, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
-import { showLoadingToast, closeToast, showToast } from "vant";
+import { showToast } from "vant";
 import type { UploaderFileListItem } from "vant";
 import TopBar from "../components/TopBar.vue";
 import { useUserStore } from "../stores";
+import { updateProfile, type ProfileUpdate } from "../services/auth";
+import { ApiError } from "../services/http";
 import { countryFlag } from "../utils/assets";
 import { fileToDataUrl } from "../utils/image";
 
@@ -97,12 +99,25 @@ const { t } = useI18n();
 const router = useRouter();
 const userStore = useUserStore();
 const u = userStore.user;
+const saving = ref(false);
+
+// 后端性别用编码（1=Male，2=Female），UI 用标签，两者互转
+function genderLabel(code?: string): string {
+  return code === "1" ? "Male" : "Female";
+}
+function genderCode(label: string): number {
+  return label === "Male" ? 1 : 2;
+}
+// eve 表单用 age，后端要 birthdate（近似为该出生年 1 月 1 日）
+function birthdateFromAge(age: number): string {
+  return new Date(Date.UTC(new Date().getUTCFullYear() - age, 0, 1)).toISOString();
+}
 
 const form = reactive({
   avatar: u.avatar || "",
   nickname: u.nickname || "",
-  bio: u.intro || "Open minded, love music and night talks.",
-  gender: u.gender || "Female",
+  bio: u.intro || "",
+  gender: genderLabel(u.gender),
   age: u.age || 24,
   region: u.region || "ind"
 });
@@ -133,21 +148,34 @@ async function onAvatar(file: UploaderFileListItem | UploaderFileListItem[]) {
   }
 }
 
-function save() {
-  showLoadingToast({ message: t("editProfile.saving"), forbidClick: true });
-  window.setTimeout(() => {
+async function save() {
+  if (saving.value) return;
+  saving.value = true;
+  try {
+    const req: ProfileUpdate = {
+      nickname: form.nickname.trim(),
+      gender: genderCode(form.gender),
+      aboutMe: form.bio,
+      birthdate: birthdateFromAge(form.age)
+    };
+    // 仅当头像是已上传的 URL 时才回传；新选的本地图片需走文件上传接口（暂未接入）
+    if (/^https?:\/\//i.test(form.avatar)) req.icon = form.avatar;
+    await updateProfile(req);
     userStore.setUser({
-      nickname: form.nickname,
-      age: form.age,
-      region: form.region,
-      avatar: form.avatar,
+      nickname: req.nickname,
+      gender: String(req.gender),
       intro: form.bio,
-      gender: form.gender
+      age: form.age,
+      region: form.region, // 后端 update 不含地区，仅本地反映，刷新后以服务端为准
+      ...(req.icon ? { avatar: req.icon } : {})
     });
-    closeToast();
     showToast(t("editProfile.saved"));
     router.back();
-  }, 600);
+  } catch (e) {
+    showToast(e instanceof ApiError ? e.message : t("editProfile.saveFailed"));
+  } finally {
+    saving.value = false;
+  }
 }
 </script>
 

@@ -169,7 +169,7 @@ const en = {
     vipLockSub: "{count} people visited recently",
     getVip: "Get VIP"
   },
-  followFans: { title: "Follow & Fans", fans: "Fans", emptyFollowing: "Not following anyone yet", emptyFans: "No fans yet" },
+  followFans: { title: "Follow & Fans", fans: "Fans", emptyFollowing: "Not following anyone yet", emptyFans: "No fans yet", actionFailed: "Action failed, please try again" },
   blockListPage: { title: "Block List", unblock: "Unblock", empty: "No blocked users", pleaseWait: "Please wait…", unblocked: "Unblocked" },
   notification: {
     title: "Notification",
@@ -223,7 +223,8 @@ const en = {
     region: "Region",
     imageError: "Couldn't load that image",
     saving: "Saving…",
-    saved: "Saved"
+    saved: "Saved",
+    saveFailed: "Save failed, please try again"
   },
   game: { title: "Games", play: "Play", comingSoon: "Coming soon" },
   composer: {
@@ -522,7 +523,7 @@ const zh: typeof en = {
     vipLockSub: "最近有 {count} 人来访",
     getVip: "开通 VIP"
   },
-  followFans: { title: "关注与粉丝", fans: "粉丝", emptyFollowing: "还没有关注任何人", emptyFans: "暂无粉丝" },
+  followFans: { title: "关注与粉丝", fans: "粉丝", emptyFollowing: "还没有关注任何人", emptyFans: "暂无粉丝", actionFailed: "操作失败，请重试" },
   blockListPage: { title: "黑名单", unblock: "解除拉黑", empty: "暂无已拉黑用户", pleaseWait: "请稍候…", unblocked: "已解除拉黑" },
   notification: {
     title: "通知",
@@ -576,7 +577,8 @@ const zh: typeof en = {
     region: "地区",
     imageError: "无法加载该图片",
     saving: "保存中…",
-    saved: "已保存"
+    saved: "已保存",
+    saveFailed: "保存失败，请重试"
   },
   game: { title: "游戏", play: "开始", comingSoon: "敬请期待" },
   composer: {

@@ -18,7 +18,14 @@
             <strong>{{ a.nickname }}</strong>
             <span class="id">ID: {{ a.id }}</span>
           </div>
-          <van-icon name="arrow" class="arrow" />
+          <button
+            class="follow-btn"
+            :class="{ followed: isFollowing(a.relationStatus) }"
+            :disabled="a.busy"
+            @click.stop="toggle(a)"
+          >
+            {{ isFollowing(a.relationStatus) ? t("common.following") : t("common.follow") }}
+          </button>
         </article>
       </template>
       <EmptyState v-else :text="tab === 0 ? t('followFans.emptyFollowing') : t('followFans.emptyFans')" />
@@ -30,22 +37,51 @@
 import { computed, onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
+import { showToast } from "vant";
 import TopBar from "../components/TopBar.vue";
 import EmptyState from "../components/EmptyState.vue";
-import { api } from "../services/api";
-import type { Anchor } from "../types/eve";
+import { getFollowingList, getFansList, followUser, unfollowUser, isFollowing, type RelationUser } from "../services/relation";
+import { ApiError } from "../services/http";
+import { useUserStore } from "../stores";
+
+type Row = RelationUser & { busy?: boolean };
 
 const { t } = useI18n();
 const route = useRoute();
 const router = useRouter();
+const userStore = useUserStore();
 const tab = ref(route.query.type === "followers" ? 1 : 0);
-const following = ref<Anchor[]>([]);
-const fans = ref<Anchor[]>([]);
+const following = ref<Row[]>([]);
+const fans = ref<Row[]>([]);
 const current = computed(() => (tab.value === 0 ? following.value : fans.value));
 
 onMounted(async () => {
-  [following.value, fans.value] = await Promise.all([api.getFollowing(), api.getAnchors()]);
+  const [f, fa] = await Promise.all([
+    getFollowingList().catch(() => ({ items: [], total: 0 })),
+    getFansList().catch(() => ({ items: [], total: 0 }))
+  ]);
+  following.value = f.items;
+  fans.value = fa.items;
 });
+
+// 关注/取关：调真实接口，按返回的 relationStatus 翻转按钮，并同步我的关注数。
+async function toggle(a: Row) {
+  if (a.busy) return;
+  a.busy = true;
+  const wasFollowing = isFollowing(a.relationStatus);
+  try {
+    a.relationStatus = wasFollowing ? await unfollowUser(a.id) : await followUser(a.id);
+    const nowFollowing = isFollowing(a.relationStatus);
+    if (nowFollowing !== wasFollowing) {
+      const delta = nowFollowing ? 1 : -1;
+      userStore.setUser({ following: Math.max(0, (userStore.user.following ?? 0) + delta) });
+    }
+  } catch (e) {
+    showToast(e instanceof ApiError ? e.message : t("followFans.actionFailed"));
+  } finally {
+    a.busy = false;
+  }
+}
 </script>
 
 <style scoped lang="scss">
@@ -124,7 +160,26 @@ onMounted(async () => {
     color: var(--eve-pink);
   }
 }
-.arrow {
-  color: var(--eve-faint);
+.follow-btn {
+  flex: 0 0 auto;
+  min-width: 76px;
+  padding: 7px 14px;
+  border-radius: 16px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+  background: var(--eve-grad);
+  &:active {
+    transform: scale(0.96);
+  }
+  &:disabled {
+    opacity: 0.6;
+  }
+  /* 已关注:描边态 */
+  &.followed {
+    color: var(--eve-faint);
+    background: transparent;
+    border: 1px solid var(--eve-line);
+  }
 }
 </style>
