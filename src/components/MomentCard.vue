@@ -37,7 +37,7 @@
     </div>
 
     <footer class="actions">
-      <button class="action" @click="liked = !liked">
+      <button class="action" :disabled="likeBusy" @click="toggleLike">
         <img :src="liked ? '/assets/eve/dynamic/likeTrue.png' : '/assets/eve/dynamic/like.png'" alt="" />
         {{ likeCount }}
       </button>
@@ -64,6 +64,7 @@ import { showImagePreview } from "vant";
 import { useCall } from "../composables/useCall";
 import { useUserStore } from "../stores";
 import { followUser, unfollowUser, isFollowing } from "../services/relation";
+import { likePost, unlikePost } from "../services/moment";
 import type { Moment } from "../types/eve";
 import { countryFlag } from "../utils/assets";
 
@@ -79,10 +80,28 @@ function preview(startPosition: number) {
   showImagePreview({ images: props.moment.images, startPosition });
 }
 
-const liked = ref(props.moment.liked);
 const translated = ref(false);
 const showActions = ref(false);
-const likeCount = computed(() => props.moment.likes + (liked.value && !props.moment.liked ? 1 : 0));
+
+// 点赞:真实 like/unlike(乐观更新 + 失败回滚),初值来自 feed 的 likeStatus/likeCount
+const liked = ref(props.moment.liked);
+const likeCount = ref(props.moment.likes);
+const likeBusy = ref(false);
+async function toggleLike() {
+  if (likeBusy.value) return;
+  likeBusy.value = true;
+  const was = liked.value;
+  liked.value = !was;
+  likeCount.value = Math.max(0, likeCount.value + (was ? -1 : 1));
+  try {
+    await (was ? unlikePost(props.moment.id) : likePost(props.moment.id));
+  } catch {
+    liked.value = was;
+    likeCount.value = Math.max(0, likeCount.value + (was ? 1 : -1));
+  } finally {
+    likeBusy.value = false;
+  }
+}
 
 // 关注态:用 feed 自带的 moment.user.followed 初始化(列表接口已返回 relationStatus,无需逐卡再查)
 const followed = ref(!!props.moment.user.followed);

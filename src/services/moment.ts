@@ -43,6 +43,16 @@ export function getMomentsFeed(listType: 0 | 1, offset = 0, limit = 10): Promise
     .then((r) => ({ items: (r?.list ?? []).map(toMoment), total: r?.total ?? 0 }));
 }
 
+/** 点赞动态（moment-svc /moment/like/post；userId 取 JWT）。 */
+export function likePost(postId: number): Promise<void> {
+  return http.post<void>("/moment/like/post", { postId });
+}
+
+/** 取消点赞。 */
+export function unlikePost(postId: number): Promise<void> {
+  return http.post<void>("/moment/like/post/unlike", { postId });
+}
+
 /** 发布动态（moment-svc /moment/post/publish；userId 取 JWT）。contentType 1=文 2=图 3=图文。返回新动态 id。 */
 export function publishMoment(content: string, mediaUrls: string[]): Promise<number> {
   const hasText = content.trim().length > 0;
