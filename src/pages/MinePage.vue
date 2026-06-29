@@ -32,11 +32,11 @@
         </button>
         <i class="shu" />
         <button class="stat" @click="router.push(`/user-dynamic-list/${user.id}`)">
-          <strong>12</strong><span>{{ t("mine.moments") }}</span>
+          <strong>{{ momentCount }}</strong><span>{{ t("mine.moments") }}</span>
         </button>
         <i class="shu" />
         <button class="stat" @click="router.push('/visitors')">
-          <strong>36</strong><span>{{ t("mine.visitor") }}</span>
+          <strong>{{ visitorCount }}</strong><span>{{ t("mine.visitor") }}</span>
         </button>
       </div>
     </div>
@@ -96,7 +96,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import { showToast } from "vant";
 import { useI18n } from "vue-i18n";
@@ -112,6 +112,8 @@ import {
   ChevronRight
 } from "lucide-vue-next";
 import { eveMockApi } from "../services/eveMockApi";
+import { getVisitorList } from "../services/relation";
+import { getUserMomentsPage } from "../services/moment";
 import { useUserStore } from "../stores";
 import { countryFlag } from "../utils/assets";
 import type { AppLocale } from "../i18n";
@@ -125,6 +127,25 @@ const userStore = useUserStore();
 // 金币走 store（与充值/礼物/通话计费同源），其余资料字段回退到 mock
 const user = computed<CurrentUser>(() => ({ ...eveMockApi.getCurrentUser(), ...userStore.user } as CurrentUser));
 const isVip = computed(() => userStore.isVip);
+
+// 访客数 / 动态数走真实接口(只取 total,limit=1 减少负载)
+const visitorCount = ref(0);
+const momentCount = ref(0);
+onMounted(async () => {
+  try {
+    visitorCount.value = (await getVisitorList(0, 1)).total;
+  } catch {
+    /* 拉取失败时显示 0 */
+  }
+  const uid = userStore.user.id;
+  if (uid != null) {
+    try {
+      momentCount.value = (await getUserMomentsPage(uid, 0, 1)).total;
+    } catch {
+      /* 拉取失败时显示 0 */
+    }
+  }
+});
 
 const showLang = ref(false);
 const langActions = [

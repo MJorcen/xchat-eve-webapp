@@ -32,6 +32,8 @@ import MomentCard from "../components/MomentCard.vue";
 import TopBar from "../components/TopBar.vue";
 import EmptyState from "../components/EmptyState.vue";
 import { api } from "../services/api";
+import { fetchAnchorCard } from "../services/anchor";
+import { getUserMomentsPage } from "../services/moment";
 import { countryFlag } from "../utils/assets";
 import type { Anchor, Moment } from "../types/eve";
 
@@ -43,7 +45,18 @@ const moments = ref<Moment[]>([]);
 const followed = ref(false);
 
 onMounted(async () => {
-  [user.value, moments.value] = await Promise.all([api.getAnchor(id), api.getUserMoments(id)]);
+  const [a, mp] = await Promise.all([
+    api.getAnchor(id),
+    getUserMomentsPage(id, 0, 30).catch(() => ({ items: [], total: 0 }))
+  ]);
+  user.value = a;
+  moments.value = mp.items;
+  // 头部身份用真实大卡覆盖(失败则保留 mock)
+  fetchAnchorCard(id)
+    .then(({ overlay }) => {
+      if (user.value) user.value = { ...user.value, ...overlay };
+    })
+    .catch(() => {});
 });
 </script>
 

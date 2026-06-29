@@ -32,7 +32,8 @@ function ageFromBirthdate(ms?: number): number {
 }
 
 // MdUser(+busyStatus) → eve Anchor。price/tags/距离等不在 feed 里的字段给默认值（后续接定价/标签再补）。
-function toAnchor(r: RawAnchor): Anchor {
+// 导出供动态等复用（PostVo.user 与 RawAnchor 同构）。
+export function toAnchor(r: RawAnchor): Anchor {
   const u = r.user ?? {};
   const online = r.onlineStatus === 1;
   return {
@@ -89,5 +90,9 @@ export async function fetchAnchorCard(
   const age = ageFromBirthdate(u.birthdate);
   if (age > 0) overlay.age = age;
   if (c.relation?.fansCount != null) overlay.followers = c.relation.fansCount;
+  // 真实相册（公开照片 URL 列表;后端无付费/锁概念）
+  if (Array.isArray(c.albums)) {
+    overlay.album = c.albums.filter((x): x is string => typeof x === "string");
+  }
   return { overlay, relationStatus: c.relation?.relationStatus ?? 0 };
 }

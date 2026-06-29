@@ -23,3 +23,34 @@ export function getGifts(): Promise<Gift[]> {
     })
   );
 }
+
+interface RawAchieveGift {
+  id: number;
+  itemCount?: number;
+  item?: { itemId?: number; itemName?: string; itemIcon?: string };
+}
+
+/** 礼物墙单项（用户累计收到的某礼物）。 */
+export interface ReceivedGift {
+  id: number;
+  name: string;
+  icon: string;
+  count: number;
+}
+
+/** 某用户已收礼物墙（item/userAchieve/giftPage，按礼物聚合，itemCount 为累计数量；传 userId 查他人）。 */
+export function getReceivedGifts(userId: number, limit = 20): Promise<ReceivedGift[]> {
+  return http
+    .get<{ list?: RawAchieveGift[] }>("/item/userAchieve/giftPage", { userId, offset: 0, limit })
+    .then((r) =>
+      (r?.list ?? []).map((g) => {
+        const name = g.item?.itemName ?? "";
+        return {
+          id: g.item?.itemId ?? g.id,
+          name: /^item\./.test(name) ? "" : name,
+          icon: g.item?.itemIcon ?? "",
+          count: g.itemCount ?? 0
+        };
+      })
+    );
+}

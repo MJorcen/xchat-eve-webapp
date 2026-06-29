@@ -92,37 +92,22 @@
         </div>
       </div>
 
-      <!-- Profile -->
-      <div class="section">
-        <span class="section-title">{{ t("anchor.profile") }}</span>
-        <div class="profile-fields">
-          <div v-if="anchor.height" class="field"><Ruler :size="14" :stroke-width="1.8" /><span>{{ t("anchor.height") }}</span><b>{{ anchor.height }}cm</b></div>
-          <div v-if="anchor.weight" class="field"><Dumbbell :size="14" :stroke-width="1.8" /><span>{{ t("anchor.weight") }}</span><b>{{ anchor.weight }}kg</b></div>
-          <div v-if="anchor.job" class="field"><Briefcase :size="14" :stroke-width="1.8" /><span>{{ t("anchor.job") }}</span><b>{{ anchor.job }}</b></div>
-          <div v-if="anchor.relationship" class="field"><Heart :size="14" :stroke-width="1.8" /><span>{{ t("anchor.relationship") }}</span><b>{{ anchor.relationship }}</b></div>
-        </div>
-        <div class="chips">
-          <span v-for="(tag, i) in anchor.tags" :key="tag" class="chip" :class="`c${i % 3}`">{{ tag }}</span>
-        </div>
-      </div>
-
-      <!-- 私密相册(付费) -->
+      <!-- 相册(真实公开照片;后端无付费/解锁概念) -->
       <div v-if="anchor.album?.length" class="section">
         <span class="section-title">{{ t("anchor.privateAlbum") }}</span>
         <div class="album-grid">
-          <button v-for="(img, i) in anchor.album" :key="i" class="album-item" @click="openAlbum(i, img)">
-            <van-image fit="cover" class="album-img" :class="{ locked: !unlocked.has(i) }" :src="img" />
-            <span v-if="!unlocked.has(i)" class="album-lock"><Lock :size="20" :stroke-width="2" /></span>
+          <button v-for="(img, i) in anchor.album" :key="i" class="album-item" @click="preview(img)">
+            <van-image fit="cover" class="album-img" :src="img" />
           </button>
         </div>
       </div>
 
-      <!-- Gifts -->
-      <div class="section">
+      <!-- Gifts(真实已收礼物墙) -->
+      <div v-if="receivedGifts.length" class="section">
         <span class="section-title">{{ t("anchor.gifts") }}</span>
         <div class="gift-strip">
-          <div v-for="g in receivedGifts" :key="g.icon" class="gift">
-            <span class="face">{{ g.icon }}</span>
+          <div v-for="g in receivedGifts" :key="g.id" class="gift">
+            <van-image fit="contain" class="gift-img" :src="g.icon" />
             <span class="count">×{{ g.count }}</span>
           </div>
         </div>
@@ -148,18 +133,6 @@
       </button>
     </div>
 
-    <!-- 付费图片解锁弹窗 -->
-    <van-popup v-model:show="showUnlock" round position="center" teleport="body" :z-index="3600">
-      <div class="unlock-card">
-        <span class="u-ico"><Lock :size="26" :stroke-width="1.8" /></span>
-        <p class="u-title">{{ t("anchor.paidPicture") }}</p>
-        <button class="u-btn" @click="unlockAlbum">
-          <img src="/assets/eve/callDialog/coin_300@2x.png" alt="" />{{ t("anchor.unlockFor", { n: ALBUM_PRICE }) }}
-        </button>
-        <button class="u-cancel" @click="showUnlock = false">{{ t("common.cancel") }}</button>
-      </div>
-    </van-popup>
-
     <van-action-sheet
       v-model:show="showActions"
       :actions="reportActions"
@@ -175,24 +148,12 @@ import { computed, onMounted, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRoute, useRouter } from "vue-router";
 import { showImagePreview } from "vant";
-import {
-  ChevronLeft,
-  MoreHorizontal,
-  Copy,
-  Cake,
-  Users,
-  Video,
-  MessageCircle,
-  Ruler,
-  Dumbbell,
-  Briefcase,
-  Heart,
-  Lock,
-  MapPin
-} from "lucide-vue-next";
+import { ChevronLeft, MoreHorizontal, Copy, Cake, Users, Video, MessageCircle, MapPin } from "lucide-vue-next";
 import emitter from "../common/eventBus";
 import { api } from "../services/api";
 import { fetchAnchorCard } from "../services/anchor";
+import { getUserMomentsPage } from "../services/moment";
+import { getReceivedGifts, type ReceivedGift } from "../services/gift";
 import { followUser, unfollowUser, isFollowing } from "../services/relation";
 import { ApiError } from "../services/http";
 import { useCall } from "../composables/useCall";
@@ -206,7 +167,6 @@ const router = useRouter();
 const userStore = useUserStore();
 const { startOutgoing } = useCall();
 
-const ALBUM_PRICE = 50;
 const id = Number(route.params.id);
 const anchor = ref<Anchor | null>(null);
 const moments = ref<Moment[]>([]);
@@ -215,21 +175,14 @@ const followBusy = ref(false);
 const showActions = ref(false);
 const swipeIndex = ref(0);
 const swipeRef = ref<{ swipeTo: (i: number) => void } | null>(null);
-const unlocked = ref<Set<number>>(new Set());
-const showUnlock = ref(false);
-const pendingIdx = ref(-1);
 
 const isVip = computed(() => userStore.isVip);
 // VIP 视频通话 7 折价
 const vipPrice = computed(() => (anchor.value ? Math.round(anchor.value.price * 0.7) : 0));
 const effectivePrice = computed(() => (isVip.value ? vipPrice.value : anchor.value?.price || 0));
 
-const receivedGifts = [
-  { icon: "🌹", count: 120 },
-  { icon: "💎", count: 18 },
-  { icon: "👑", count: 6 },
-  { icon: "🚀", count: 2 }
-];
+// 真实已收礼物墙(item/userAchieve/giftPage),由 onMounted 加载
+const receivedGifts = ref<ReceivedGift[]>([]);
 
 const gallery = computed(() => {
   if (!anchor.value) return [];
@@ -292,27 +245,6 @@ function startChat() {
   router.push(`/chat/${id}`);
 }
 
-function openAlbum(i: number, img: string) {
-  if (unlocked.value.has(i)) {
-    preview(img);
-    return;
-  }
-  pendingIdx.value = i;
-  showUnlock.value = true;
-}
-
-function unlockAlbum() {
-  if (userStore.coins < ALBUM_PRICE) {
-    showUnlock.value = false;
-    emitter.emit("toast", t("anchor.notEnoughCoins"));
-    router.push("/recharge");
-    return;
-  }
-  userStore.addCoins(-ALBUM_PRICE);
-  unlocked.value = new Set([...unlocked.value, pendingIdx.value]);
-  showUnlock.value = false;
-}
-
 const reportActions = computed(() => [
   { name: t("anchor.report"), value: "report" },
   { name: t("anchor.block"), value: "block" }
@@ -328,10 +260,10 @@ function onAction(action: { value?: string }) {
 }
 
 onMounted(async () => {
-  const [a, m] = await Promise.all([api.getAnchor(id), api.getUserMoments(id)]);
+  const [a, mp] = await Promise.all([api.getAnchor(id), getUserMomentsPage(id, 0, 9).catch(() => ({ items: [], total: 0 }))]);
   anchor.value = a;
-  moments.value = m;
-  // 真实大卡覆盖身份 + 关注态(mock 主播无真实卡 → 保留 mock 展示)
+  moments.value = mp.items;
+  // 真实大卡覆盖身份 + 关注态 + 相册(mock 主播无真实卡 → 保留 mock 展示)
   try {
     const { overlay, relationStatus } = await fetchAnchorCard(id, userStore.user.id);
     anchor.value = { ...a, ...overlay };
@@ -339,6 +271,10 @@ onMounted(async () => {
   } catch {
     /* 真实卡不可用,退回 mock 展示 */
   }
+  // 真实已收礼物墙(失败/为空则不展示该区块)
+  getReceivedGifts(id)
+    .then((g) => (receivedGifts.value = g))
+    .catch(() => {});
 });
 </script>
 
@@ -589,35 +525,6 @@ onMounted(async () => {
   }
 }
 
-.chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 10px;
-  .chip {
-    padding: 6px 13px;
-    border-radius: 14px;
-    font-size: 12px;
-    font-weight: 600;
-    border: 1px solid transparent;
-    &.c0 {
-      background: rgba(255, 42, 122, 0.12);
-      border-color: rgba(255, 42, 122, 0.28);
-      color: #ff7aa8;
-    }
-    &.c1 {
-      background: rgba(153, 69, 255, 0.14);
-      border-color: rgba(153, 69, 255, 0.3);
-      color: #c0a3ff;
-    }
-    &.c2 {
-      background: rgba(255, 184, 0, 0.12);
-      border-color: rgba(255, 184, 0, 0.28);
-      color: #ffcf5c;
-    }
-  }
-}
-
 .gift-strip {
   display: flex;
   gap: 16px;
@@ -637,8 +544,9 @@ onMounted(async () => {
     border-radius: 14px;
     background: var(--eve-surface);
     border: 1px solid var(--eve-line);
-    .face {
-      font-size: 30px;
+    .gift-img {
+      width: 34px;
+      height: 34px;
     }
     .count {
       font-size: 12px;
@@ -754,37 +662,7 @@ onMounted(async () => {
   color: var(--eve-faint);
 }
 
-/* Profile 结构化字段 */
-.profile-fields {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 10px;
-  margin: 10px 0 12px;
-  .field {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 10px 12px;
-    border-radius: 12px;
-    background: var(--eve-surface);
-    border: 1px solid var(--eve-line);
-    font-size: 12px;
-    color: var(--eve-muted);
-    svg {
-      color: var(--eve-pink);
-      flex: 0 0 auto;
-    }
-    span {
-      flex: 1;
-    }
-    b {
-      color: #fff;
-      font-weight: 700;
-    }
-  }
-}
-
-/* 私密相册 */
+/* 相册(公开照片) */
 .album-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -800,66 +678,6 @@ onMounted(async () => {
   .album-img {
     width: 100%;
     height: 100%;
-    &.locked {
-      filter: blur(8px) brightness(0.7);
-    }
-  }
-  .album-lock {
-    position: absolute;
-    inset: 0;
-    display: grid;
-    place-items: center;
-    color: #fff;
-  }
-}
-
-/* 解锁弹窗 */
-.unlock-card {
-  width: 270px;
-  padding: 26px 22px 20px;
-  background: linear-gradient(180deg, #1d142b, #0b0712);
-  border: 1px solid var(--eve-line);
-  border-radius: 22px;
-  text-align: center;
-  .u-ico {
-    display: grid;
-    place-items: center;
-    width: 56px;
-    height: 56px;
-    margin: 0 auto 12px;
-    border-radius: 50%;
-    color: var(--eve-gold);
-    background: rgba(255, 184, 0, 0.12);
-    border: 1px solid rgba(255, 184, 0, 0.3);
-  }
-  .u-title {
-    font-size: 16px;
-    font-weight: 700;
-    color: #fff;
-  }
-  .u-btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    width: 100%;
-    height: 46px;
-    margin-top: 18px;
-    border-radius: 23px;
-    color: #fff;
-    font-size: 15px;
-    font-weight: 800;
-    background: var(--eve-grad);
-    box-shadow: var(--eve-glow-pink);
-    img {
-      width: 16px;
-      height: 16px;
-    }
-  }
-  .u-cancel {
-    margin-top: 12px;
-    font-size: 14px;
-    color: var(--eve-muted);
   }
 }
 
