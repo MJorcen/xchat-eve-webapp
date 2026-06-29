@@ -174,6 +174,33 @@ export function onMessages(cb: (peerUserId: number, msg: ChatMessage) => void): 
   return () => n.V2NIMMessageService.off("onReceiveMessages", handler);
 }
 
+/** eve 通话信令(经网易自定义系统通知 sendAttachMsg 下发)。 */
+export interface EveSignal {
+  messageType: string; // eve_invite | eve_accept | eve_reject | eve_cancel | eve_start | eve_finish
+  content: any; // { eveId, rtcRoomId, fromUserId, duration? }
+  senderId: string;
+  sender?: any; // { id, nickname, avatar, gender }
+}
+
+/** 监听 eve 通话信令(来电/接听/拒接/取消/开始/结束)。返回取消监听函数。 */
+export function onEveSignal(cb: (sig: EveSignal) => void): () => void {
+  const n = getNim();
+  const handler = (notifs: any[]) => {
+    for (const notif of notifs || []) {
+      let env: any = null;
+      try {
+        env = JSON.parse(notif.content);
+      } catch {
+        continue;
+      }
+      if (env?.meta?.eventType !== "operation_eve_message") continue;
+      cb({ messageType: env.data?.messageType, content: env.data?.content, senderId: notif.senderId, sender: env.sender });
+    }
+  };
+  n.V2NIMNotificationService.on("onReceiveCustomNotifications", handler);
+  return () => n.V2NIMNotificationService.off("onReceiveCustomNotifications", handler);
+}
+
 /** 监听会话列表变化(新会话/末条/未读更新)。返回取消监听函数。 */
 export function onConversationsChanged(cb: () => void): () => void {
   const n = getNim();
