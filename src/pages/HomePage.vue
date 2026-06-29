@@ -52,6 +52,7 @@ import { useI18n } from "vue-i18n";
 import HostCard from "../components/HostCard.vue";
 import AppSkeleton from "../components/AppSkeleton.vue";
 import { api } from "../services/api";
+import { getAnchors } from "../services/anchor";
 import type { Anchor, LiveRoom } from "../types/eve";
 
 defineOptions({ name: "HomePage" });
@@ -86,7 +87,7 @@ function onChip(c: string) {
 
 onMounted(async () => {
   [recommended.value, following.value, lives.value] = await Promise.all([
-    api.getAnchors(),
+    getAnchors().catch(() => []), // 真实主播发现流（在线 + 不忙碌优先 + 综合档排序）
     api.getFollowing(),
     api.getLiveRooms()
   ]);
