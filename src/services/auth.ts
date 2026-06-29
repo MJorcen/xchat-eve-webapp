@@ -3,11 +3,32 @@
 
 import { http } from "./http";
 import { api } from "./api";
+import { getWallet } from "./wallet";
 import { getDeviceId, getDeviceMeta } from "@/utils/device";
 import { useUserStore } from "@/stores";
 import type { CurrentUser } from "@/types/eve";
 
 const USER_SVC = "/user";
+
+/** 关注/粉丝分页（对齐 panjoy facade/relation/{follow,fans}/page，只取 total 当计数）。 */
+interface RelationPage {
+  list?: unknown[];
+  total?: number;
+}
+
+/** 我关注的人数。 */
+export function getFollowingCount(): Promise<number> {
+  return http
+    .get<RelationPage>(`/facade/relation/follow/page`, { offset: 0, limit: 1 })
+    .then((r) => r?.total ?? 0);
+}
+
+/** 我的粉丝数。 */
+export function getFansCount(): Promise<number> {
+  return http
+    .get<RelationPage>(`/facade/relation/fans/page`, { offset: 0, limit: 1 })
+    .then((r) => r?.total ?? 0);
+}
 
 /** 后端 MiniUser（signIn 与 /user/info/get 返回的用户信息，字段为后端命名）。 */
 export interface MiniUser {
@@ -116,28 +137,39 @@ function ageFromBirthdate(ms: number): number {
 }
 
 /**
- * 登录后/启动时拉真实资料写入 store（对齐 panjoy：GET /user/info/get）。
- * 过渡期：关注数/粉丝数/金币/会员等级该接口不返回，暂用 mock 补齐，待各自真实接口接入后替换。
+ * 登录后/启动时拉真实资料写入 store：身份(/user/info/get) + 钱包(/user/wallet/get) +
+ * 关注/粉丝数(facade/relation/*) 并行拉取，单个失败不影响其它。
+ * 过渡期：VIP 等级/有效期暂无真实来源，仍用 mock 兜底，待会员接口接入后替换。
  */
 export async function hydrateCurrentUser(): Promise<void> {
   const store = useUserStore();
   if (!store.user.id) return;
-  try {
-    const me = await getMyInfo();
-    if (me) store.setUser(toCurrentUser(me));
-  } catch {
-    /* 拉取失败不阻塞（登录响应已给出昵称/头像等基础信息） */
-  }
-  if (store.user.coins == null) {
+
+  const [me, wallet, following, followers] = await Promise.all([
+    getMyInfo().catch(() => null),
+    getWallet().catch(() => null),
+    getFollowingCount().catch(() => null),
+    getFansCount().catch(() => null)
+  ]);
+
+  const patch: Partial<CurrentUser> = {};
+  if (me) Object.assign(patch, toCurrentUser(me));
+  if (wallet) patch.coins = wallet.gold ?? 0; // gold=金币=coins
+  if (following != null) patch.following = following;
+  if (followers != null) patch.followers = followers;
+  if (Object.keys(patch).length) store.setUser(patch);
+
+  // 过渡期兜底：VIP 等级/有效期暂无真实接口；钱包接口失败时金币也回落 mock。
+  if (store.user.vipLevel == null || store.user.coins == null) {
     try {
       const demo = await api.getCurrentUser();
-      store.setUser({
-        coins: demo.coins,
-        vipValidEnd: demo.vipValidEnd,
-        vipLevel: demo.vipLevel,
-        following: demo.following,
-        followers: demo.followers
-      });
+      const fill: Partial<CurrentUser> = {};
+      if (store.user.vipLevel == null) {
+        fill.vipLevel = demo.vipLevel;
+        fill.vipValidEnd = demo.vipValidEnd;
+      }
+      if (store.user.coins == null) fill.coins = demo.coins;
+      store.setUser(fill);
     } catch {
       /* mock 兜底失败忽略 */
     }
