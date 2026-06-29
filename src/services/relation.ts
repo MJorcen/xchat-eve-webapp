@@ -69,3 +69,25 @@ export function unfollowUser(targetId: number): Promise<number> {
 export function isFollowing(status: number): boolean {
   return status === 1 || status === 2;
 }
+
+// ============ 拉黑 / 举报 ============
+
+/** 我的黑名单（列表项与关注列表同构）。 */
+export function getBlockedList(offset = 0, limit = 50) {
+  return fetchPage("/user/block/page", offset, limit);
+}
+
+/** 拉黑某用户。 */
+export function blockUser(targetId: number): Promise<number> {
+  return http.post<{ relationStatus?: number }>("/user/block/add", { targetId }).then((r) => r?.relationStatus ?? -1);
+}
+
+/** 取消拉黑。 */
+export function unblockUser(targetId: number): Promise<number> {
+  return http.post<{ relationStatus?: number }>("/user/block/del", { targetId }).then((r) => r?.relationStatus ?? 0);
+}
+
+/** 举报用户。scene 合法值：user_profile / private_chat / post / room。remark 为问题描述。 */
+export function reportUser(reportedUserId: number, remark: string, scene = "user_profile"): Promise<void> {
+  return http.post<void>("/user/report/create", { reportedUserId, scene, remark });
+}

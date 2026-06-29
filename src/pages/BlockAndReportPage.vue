@@ -42,7 +42,7 @@
       <van-switch v-model="alsoBlock" size="22px" active-color="#ff2a7a" inactive-color="#2a1f3d" />
     </div>
 
-    <button class="submit" :disabled="!desc.trim()" @click="submit">{{ t("common.submit") }}</button>
+    <button class="submit" :disabled="!desc.trim() || submitting" @click="submit">{{ t("common.submit") }}</button>
   </section>
 </template>
 
@@ -50,9 +50,11 @@
 import { ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
-import { showLoadingToast, closeToast, showToast } from "vant";
+import { showToast } from "vant";
 import type { UploaderFileListItem } from "vant";
 import TopBar from "../components/TopBar.vue";
+import { reportUser, blockUser } from "../services/relation";
+import { ApiError } from "../services/http";
 
 const { t } = useI18n();
 const route = useRoute();
@@ -61,8 +63,9 @@ const router = useRouter();
 const targetId = Number(route.query.id) || 0;
 const selected = ref("");
 const desc = ref("");
-const pics = ref<UploaderFileListItem[]>([]);
+const pics = ref<UploaderFileListItem[]>([]); // 证据图:后端 ReportRequest 暂无图片字段,仅本地选取
 const alsoBlock = ref(false);
+const submitting = ref(false);
 const reasons = [
   { key: "pornographic", label: "report.reasonPornographic" },
   { key: "fraud", label: "report.reasonFraud" },
@@ -73,18 +76,36 @@ const reasons = [
   { key: "other", label: "report.reasonOther" }
 ];
 
-function submit() {
+async function submit() {
   if (!desc.value.trim()) {
     showToast(t("report.emptyDesc"));
     return;
   }
-  showLoadingToast({ message: t("report.submitting"), forbidClick: true });
-  window.setTimeout(() => {
-    // mock:针对 targetId 提交举报(+可选拉黑)
-    closeToast();
-    showToast(alsoBlock.value && targetId ? t("report.reportedBlocked") : t("report.reportSubmitted"));
+  if (!targetId) {
+    showToast(t("followFans.actionFailed"));
+    return;
+  }
+  if (submitting.value) return;
+  submitting.value = true;
+  try {
+    // 后端 remark 为问题描述;把所选类别前缀进去保留分类信息(后端无独立 reason 字段)
+    const reason = selected.value ? t(reasons.find((r) => r.key === selected.value)!.label) : "";
+    const remark = reason ? `${reason} - ${desc.value.trim()}` : desc.value.trim();
+    await reportUser(targetId, remark); // scene=user_profile
+    if (alsoBlock.value) {
+      try {
+        await blockUser(targetId);
+      } catch {
+        /* 拉黑失败不影响举报结果提示 */
+      }
+    }
+    showToast(alsoBlock.value ? t("report.reportedBlocked") : t("report.reportSubmitted"));
     router.back();
-  }, 700);
+  } catch (e) {
+    showToast(e instanceof ApiError ? e.message : t("followFans.actionFailed"));
+  } finally {
+    submitting.value = false;
+  }
 }
 </script>
 

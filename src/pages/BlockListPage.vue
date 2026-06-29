@@ -8,7 +8,7 @@
           <strong>{{ a.nickname }}</strong>
           <span class="id">ID: {{ a.id }}</span>
         </div>
-        <button class="unblock" @click="unblock(a.id)">{{ t("blockListPage.unblock") }}</button>
+        <button class="unblock" :disabled="removing.has(a.id)" @click="unblock(a.id)">{{ t("blockListPage.unblock") }}</button>
       </article>
     </div>
     <EmptyState v-else :text="t('blockListPage.empty')" />
@@ -18,25 +18,37 @@
 <script setup lang="ts">
 import { onMounted, ref } from "vue";
 import { useI18n } from "vue-i18n";
-import { showLoadingToast, closeToast, showToast } from "vant";
+import { showToast } from "vant";
 import TopBar from "../components/TopBar.vue";
 import EmptyState from "../components/EmptyState.vue";
-import { api } from "../services/api";
-import type { Anchor } from "../types/eve";
+import { getBlockedList, unblockUser, type RelationUser } from "../services/relation";
+import { ApiError } from "../services/http";
 
 const { t } = useI18n();
-const blocked = ref<Anchor[]>([]);
+const blocked = ref<RelationUser[]>([]);
+const removing = ref<Set<number>>(new Set());
 
-function unblock(id: number) {
-  showLoadingToast({ message: t("blockListPage.pleaseWait"), forbidClick: true });
-  window.setTimeout(() => {
+async function unblock(id: number) {
+  if (removing.value.has(id)) return;
+  removing.value.add(id);
+  try {
+    await unblockUser(id);
     blocked.value = blocked.value.filter((a) => a.id !== id);
-    closeToast();
     showToast(t("blockListPage.unblocked"));
-  }, 600);
+  } catch (e) {
+    showToast(e instanceof ApiError ? e.message : t("followFans.actionFailed"));
+  } finally {
+    removing.value.delete(id);
+  }
 }
 
-onMounted(async () => (blocked.value = [...(await api.getBlockedUsers())]));
+onMounted(async () => {
+  try {
+    blocked.value = (await getBlockedList()).items;
+  } catch {
+    /* 加载失败:留空 */
+  }
+});
 </script>
 
 <style scoped lang="scss">
