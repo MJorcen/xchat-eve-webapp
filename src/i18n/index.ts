@@ -29,7 +29,7 @@ const en = {
     noMore: "No more"
   },
   match: { title: "Match", subtitle: "Meet someone new in one tap", random: "Random", goddess: "Goddess", perMatch: "/ match" },
-  moments: { discover: "Discover", following: "Following", noMore: "No more moments" },
+  moments: { discover: "Discover", following: "Following", noMore: "No more moments", empty: "No moments yet" },
   messages: {
     message: "Message",
     call: "Call",
@@ -385,7 +385,7 @@ const zh: typeof en = {
     noMore: "没有更多了"
   },
   match: { title: "匹配", subtitle: "一键遇见新朋友", random: "随机", goddess: "女神", perMatch: "/ 次" },
-  moments: { discover: "发现", following: "关注", noMore: "没有更多了" },
+  moments: { discover: "发现", following: "关注", noMore: "没有更多了", empty: "还没有动态" },
   messages: {
     message: "消息",
     call: "通话",

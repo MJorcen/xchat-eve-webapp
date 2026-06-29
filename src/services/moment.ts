@@ -35,3 +35,10 @@ export function getUserMomentsPage(userId: number, offset = 0, limit = 20): Prom
     .get<{ list?: RawPost[]; total?: number }>("/facade/post/list", { targetId: userId, offset, limit })
     .then((r) => ({ items: (r?.list ?? []).map(toMoment), total: r?.total ?? 0 }));
 }
+
+/** 动态发现/关注流分页（listType 0=推荐(按当前用户区域) / 1=关注；不带 targetId）。 */
+export function getMomentsFeed(listType: 0 | 1, offset = 0, limit = 10): Promise<MomentPage> {
+  return http
+    .get<{ list?: RawPost[]; total?: number }>("/facade/post/list", { listType, offset, limit })
+    .then((r) => ({ items: (r?.list ?? []).map(toMoment), total: r?.total ?? 0 }));
+}
