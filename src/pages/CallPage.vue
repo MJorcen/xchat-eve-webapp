@@ -1,7 +1,8 @@
 <template>
   <section v-if="anchor" class="call-screen">
-    <!-- 远端"视频"(mock:主播头像铺底) -->
+    <!-- 远端视频:ZEGO 流播到 #remote-video;未连通时主播头像铺底 -->
     <img class="remote" :src="anchor.avatar" alt="" />
+    <div id="remote-video" class="remote-video" />
     <div class="scrim-top" />
     <div class="scrim-bottom" />
 
@@ -27,9 +28,10 @@
       </div>
     </div>
 
-    <!-- 本地 PIP -->
+    <!-- 本地 PIP:ZEGO 本地预览播到 #local-video -->
     <div class="pip">
-      <img v-if="callState.cameraOn" :src="user?.avatar" alt="" />
+      <div id="local-video" class="pip-local" />
+      <img v-if="callState.cameraOn" class="pip-fallback" :src="user?.avatar" alt="" />
       <div v-else class="pip-off"><VideoOff :size="26" :stroke-width="1.8" /></div>
       <button class="pip-switch" @click="switchCamera"><SwitchCamera :size="15" :stroke-width="2" /></button>
     </div>
@@ -96,6 +98,7 @@ import { useI18n } from "vue-i18n";
 import { Coins, PhoneOff, SwitchCamera, Mic, MicOff, VideoOff, Gift, Send } from "lucide-vue-next";
 import emitter from "../common/eventBus";
 import { api } from "../services/api";
+import { joinRoom, publishLocal, playRemoteOn, leaveRoom } from "../services/zego";
 import { useCall } from "../composables/useCall";
 import { useGiftAnimation } from "../composables/useGiftAnimation";
 import { useUserStore } from "../stores";
@@ -107,7 +110,20 @@ const route = useRoute();
 const router = useRouter();
 const userStore = useUserStore();
 const anim = useGiftAnimation();
-const { callState, elapsed, startOutgoing, hangup, reset, toggleMic, switchCamera, addGiftCost } = useCall();
+const { callState, elapsed, startOutgoing, hangup, reset, toggleMic, switchCamera, addGiftCost, getEveContext } =
+  useCall();
+let stopRemote: (() => void) | null = null;
+
+// 用后端 EveContext 入房 + 推本地流 + 拉远端流(headless 无摄像头会失败,真机/真实浏览器才行)
+async function joinZego() {
+  const ctx = getEveContext();
+  if (!ctx || stopRemote) return;
+  await nextTick();
+  const ok = await joinRoom(ctx.rtcRoomId, ctx.rtcToken, String(userStore.user.id)).catch(() => false);
+  if (!ok) return;
+  stopRemote = playRemoteOn("remote-video");
+  await publishLocal(ctx.playerStreamId, "local-video").catch(() => {});
+}
 
 const id = Number(route.params.id);
 const anchor = ref<Anchor | null>(null);
@@ -232,10 +248,12 @@ onMounted(async () => {
   anchor.value = a;
   user.value = u;
   quickGifts.value = gifts.slice(0, 4);
-  // 直接进入 /call/:id(深链/去电)时若无进行中的通话,则发起去电
+  // 直接进入 /call/:id(深链/去电)时若无进行中的通话,则发起去电(await 以便拿到 EveContext)
   if (callState.target?.id !== id || callState.phase === "idle" || callState.phase === "ended") {
-    startOutgoing(a);
+    await startOutgoing(a);
   }
+  // 拿到 EveContext 后入房推拉流(去电:request 后;被叫:accept 后已就绪)
+  await joinZego();
   emitter.on("message:new", onMessage);
   emitter.on("call:hangup", onHangupEvent);
 });
@@ -245,6 +263,8 @@ onUnmounted(() => {
   emitter.off("call:hangup", onHangupEvent);
   greetTimers.forEach((tid) => window.clearTimeout(tid));
   stopCountdown();
+  stopRemote?.();
+  void leaveRoom();
   // 离开通话页时若仍在拨号/响铃,取消(清掉 ringTimer,避免后台自动接通并继续计费)
   if (callState.phase === "ringing" || callState.phase === "incoming") reset();
 });
@@ -267,6 +287,16 @@ onUnmounted(() => {
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+.remote-video {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  :deep(video) {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
 }
 
 .scrim-top {
@@ -387,6 +417,16 @@ onUnmounted(() => {
     width: 100%;
     height: 100%;
     object-fit: cover;
+  }
+  .pip-local {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    :deep(video) {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
   }
 }
 

@@ -14,7 +14,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted } from "vue";
+import { computed, onMounted, watch } from "vue";
 import { RouterView, useRoute } from "vue-router";
 import AppTabbar from "./components/AppTabbar.vue";
 import CallModal from "./components/CallModal.vue";
@@ -23,6 +23,7 @@ import TopNotification from "./components/TopNotification.vue";
 import FirstChargePopup from "./components/FirstChargePopup.vue";
 import { tabRouteNames } from "./router";
 import { hydrateCurrentUser } from "./services/auth";
+import { startCallSignals } from "./composables/useCall";
 import { useUserStore } from "./stores";
 
 const route = useRoute();
@@ -31,9 +32,20 @@ const showTabbar = computed(() => tabRouteNames.includes(String(route.name)));
 // 5 个 Tab 页缓存,切换不重载、保留状态与滚动
 const keepAliveTabs = ["HomePage", "MatchPage", "MomentsPage", "MessagesPage", "MinePage"];
 
-// 启动时（持久化会话/刷新）若已登录，拉真实资料（大卡）写入 store；金币等卡片不含的字段由 mock 兜底。
-// 登录态由路由守卫把关（未登录已跳登录页）。新登录的拉取在 LoginPage 内触发。
+// 已登录:拉真实资料(大卡)+ 登录 NIM 并注册 eve 通话信令监听(全局接来电)。
+function initLoggedIn() {
+  hydrateCurrentUser();
+  void startCallSignals();
+}
+// 持久化会话/刷新
 onMounted(() => {
-  if (userStore.isLogin) hydrateCurrentUser();
+  if (userStore.isLogin) initLoggedIn();
 });
+// 新登录(/login → 登录成功后 isLogin 变 true)
+watch(
+  () => userStore.isLogin,
+  (v) => {
+    if (v) initLoggedIn();
+  }
+);
 </script>
