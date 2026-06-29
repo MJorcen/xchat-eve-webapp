@@ -10,6 +10,9 @@
         </div>
         <span class="sub">{{ moment.user.online ? t("momentCard.onlineNow") : t("momentCard.activeRecently") }}</span>
       </div>
+      <button v-if="followVisible" class="follow" :class="{ on: followed }" @click.stop="toggleFollow">
+        {{ followed ? t("common.following") : `+ ${t("common.follow")}` }}
+      </button>
       <button class="more" @click="showActions = !showActions">
         <img src="/assets/eve/dynamic/more-horizontal@2x.png" alt="" />
       </button>
@@ -59,13 +62,18 @@ import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
 import { showImagePreview } from "vant";
 import { useCall } from "../composables/useCall";
+import { useUserStore } from "../stores";
+import { followUser, unfollowUser, isFollowing } from "../services/relation";
 import type { Moment } from "../types/eve";
 import { countryFlag } from "../utils/assets";
 
-const props = defineProps<{ moment: Moment }>();
+// showFollow 默认显示;详情动态页(单人)传 false 以免与页头关注按钮重复
+// 注意:Vue 的 Boolean prop 未传时默认 false,故必须用 withDefaults 显式置 true
+const props = withDefaults(defineProps<{ moment: Moment; showFollow?: boolean }>(), { showFollow: true });
 const { t } = useI18n();
 const router = useRouter();
 const { openCall } = useCall();
+const userStore = useUserStore();
 
 function preview(startPosition: number) {
   showImagePreview({ images: props.moment.images, startPosition });
@@ -75,6 +83,28 @@ const liked = ref(props.moment.liked);
 const translated = ref(false);
 const showActions = ref(false);
 const likeCount = computed(() => props.moment.likes + (liked.value && !props.moment.liked ? 1 : 0));
+
+// 关注态:用 feed 自带的 moment.user.followed 初始化(列表接口已返回 relationStatus,无需逐卡再查)
+const followed = ref(!!props.moment.user.followed);
+const followBusy = ref(false);
+const followVisible = computed(
+  () => props.showFollow && props.moment.user.id != null && props.moment.user.id !== userStore.user.id
+);
+
+async function toggleFollow() {
+  if (followBusy.value) return;
+  followBusy.value = true;
+  const was = followed.value;
+  followed.value = !was; // 乐观更新
+  try {
+    const status = was ? await unfollowUser(props.moment.user.id) : await followUser(props.moment.user.id);
+    followed.value = isFollowing(status);
+  } catch {
+    followed.value = was; // 失败回滚
+  } finally {
+    followBusy.value = false;
+  }
+}
 </script>
 
 <style scoped lang="scss">
@@ -117,6 +147,23 @@ const likeCount = computed(() => props.moment.likes + (liked.value && !props.mom
   .sub {
     font-size: 11px;
     color: var(--eve-faint);
+  }
+  .follow {
+    flex: 0 0 auto;
+    height: 28px;
+    padding: 0 14px;
+    border-radius: 14px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #fff;
+    background: var(--eve-grad);
+    box-shadow: var(--eve-glow-pink);
+    &.on {
+      background: transparent;
+      border: 1px solid rgba(255, 255, 255, 0.4);
+      color: var(--eve-muted);
+      box-shadow: none;
+    }
   }
   .more img {
     width: 22px;

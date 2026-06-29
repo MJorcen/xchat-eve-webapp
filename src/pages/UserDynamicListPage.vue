@@ -12,13 +12,13 @@
         <span class="id">ID: {{ user.id }}</span>
         <span class="sub">{{ user.region.toUpperCase() }} · {{ user.age }} · {{ user.followers }} {{ t("userDynamic.followers") }}</span>
       </div>
-      <button class="follow" :class="{ on: followed }" @click="followed = !followed">
+      <button class="follow" :class="{ on: followed }" :disabled="followBusy" @click="toggleFollow">
         {{ followed ? t("common.following") : t("userDynamic.followCta") }}
       </button>
     </div>
 
     <div v-if="moments.length" class="feed">
-      <MomentCard v-for="m in moments" :key="m.id" :moment="m" />
+      <MomentCard v-for="m in moments" :key="m.id" :moment="m" :show-follow="false" />
     </div>
     <EmptyState v-else :text="t('userDynamic.noMoments')" />
   </section>
@@ -34,6 +34,7 @@ import EmptyState from "../components/EmptyState.vue";
 import { api } from "../services/api";
 import { fetchAnchorCard } from "../services/anchor";
 import { getUserMomentsPage } from "../services/moment";
+import { followUser, unfollowUser, isFollowing } from "../services/relation";
 import { countryFlag } from "../utils/assets";
 import type { Anchor, Moment } from "../types/eve";
 
@@ -43,6 +44,22 @@ const id = Number(route.params.id);
 const user = ref<Anchor | null>(null);
 const moments = ref<Moment[]>([]);
 const followed = ref(false);
+const followBusy = ref(false);
+
+async function toggleFollow() {
+  if (followBusy.value) return;
+  followBusy.value = true;
+  const was = followed.value;
+  followed.value = !was;
+  try {
+    const status = was ? await unfollowUser(id) : await followUser(id);
+    followed.value = isFollowing(status);
+  } catch {
+    followed.value = was;
+  } finally {
+    followBusy.value = false;
+  }
+}
 
 onMounted(async () => {
   const [a, mp] = await Promise.all([
@@ -51,10 +68,11 @@ onMounted(async () => {
   ]);
   user.value = a;
   moments.value = mp.items;
-  // 头部身份用真实大卡覆盖(失败则保留 mock)
+  // 头部身份 + 关注态用真实大卡覆盖(失败则保留 mock)
   fetchAnchorCard(id)
-    .then(({ overlay }) => {
+    .then(({ overlay, relationStatus }) => {
       if (user.value) user.value = { ...user.value, ...overlay };
+      followed.value = isFollowing(relationStatus);
     })
     .catch(() => {});
 });

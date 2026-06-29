@@ -1,6 +1,7 @@
 // 主播发现流（真实后端 /user/anchor/feed：在线主播,不忙碌优先 + 综合档排序）。
 import { http } from "./http";
 import { getUserCard } from "./auth";
+import { isFollowing } from "./relation";
 import type { Anchor } from "@/types/eve";
 
 interface RawAnchor {
@@ -18,7 +19,7 @@ interface RawAnchor {
   busyStatus?: number;
   distance?: string;
   vipLevel?: number;
-  relation?: { fansCount?: number; followCount?: number };
+  relation?: { fansCount?: number; followCount?: number; relationStatus?: number };
 }
 
 function ageFromBirthdate(ms?: number): number {
@@ -47,6 +48,7 @@ export function toAnchor(r: RawAnchor): Anchor {
     inCall: r.busyStatus === 1, // 忙碌(1v1 占线)
     intro: u.aboutMe ?? "",
     followers: r.relation?.fansCount ?? 0,
+    followed: isFollowing(r.relation?.relationStatus ?? 0), // 列表接口自带关注态,无需逐卡再查
     distance: r.distance ? Number(r.distance) || undefined : undefined,
     price: 0,
     tags: []

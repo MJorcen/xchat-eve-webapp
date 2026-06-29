@@ -8,6 +8,7 @@ export type Anchor = {
   onDuty: boolean;
   inCall?: boolean; // 通话中(忙)
   live?: boolean; // 正在直播
+  followed?: boolean; // 我是否已关注 TA(来自后端 relation.relationStatus,可选:列表接口才有)
   distance?: number; // 距离(km)
   height?: number; // cm
   weight?: number; // kg
