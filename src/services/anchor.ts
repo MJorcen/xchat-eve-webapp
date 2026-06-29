@@ -39,7 +39,7 @@ function toAnchor(r: RawAnchor): Anchor {
     nickname: u.nickname ?? "",
     avatar: u.icon ?? "",
     age: ageFromBirthdate(u.birthdate),
-    region: (u.area || u.country || "") as string,
+    region: (u.area as string) ?? "", // 平台地区码统一取 area（用户侧无 region 字段）
     online,
     onDuty: online,
     inCall: r.busyStatus === 1, // 忙碌(1v1 占线)
