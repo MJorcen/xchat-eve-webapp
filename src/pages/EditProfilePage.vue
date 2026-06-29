@@ -1,7 +1,7 @@
 <template>
   <section class="page">
     <TopBar :title="t('editProfile.title')">
-      <button class="save" :disabled="saving" @click="save">{{ saving ? t("editProfile.saving") : t("common.save") }}</button>
+      <button class="save" :disabled="saving || uploading" @click="save">{{ saving ? t("editProfile.saving") : t("common.save") }}</button>
     </TopBar>
 
     <!-- 头像 -->
@@ -34,7 +34,15 @@
     <!-- 相册 -->
     <div class="bio-block">
       <span class="label">{{ t("editProfile.photos") }}</span>
-      <van-uploader v-model="photos" multiple :max-count="9" accept="image/*" class="uploader" />
+      <van-uploader
+        v-model="photos"
+        multiple
+        :max-count="6"
+        accept="image/*"
+        class="uploader"
+        :after-read="onAlbumAdd"
+        :before-delete="onAlbumDelete"
+      />
     </div>
 
     <!-- 性别 -->
@@ -83,7 +91,7 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref } from "vue";
+import { onMounted, reactive, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
 import { showToast } from "vant";
@@ -91,9 +99,10 @@ import type { UploaderFileListItem } from "vant";
 import TopBar from "../components/TopBar.vue";
 import { useUserStore } from "../stores";
 import { updateProfile, type ProfileUpdate } from "../services/auth";
+import { uploadFile } from "../services/upload";
+import { getAlbumList, addAlbumPhoto, deleteAlbumPhoto } from "../services/album";
 import { ApiError } from "../services/http";
 import { countryFlag } from "../utils/assets";
-import { fileToDataUrl } from "../utils/image";
 
 const { t } = useI18n();
 const router = useRouter();
@@ -122,12 +131,20 @@ const form = reactive({
   region: u.region || "ind"
 });
 
-// 相册:预填用户已有照片,可增删(mock)
-const photos = ref<UploaderFileListItem[]>([
-  { url: u.avatar || "https://randomuser.me/api/portraits/women/65.jpg" },
-  { url: "https://randomuser.me/api/portraits/women/44.jpg" },
-  { url: "https://randomuser.me/api/portraits/women/68.jpg" }
-]);
+const uploading = ref(false);
+// 相册:逐项 CRUD(加图即上传+审核、删图即删)。行携带后端 album id 以便删除。
+type Photo = UploaderFileListItem & { id?: number };
+const photos = ref<Photo[]>([]);
+
+onMounted(async () => {
+  if (!u.id) return;
+  try {
+    const list = await getAlbumList();
+    photos.value = list.map((a) => ({ url: a.url, id: a.id }));
+  } catch {
+    /* 相册载入失败:留空 */
+  }
+});
 
 const showGender = ref(false);
 const showAge = ref(false);
@@ -141,11 +158,48 @@ const regionActions = regionCodes.map((c) => ({ name: c }));
 async function onAvatar(file: UploaderFileListItem | UploaderFileListItem[]) {
   const f = Array.isArray(file) ? file[0] : file;
   if (!f.file) return;
+  uploading.value = true;
   try {
-    form.avatar = await fileToDataUrl(f.file, 256);
+    form.avatar = await uploadFile(f.file, "user"); // 选图即上传，form.avatar 变为可访问 URL
   } catch {
     showToast(t("editProfile.imageError"));
+  } finally {
+    uploading.value = false;
   }
+}
+
+// 新增相册照片:上传 → /album/add(含内容审核)。成功写回真实 URL+id;失败提示并移除该项。
+async function onAlbumAdd(file: Photo | Photo[]) {
+  const items = Array.isArray(file) ? file : [file];
+  for (const f of items) {
+    if (!f.file) continue;
+    f.status = "uploading";
+    f.message = t("editProfile.uploading");
+    try {
+      const url = await uploadFile(f.file, "user");
+      const photo = await addAlbumPhoto(url);
+      f.url = photo.url || url;
+      f.id = photo.id;
+      f.status = "done";
+      f.message = "";
+    } catch (e) {
+      showToast(e instanceof ApiError ? e.message : t("editProfile.imageError"));
+      photos.value = photos.value.filter((p) => p !== f);
+    }
+  }
+}
+
+// 删除相册照片:已入库的调 /album/{id} 删除,删除失败则不从 UI 移除。
+async function onAlbumDelete(item: Photo): Promise<boolean> {
+  if (item.id) {
+    try {
+      await deleteAlbumPhoto(item.id);
+    } catch (e) {
+      showToast(e instanceof ApiError ? e.message : t("followFans.actionFailed"));
+      return false;
+    }
+  }
+  return true;
 }
 
 async function save() {

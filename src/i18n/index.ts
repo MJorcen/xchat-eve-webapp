@@ -224,7 +224,8 @@ const en = {
     imageError: "Couldn't load that image",
     saving: "Saving…",
     saved: "Saved",
-    saveFailed: "Save failed, please try again"
+    saveFailed: "Save failed, please try again",
+    uploading: "Uploading…"
   },
   game: { title: "Games", play: "Play", comingSoon: "Coming soon" },
   composer: {
@@ -578,7 +579,8 @@ const zh: typeof en = {
     imageError: "无法加载该图片",
     saving: "保存中…",
     saved: "已保存",
-    saveFailed: "保存失败，请重试"
+    saveFailed: "保存失败，请重试",
+    uploading: "上传中…"
   },
   game: { title: "游戏", play: "开始", comingSoon: "敬请期待" },
   composer: {

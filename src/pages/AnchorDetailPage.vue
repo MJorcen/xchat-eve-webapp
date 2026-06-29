@@ -191,6 +191,9 @@ import {
 } from "lucide-vue-next";
 import emitter from "../common/eventBus";
 import { api } from "../services/api";
+import { getUserCard } from "../services/auth";
+import { followUser, unfollowUser, isFollowing } from "../services/relation";
+import { ApiError } from "../services/http";
 import { useCall } from "../composables/useCall";
 import { useUserStore } from "../stores";
 import { countryFlag } from "../utils/assets";
@@ -207,6 +210,7 @@ const id = Number(route.params.id);
 const anchor = ref<Anchor | null>(null);
 const moments = ref<Moment[]>([]);
 const followed = ref(false);
+const followBusy = ref(false);
 const showActions = ref(false);
 const swipeIndex = ref(0);
 const swipeRef = ref<{ swipeTo: (i: number) => void } | null>(null);
@@ -253,9 +257,22 @@ function copyId() {
   emitter.emit("toast", t("anchor.copied"));
 }
 
-function toggleFollow() {
-  followed.value = !followed.value;
-  emitter.emit("toast", followed.value ? t("anchor.followed") : t("anchor.unfollowed"));
+async function toggleFollow() {
+  if (followBusy.value) return;
+  followBusy.value = true;
+  const was = followed.value;
+  try {
+    const status = was ? await unfollowUser(id) : await followUser(id);
+    followed.value = isFollowing(status);
+    emitter.emit("toast", followed.value ? t("anchor.followed") : t("anchor.unfollowed"));
+    if (followed.value !== was) {
+      userStore.setUser({ following: Math.max(0, (userStore.user.following ?? 0) + (followed.value ? 1 : -1)) });
+    }
+  } catch (e) {
+    emitter.emit("toast", e instanceof ApiError ? e.message : t("followFans.actionFailed"));
+  } finally {
+    followBusy.value = false;
+  }
 }
 
 function startCall() {
@@ -313,6 +330,10 @@ onMounted(async () => {
   const [a, m] = await Promise.all([api.getAnchor(id), api.getUserMoments(id)]);
   anchor.value = a;
   moments.value = m;
+  // 真实关注态：查看他人大卡的 relation（失败则保持未关注）
+  getUserCard(id, userStore.user.id)
+    .then((c) => (followed.value = isFollowing(c.relation?.relationStatus ?? 0)))
+    .catch(() => {});
 });
 </script>
 

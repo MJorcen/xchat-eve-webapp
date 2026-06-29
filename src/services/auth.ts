@@ -91,6 +91,7 @@ export function updateProfile(req: ProfileUpdate): Promise<MiniUser> {
   return http.post<MiniUser>(`${USER_SVC}/info/profile/update`, req);
 }
 
+
 /** facade 大卡（完整资料卡，用于查看其他用户）。 */
 export interface UserCard {
   user: {
