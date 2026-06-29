@@ -23,14 +23,33 @@
 import { onMounted, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import TopBar from "../components/TopBar.vue";
-import { api } from "../services/api";
+import { getCoinRecords } from "../services/wallet";
 import type { WalletRecord } from "../types/eve";
 
 const { t } = useI18n();
 const records = ref<WalletRecord[]>([]);
 
+function fmtTime(ms?: number): string {
+  if (!ms) return "";
+  const d = new Date(ms);
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
 onMounted(async () => {
-  records.value = await api.getWalletRecords();
+  // txGroup 1=收入 2=支出;分别拉取后按时间合并,支出取负以便显示 "-"
+  const [income, expense] = await Promise.all([getCoinRecords(1).catch(() => []), getCoinRecords(2).catch(() => [])]);
+  const raw = [
+    ...income.map((r) => ({ r, type: "income" as const })),
+    ...expense.map((r) => ({ r, type: "expense" as const }))
+  ].sort((a, b) => (b.r.createdAt ?? 0) - (a.r.createdAt ?? 0));
+  records.value = raw.map(({ r, type }) => ({
+    id: r.id,
+    title: r.txName || "",
+    time: fmtTime(r.createdAt),
+    amount: type === "expense" ? -Math.abs(r.amount) : Math.abs(r.amount),
+    type
+  }));
 });
 </script>
 

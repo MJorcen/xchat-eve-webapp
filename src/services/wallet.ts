@@ -22,3 +22,20 @@ export interface WalletData {
 export function getWallet(): Promise<WalletData> {
   return http.get<WalletData>("/user/wallet/get");
 }
+
+/** 金币流水项（后端 BillRecordVo）。 */
+export interface CoinRecord {
+  id: number;
+  txType?: number;
+  txName?: string;
+  txIcon?: string;
+  amount: number;
+  createdAt?: number;
+}
+
+/** 金币流水。txGroup：1=收入，2=支出。 */
+export function getCoinRecords(txGroup: number, offset = 0, limit = 50): Promise<CoinRecord[]> {
+  return http
+    .get<{ list?: CoinRecord[] }>("/user/coin/records", { txGroup, offset, limit })
+    .then((r) => r?.list ?? []);
+}

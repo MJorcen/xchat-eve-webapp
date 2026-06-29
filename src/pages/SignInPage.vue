@@ -18,7 +18,7 @@
       </div>
     </div>
 
-    <button class="sign-btn" :disabled="!canSign" @click="handleSign">
+    <button class="sign-btn" :disabled="!canSign || signing" @click="handleSign">
       {{ canSign ? t("signIn.signInReward", { reward: todayItem?.reward }) : t("signIn.signedToday") }}
     </button>
 
@@ -74,7 +74,8 @@ import { useRouter } from "vue-router";
 import { showToast } from "vant";
 import { Crown } from "lucide-vue-next";
 import TopBar from "../components/TopBar.vue";
-import { api } from "../services/api";
+import { getCheckInInfo, signCheckIn } from "../services/checkin";
+import { ApiError } from "../services/http";
 import { useUserStore } from "../stores";
 import type { SignDay } from "../types/eve";
 
@@ -84,6 +85,7 @@ const userStore = useUserStore();
 const signDays = ref<SignDay[]>([]);
 const showReward = ref(false);
 const lastReward = ref(0);
+const signing = ref(false);
 
 type Milestone = { days: number; type: "coin" | "vip"; amount: number };
 const milestones: Milestone[] = [
@@ -108,15 +110,23 @@ function msState(m: Milestone) {
   return signedCount.value >= m.days ? "claimable" : "locked";
 }
 
-function handleSign() {
+async function handleSign() {
   const item = todayItem.value;
-  if (!item || item.signed) return;
-  userStore.addCoins(item.reward);
-  userStore.claimSignDay(item.day);
-  item.signed = true;
-  item.today = false;
-  lastReward.value = item.reward;
-  showReward.value = true;
+  if (!item || item.signed || signing.value) return;
+  signing.value = true;
+  try {
+    const res = await signCheckIn();
+    const reward = res.itemCount ?? item.reward;
+    userStore.addCoins(reward);
+    item.signed = true;
+    item.today = false;
+    lastReward.value = reward;
+    showReward.value = true;
+  } catch (e) {
+    showToast(e instanceof ApiError ? e.message : t("editProfile.saveFailed"));
+  } finally {
+    signing.value = false;
+  }
 }
 
 function claimMilestone(m: Milestone) {
@@ -134,12 +144,18 @@ function claimMilestone(m: Milestone) {
 }
 
 onMounted(async () => {
-  const claimed = new Set(userStore.claimedSignDays);
-  signDays.value = (await api.getSignDays()).map((d) => ({
-    ...d,
-    signed: d.signed || claimed.has(d.day),
-    today: !!d.today && !claimed.has(d.day)
-  }));
+  try {
+    const info = await getCheckInInfo();
+    signDays.value = (info.rewards ?? []).map((r) => ({
+      day: r.checkInOffset,
+      reward: r.itemCount,
+      // 当天之前=已签;当天且 checkedStatus=1=已签;当天=今日
+      signed: r.checkInOffset < info.currentOffset || (r.checkInOffset === info.currentOffset && info.checkedStatus === 1),
+      today: r.checkInOffset === info.currentOffset
+    }));
+  } catch {
+    /* 加载失败:留空 */
+  }
 });
 </script>
 
