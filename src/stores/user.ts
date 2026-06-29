@@ -6,6 +6,8 @@ export const useUserStore = defineStore("user", {
   state: () => ({
     user: {} as Partial<CurrentUser>,
     token: "" as string,
+    // 网易云信 NIM 登录 token(登录响应 neteaskAuthToken;后端 = md5(userId))
+    imToken: "" as string,
     // 已领取的签到日（持久化，防止刷新/重进重复领取）
     claimedSignDays: [] as number[],
     // 已领取的累计里程碑（按天数阈值）
@@ -27,10 +29,11 @@ export const useUserStore = defineStore("user", {
     setToken(token: string) {
       this.token = token;
     },
-    // 设备登录成功后写入登录态：token + 用户基础信息（合并，不清掉已有字段）。
-    setAuth(token: string, user?: Partial<CurrentUser>) {
+    // 设备登录成功后写入登录态：token + 用户基础信息（合并，不清掉已有字段）+ 云信 imToken。
+    setAuth(token: string, user?: Partial<CurrentUser>, imToken?: string) {
       this.token = token;
       if (user) this.user = { ...this.user, ...user };
+      if (imToken) this.imToken = imToken;
     },
     addCoins(delta: number) {
       this.user.coins = (this.user.coins ?? 0) + delta;
@@ -50,6 +53,7 @@ export const useUserStore = defineStore("user", {
     logout() {
       this.user = {};
       this.token = "";
+      this.imToken = "";
     }
   },
   persist: true

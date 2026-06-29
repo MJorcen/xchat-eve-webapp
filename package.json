@@ -13,6 +13,7 @@
     "amfe-flexible": "^2.2.1",
     "lucide-vue-next": "^1.0.0",
     "mitt": "^3.0.1",
+    "nim-web-sdk-ng": "^10.10.0",
     "pinia": "^3.0.4",
     "pinia-plugin-persistedstate": "^4.7.1",
     "typescript": "^5.8.3",

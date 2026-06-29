@@ -43,7 +43,7 @@ async function quickSignIn() {
     if (!vo.authToken) throw new ApiError(-1, t("login.signInFailed"));
     // 后端返回的 authToken 自带 "Bearer " 前缀，存裸 token，发请求时再统一加 Bearer。
     const token = vo.authToken.replace(/^Bearer\s+/i, "");
-    userStore.setAuth(token, toCurrentUser(vo.user));
+    userStore.setAuth(token, toCurrentUser(vo.user), vo.neteaskAuthToken);
     // 拉真实资料（大卡）写入 store，不阻塞跳转；失败时已有登录响应的基础信息兜底。
     void hydrateCurrentUser();
     const redirect = typeof route.query.redirect === "string" ? route.query.redirect : "/";

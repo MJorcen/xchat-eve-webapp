@@ -72,8 +72,8 @@ import ChatRow from "../components/ChatRow.vue";
 import AppSkeleton from "../components/AppSkeleton.vue";
 import { useCall } from "../composables/useCall";
 import { useI18n } from "vue-i18n";
-import emitter from "../common/eventBus";
 import { api } from "../services/api";
+import { getConversations, onConversationsChanged } from "../services/im";
 import type { CallRecord, Conversation, LiveRoom } from "../types/eve";
 
 defineOptions({ name: "MessagesPage" });
@@ -87,26 +87,24 @@ const conversations = ref<Conversation[]>([]);
 const calls = ref<CallRecord[]>([]);
 const lives = ref<LiveRoom[]>([]);
 
-// 模拟服务端推送：新消息落到对应会话，递增未读并更新最后一条
-function onMessage(p: { fromId: number; text: string }) {
-  const c = conversations.value.find((item) => item.user.id === p.fromId);
-  if (c) {
-    c.unread += 1;
-    c.text = p.text;
+// 会话走真实 NIM 云端会话;通话记录/直播条暂留 mock
+let stopConv: (() => void) | null = null;
+async function loadConversations() {
+  try {
+    conversations.value = await getConversations();
+  } catch {
+    /* NIM 未就绪/未登录时保持空 */
   }
 }
 
 onMounted(async () => {
-  [conversations.value, calls.value, lives.value] = await Promise.all([
-    api.getConversations(),
-    api.getCalls(),
-    api.getLiveRooms()
-  ]);
+  [calls.value, lives.value] = await Promise.all([api.getCalls(), api.getLiveRooms()]);
+  await loadConversations();
   loading.value = false;
-  emitter.on("message:new", onMessage);
+  stopConv = onConversationsChanged(loadConversations);
 });
 
-onUnmounted(() => emitter.off("message:new", onMessage));
+onUnmounted(() => stopConv?.());
 </script>
 
 <style scoped lang="scss">

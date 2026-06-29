@@ -179,6 +179,8 @@ import { showImagePreview, showToast } from "vant";
 import { Mic, MapPin } from "lucide-vue-next";
 import emitter from "../common/eventBus";
 import { api } from "../services/api";
+import { fetchAnchorCard } from "../services/anchor";
+import { getMessages, sendText, onMessages } from "../services/im";
 import { useCall } from "../composables/useCall";
 import { useUserStore } from "../stores";
 import GiftPanel from "../components/GiftPanel.vue";
@@ -261,9 +263,9 @@ function scheduleReply() {
 function handleSend() {
   const text = draft.value.trim();
   if (!text) return;
-  push({ type: "text", outgoing: true, time: nowTime(), text });
+  push({ type: "text", outgoing: true, time: nowTime(), text }); // 乐观渲染
   draft.value = "";
-  scheduleReply();
+  sendText(id, text).catch(() => showToast(t("chat.sendFailed"))); // 真实发送(NIM)
 }
 
 function sendQuick(t: string) {
@@ -379,10 +381,7 @@ function preview(img?: string) {
   if (img) showImagePreview([img]);
 }
 
-// 实时：对方新消息 / 通话结束记录
-function onMessage(p: { fromId: number; text: string }) {
-  if (p.fromId === id) push({ type: "text", outgoing: false, time: nowTime(), text: p.text });
-}
+// 通话结束记录(RTC 暂留 mock)
 function onHangup(p: { anchor: Anchor; duration: number }) {
   if (p.anchor.id === id) {
     push({
@@ -395,19 +394,33 @@ function onHangup(p: { anchor: Anchor; duration: number }) {
   }
 }
 
+let stopMsg: (() => void) | null = null;
+
 onMounted(async () => {
-  const [a, list] = await Promise.all([api.getAnchor(id), api.getChatMessages(id)]);
+  const [a, list] = await Promise.all([api.getAnchor(id), getMessages(id).catch(() => [] as ChatMessage[])]);
   anchor.value = a;
   messages.value = list;
   scrollToBottom();
-  emitter.on("message:new", onMessage);
+  // 真实身份覆盖(昵称/头像)
+  fetchAnchorCard(id)
+    .then(({ overlay }) => {
+      if (anchor.value) anchor.value = { ...anchor.value, ...overlay };
+    })
+    .catch(() => {});
+  // 收到对方真实消息 → 入列
+  stopMsg = onMessages((peerId, msg) => {
+    if (peerId === id) {
+      messages.value.push(msg);
+      scrollToBottom();
+    }
+  });
   emitter.on("call:hangup", onHangup);
 });
 
 onUnmounted(() => {
   timers.forEach((t) => window.clearTimeout(t));
   if (recordTimer) window.clearInterval(recordTimer);
-  emitter.off("message:new", onMessage);
+  stopMsg?.();
   emitter.off("call:hangup", onHangup);
 });
 </script>
