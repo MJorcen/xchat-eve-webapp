@@ -98,7 +98,7 @@ import { useI18n } from "vue-i18n";
 import { Coins, PhoneOff, SwitchCamera, Mic, MicOff, VideoOff, Gift, Send } from "lucide-vue-next";
 import emitter from "../common/eventBus";
 import { api } from "../services/api";
-import { joinRoom, publishLocal, playRemoteOn, leaveRoom } from "../services/zego";
+import { prepareLocalStream, joinRoom, publishLocal, playStream, watchRoomStreams, leaveRoom } from "../services/zego";
 import { useCall } from "../composables/useCall";
 import { useGiftAnimation } from "../composables/useGiftAnimation";
 import { useUserStore } from "../stores";
@@ -113,16 +113,20 @@ const anim = useGiftAnimation();
 const { callState, elapsed, startOutgoing, hangup, reset, toggleMic, switchCamera, addGiftCost, getEveContext } =
   useCall();
 let stopRemote: (() => void) | null = null;
+let localReady: Promise<unknown> | null = null;
 
-// 用后端 EveContext 入房 + 推本地流 + 拉远端流(headless 无摄像头会失败,真机/真实浏览器才行)
+// 入房 + 推拉流,按即构「秒开」时机:
+// 入房后先挂兜底监听 → 直接用已知 anchorStreamId 秒拉 → 本地流(已并行预采集)就绪即秒推。
+// headless 无摄像头时预采集/推流会失败(catch),真机/真实浏览器才有画面。
 async function joinZego() {
   const ctx = getEveContext();
   if (!ctx || stopRemote) return;
-  await nextTick();
+  stopRemote = watchRoomStreams("remote-video"); // 兜底:对端真正推流(ADD)时拉
   const ok = await joinRoom(ctx.rtcRoomId, ctx.rtcToken, String(userStore.user.id)).catch(() => false);
   if (!ok) return;
-  stopRemote = playRemoteOn("remote-video");
-  await publishLocal(ctx.playerStreamId, "local-video").catch(() => {});
+  void playStream(ctx.anchorStreamId, "remote-video"); // 秒拉:已知对端 streamId 直拉(允许拉空流时连接空挂)
+  await localReady; // 等并行预采集结果
+  publishLocal(ctx.playerStreamId); // 秒推
 }
 
 const id = Number(route.params.id);
@@ -248,6 +252,9 @@ onMounted(async () => {
   anchor.value = a;
   user.value = u;
   quickGifts.value = gifts.slice(0, 4);
+  await nextTick(); // 等 #local-video 渲染
+  // 秒开①:并行预采集本地流(与 requestCall 同时进行,接通时不再花时间采集)
+  localReady = prepareLocalStream("local-video").catch(() => null);
   // 直接进入 /call/:id(深链/去电)时若无进行中的通话,则发起去电(await 以便拿到 EveContext)
   if (callState.target?.id !== id || callState.phase === "idle" || callState.phase === "ended") {
     await startOutgoing(a);
