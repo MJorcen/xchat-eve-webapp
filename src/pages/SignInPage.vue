@@ -22,32 +22,6 @@
       {{ canSign ? t("signIn.signInReward", { reward: todayItem?.reward }) : t("signIn.signedToday") }}
     </button>
 
-    <!-- 累计里程碑奖励 -->
-    <div class="milestones">
-      <div class="ms-head">
-        <span class="ms-title">{{ t("signIn.milestoneTitle") }}</span>
-        <span class="ms-progress">{{ t("signIn.milestoneProgress", { count: signedCount }) }}</span>
-      </div>
-      <div class="ms-grid">
-        <div v-for="m in milestones" :key="m.days" class="ms" :class="msState(m)">
-          <span class="ms-days">{{ t("signIn.milestoneDays", { n: m.days }) }}</span>
-          <div class="ms-reward">
-            <template v-if="m.type === 'vip'">
-              <span class="ms-vip">👑</span>
-              <span class="ms-amt">{{ t("signIn.vipReward", { n: m.amount }) }}</span>
-            </template>
-            <template v-else>
-              <img class="ms-coin" src="/assets/eve/wallet/coin_20@2x.png" alt="" />
-              <span class="ms-amt">+{{ m.amount }}</span>
-            </template>
-          </div>
-          <button class="ms-btn" :disabled="msState(m) !== 'claimable'" @click="claimMilestone(m)">
-            {{ msState(m) === "claimed" ? t("signIn.claimed") : t("signIn.claim") }}
-          </button>
-        </div>
-      </div>
-    </div>
-
     <!-- 领取奖励弹窗 -->
     <van-popup
       v-model:show="showReward"
@@ -87,15 +61,7 @@ const showReward = ref(false);
 const lastReward = ref(0);
 const signing = ref(false);
 
-type Milestone = { days: number; type: "coin" | "vip"; amount: number };
-const milestones: Milestone[] = [
-  { days: 3, type: "coin", amount: 200 },
-  { days: 7, type: "coin", amount: 500 },
-  { days: 15, type: "vip", amount: 3 }
-];
-
 const coins = computed(() => userStore.coins);
-const signedCount = computed(() => signDays.value.filter((d) => d.signed).length);
 const todayItem = computed(() => signDays.value.find((d) => d.today));
 const canSign = computed(() => !!todayItem.value && !todayItem.value.signed);
 
@@ -103,11 +69,6 @@ function cellState(d: SignDay) {
   if (d.signed) return "claimed";
   if (d.today) return "today";
   return "locked";
-}
-
-function msState(m: Milestone) {
-  if (userStore.claimedMilestones.includes(m.days)) return "claimed";
-  return signedCount.value >= m.days ? "claimable" : "locked";
 }
 
 async function handleSign() {
@@ -127,20 +88,6 @@ async function handleSign() {
   } finally {
     signing.value = false;
   }
-}
-
-function claimMilestone(m: Milestone) {
-  if (msState(m) !== "claimable") return;
-  if (m.type === "vip") {
-    const end = new Date(Date.now() + m.amount * 86400000).toISOString().slice(0, 10);
-    userStore.setUser({ vipLevel: Math.max(1, userStore.user.vipLevel ?? 0), vipValidEnd: end });
-    showToast(t("signIn.vipReward", { n: m.amount }));
-  } else {
-    userStore.addCoins(m.amount);
-    lastReward.value = m.amount;
-    showReward.value = true;
-  }
-  userStore.claimMilestone(m.days);
 }
 
 onMounted(async () => {
@@ -272,89 +219,6 @@ onMounted(async () => {
     background: var(--eve-surface);
     color: var(--eve-faint);
     box-shadow: none;
-  }
-}
-
-.milestones {
-  margin: 0 16px 24px;
-  padding: 16px;
-  border-radius: 16px;
-  background: var(--eve-surface);
-  border: 1px solid var(--eve-line);
-
-  .ms-head {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    margin-bottom: 14px;
-    .ms-title {
-      font-size: 14px;
-      font-weight: 800;
-      color: #fff;
-    }
-    .ms-progress {
-      font-size: 12px;
-      color: var(--eve-faint);
-    }
-  }
-  .ms-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 10px;
-  }
-  .ms {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 8px;
-    padding: 14px 6px;
-    border-radius: 14px;
-    background: var(--eve-track);
-    border: 1px solid var(--eve-line);
-
-    &.claimable {
-      border-color: var(--eve-pink);
-      background: rgba(255, 42, 122, 0.08);
-    }
-    &.locked {
-      opacity: 0.65;
-    }
-  }
-  .ms-days {
-    font-size: 12px;
-    font-weight: 700;
-    color: #fff;
-  }
-  .ms-reward {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 3px;
-    .ms-coin {
-      width: 28px;
-      height: 28px;
-    }
-    .ms-vip {
-      font-size: 26px;
-    }
-    .ms-amt {
-      font-size: 12px;
-      font-weight: 700;
-      color: var(--eve-gold);
-    }
-  }
-  .ms-btn {
-    width: 100%;
-    padding: 6px 0;
-    border-radius: 999px;
-    font-size: 12px;
-    font-weight: 700;
-    color: #fff;
-    background: var(--eve-grad);
-    &:disabled {
-      background: var(--eve-line);
-      color: var(--eve-faint);
-    }
   }
 }
 

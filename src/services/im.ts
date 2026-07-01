@@ -2,7 +2,6 @@
 // 后端登录响应给 neteaskAuthToken(= md5(userId)),accid = String(userId)(id_prefix 为空)。
 import NIM from "nim-web-sdk-ng";
 import { useUserStore } from "@/stores";
-import { deviceSignIn } from "./auth";
 import type { Anchor, Conversation, ChatMessage } from "@/types/eve";
 
 // 与后端 message.netease.app_key 一致(dev)。
@@ -40,21 +39,20 @@ export async function loginIm(account: string, token: string): Promise<void> {
   await getNim().V2NIMLoginService.login(account, token);
 }
 
-/** 确保已登录 NIM(幂等)。imToken 缺失时回退 deviceSignIn 拉取并写回 store。 */
+/**
+ * 确保已登录 NIM(幂等)。account/imToken 只读 store 里登录时写入的值,不再回退调用
+ * deviceSignIn 兜底拉取 —— 那次"顺手"的重复登录会和当前会话的鉴权请求抢跑,
+ * 导致后端把刚建立好的会话判定失效(表现为并发接口莫名其妙 1008/刷新掉线)。
+ * imToken 缺失就说明这个环境的登录响应本就没带 neteaskAuthToken,重试也拿不到。
+ */
 export async function ensureImLogin(): Promise<void> {
   const n = getNim();
   if (n.V2NIMLoginService.getLoginUser()) return;
   if (loginPromise) return loginPromise;
   loginPromise = (async () => {
     const store = useUserStore();
-    let account = store.user.id != null ? String(store.user.id) : "";
-    let token = store.imToken;
-    if (!account || !token) {
-      const vo = await deviceSignIn();
-      account = String(vo.user?.id ?? "");
-      token = vo.neteaskAuthToken ?? "";
-      store.setAuth(store.token, undefined, token);
-    }
+    const account = store.user.id != null ? String(store.user.id) : "";
+    const token = store.imToken;
     if (!account || !token) throw new Error("im: no account/token");
     await n.V2NIMLoginService.login(account, token);
   })().finally(() => {
@@ -174,12 +172,34 @@ export function onMessages(cb: (peerUserId: number, msg: ChatMessage) => void): 
   return () => n.V2NIMMessageService.off("onReceiveMessages", handler);
 }
 
-/** eve 通话信令(经网易自定义系统通知 sendAttachMsg 下发)。 */
+/** eve 通话信令(经网易自定义系统通知 sendAttachMsg 下发,对齐 borders call_eve/*)。 */
 export interface EveSignal {
-  messageType: string; // eve_invite | eve_accept | eve_reject | eve_cancel | eve_start | eve_finish
-  content: any; // { eveId, rtcRoomId, fromUserId, duration? }
+  messageType: string; // call_eve/request | call_eve/accept | call_eve/reject | call_eve/cancel | call_eve/start | call_eve/end
+  content: any; // EveSignalPayload: { eveId, rtcRoomId, fromUserId, duration?, rtcInfo?, rtcConfig?, playerUser?, anchorUser? }
   senderId: string;
   sender?: any; // { id, nickname, avatar, gender }
+  rtcInfo?: any; // request 带:{ playerToken, playerStreamId, anchorToken, anchorStreamId }(被叫偷跑用)
+  rtcConfig?: any; // request 带:初始视频质量
+}
+
+// 解析单条信令信封 → EveSignal。信封:{ meta.eventType:"operation_eve_message", data:{ messageType, content }, sender }。
+function parseEveSignal(notif: any): EveSignal | null {
+  let env: any = null;
+  try {
+    env = JSON.parse(notif.content);
+  } catch {
+    return null;
+  }
+  if (env?.meta?.eventType !== "operation_eve_message") return null;
+  const c = env.data?.content || {};
+  return {
+    messageType: env.data?.messageType,
+    content: c,
+    senderId: notif.senderId,
+    sender: env.sender,
+    rtcInfo: c.rtcInfo,
+    rtcConfig: c.rtcConfig
+  };
 }
 
 /** 监听 eve 通话信令(来电/接听/拒接/取消/开始/结束)。返回取消监听函数。 */
@@ -187,14 +207,62 @@ export function onEveSignal(cb: (sig: EveSignal) => void): () => void {
   const n = getNim();
   const handler = (notifs: any[]) => {
     for (const notif of notifs || []) {
-      let env: any = null;
-      try {
-        env = JSON.parse(notif.content);
-      } catch {
-        continue;
-      }
-      if (env?.meta?.eventType !== "operation_eve_message") continue;
-      cb({ messageType: env.data?.messageType, content: env.data?.content, senderId: notif.senderId, sender: env.sender });
+      const sig = parseEveSignal(notif);
+      if (sig && sig.messageType) cb(sig);
+    }
+  };
+  n.V2NIMNotificationService.on("onReceiveCustomNotifications", handler);
+  return () => n.V2NIMNotificationService.off("onReceiveCustomNotifications", handler);
+}
+
+/**
+ * 系统公告(送礼/游戏胜利/宠物升级/战力第一等,经 AnnouncementServiceImpl → 网易自定义系统通知下发,
+ * 信封 { meta.eventType:"ANNOUNCEMENT", data:Announcement } —— 与 eve 信令共用同一条 NIM 通知通道,
+ * 靠 eventType 区分,互不影响)。
+ */
+export interface AnnouncementSignal {
+  id: number;
+  type: number; // AnnouncementEnum:1 送礼 2 游戏胜利 3 宠物升级 4 战力第一
+  text: string;
+  click?: string;
+  createdAt: number;
+}
+
+// 稳定字符串哈希(Java String.hashCode 算法),把 eventId 折成数字 id 供前端 list :key / 去重用。
+function hashId(s: string): number {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) {
+    h = (Math.imul(31, h) + s.charCodeAt(i)) | 0;
+  }
+  return Math.abs(h) || Date.now();
+}
+
+function parseAnnouncement(notif: any): AnnouncementSignal | null {
+  let env: any = null;
+  try {
+    env = JSON.parse(notif.content);
+  } catch {
+    return null;
+  }
+  if (env?.meta?.eventType !== "ANNOUNCEMENT") return null;
+  const a = env.data || {};
+  const eventId = env.meta?.eventId || a.eventId || String(notif.timestamp ?? Date.now());
+  return {
+    id: hashId(String(eventId)),
+    type: a.type,
+    text: a.content?.text || "",
+    click: a.click,
+    createdAt: notif.timestamp || env.meta?.lifecycle?.createdAtMs || Date.now()
+  };
+}
+
+/** 监听系统公告推送(送礼/战力榜首/宠物升级/游戏胜利等)。返回取消监听函数。 */
+export function onAnnouncement(cb: (a: AnnouncementSignal) => void): () => void {
+  const n = getNim();
+  const handler = (notifs: any[]) => {
+    for (const notif of notifs || []) {
+      const a = parseAnnouncement(notif);
+      if (a && a.text) cb(a);
     }
   };
   n.V2NIMNotificationService.on("onReceiveCustomNotifications", handler);

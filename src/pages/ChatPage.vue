@@ -6,11 +6,11 @@
         <van-icon name="arrow-left" />
       </button>
       <div class="title" @click="goAnchor">
-        <img class="nav-avatar" :src="anchor?.avatar" alt="" />
-        <div class="nav-text">
-          <strong>{{ anchor?.nickname }}</strong>
-          <span class="status" :class="statusClass">{{ statusText }}</span>
+        <div class="nav-ava-wrap">
+          <img class="nav-avatar" :src="anchor?.avatar" alt="" />
+          <span v-if="statusDot" class="nav-dot" :class="statusDot" />
         </div>
+        <strong class="nav-name">{{ anchor?.nickname }}</strong>
       </div>
       <button class="follow" :class="{ on: followed }" @click="toggleFollow">
         {{ followed ? t("common.following") : t("common.follow") }}
@@ -20,22 +20,20 @@
       </button>
     </header>
 
-    <!-- 金币条 -->
-    <div class="coin-bar">
-      <span class="coins">
-        <img src="/assets/eve/chatRoom/coin_16@2x.png" alt="" />{{ coins }}
-      </span>
-      <button class="recharge" @click="router.push('/recharge')">{{ t("common.recharge") }}</button>
-    </div>
-
     <!-- 消息区 -->
     <div ref="scroller" class="msg-area">
-      <div v-if="anchor" class="intro-card" @click="goAnchor">
-        <img class="intro-avatar" :src="anchor.avatar" alt="" />
+      <div v-if="anchor" class="intro-card">
+        <div class="intro-ava-wrap" @click="goAnchor">
+          <img class="intro-avatar" :src="anchor.avatar" alt="" />
+          <CountryFlag class="intro-flag" :region="anchor.region" :size="13" />
+        </div>
         <div class="intro-info">
-          <div class="intro-name">
-            {{ anchor.nickname }}
-            <span class="age">♀ {{ anchor.age }}</span>
+          <div class="intro-top">
+            <span class="intro-name">
+              <span class="nick">{{ anchor.nickname }}</span>
+              <span class="age">♀{{ anchor.age }}</span>
+            </span>
+            <button class="intro-view" @click="goAnchor">{{ t("chat.viewProfile") }}</button>
           </div>
           <p class="intro-text">{{ anchor.intro }}</p>
         </div>
@@ -113,38 +111,33 @@
 
     <!-- 输入栏 -->
     <footer class="input-bar">
+      <!-- 悬浮通话按钮:浮在输入区右上角 -->
+      <button class="call-fab" @click="startCall">
+        <span class="call-circle"><Video :size="22" :stroke-width="2.2" /></span>
+        <span class="call-label">{{ t("chat.call") }}</span>
+      </button>
+
       <div class="quick-row">
         <button v-for="q in quickReplies" :key="q" class="quick" @click="sendQuick(q)">{{ q }}</button>
       </div>
       <div class="input-row">
         <input v-model="draft" class="field" :placeholder="t('chat.inputPlaceholder')" @keyup.enter="handleSend" />
-        <button class="send" @click="handleSend">
-          <img src="/assets/eve/chatRoom/ic_send@2x.png" alt="" />
-        </button>
+        <button class="send" @click="handleSend"><Send :size="20" :stroke-width="2.2" /></button>
       </div>
       <div class="tool-row">
-        <button @click="pickPhoto">
-          <img src="/assets/eve/chatRoom/ic_photo_44@2x.png" alt="" />
-        </button>
+        <button class="tool t-img" @click="pickPhoto"><ImageIcon :size="22" :stroke-width="1.9" /></button>
+        <button class="tool t-cam" @click="takePhoto"><Camera :size="22" :stroke-width="1.9" /></button>
         <button
-          class="mic-hold"
+          class="tool t-voice mic-hold"
           :class="{ recording }"
           @pointerdown="onMicDown"
           @pointerup="onMicUp"
           @pointercancel="onMicUp"
           @pointermove="onMicMove"
         >
-          <Mic :size="24" :stroke-width="1.9" />
+          <Mic :size="22" :stroke-width="1.9" />
         </button>
-        <button @click="sendLocation">
-          <MapPin :size="24" :stroke-width="1.9" />
-        </button>
-        <button @click="startCall">
-          <img src="/assets/eve/chatRoom/ic_video_fill@2x.png" alt="" />
-        </button>
-        <button @click="showGift = true">
-          <img src="/assets/eve/chatRoom/ic_gift@2x.png" alt="" />
-        </button>
+        <button class="tool t-gift" @click="showGift = true"><GiftIcon :size="22" :stroke-width="1.9" /></button>
       </div>
     </footer>
 
@@ -158,6 +151,7 @@
     </div>
 
     <input ref="fileInput" type="file" accept="image/*" hidden @change="onFile" />
+    <input ref="cameraInput" type="file" accept="image/*" capture="environment" hidden @change="onFile" />
 
     <GiftPanel v-model:show="showGift" :anchor="anchor" @sent="onGiftSent" />
 
@@ -176,20 +170,19 @@ import { computed, nextTick, onMounted, onUnmounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { showImagePreview, showToast } from "vant";
-import { Mic, MapPin } from "lucide-vue-next";
+import { Mic, MapPin, Image as ImageIcon, Camera, Gift as GiftIcon, Send, Video } from "lucide-vue-next";
 import emitter from "../common/eventBus";
 import { api } from "../services/api";
 import { fetchAnchorCard } from "../services/anchor";
 import { getMessages, sendText, onMessages } from "../services/im";
 import { useCall } from "../composables/useCall";
-import { useUserStore } from "../stores";
 import GiftPanel from "../components/GiftPanel.vue";
+import CountryFlag from "../components/CountryFlag.vue";
 import type { Anchor, ChatMessage, Gift } from "../types/eve";
 
 const route = useRoute();
 const router = useRouter();
 const { t } = useI18n();
-const userStore = useUserStore();
 const { startOutgoing } = useCall();
 
 const id = Number(route.params.id);
@@ -201,6 +194,7 @@ const showGift = ref(false);
 const showActions = ref(false);
 const scroller = ref<HTMLElement | null>(null);
 const fileInput = ref<HTMLInputElement | null>(null);
+const cameraInput = ref<HTMLInputElement | null>(null);
 
 // 长按录音状态
 const recording = ref(false);
@@ -212,18 +206,12 @@ let recordStartY = 0;
 let nextId = 1000;
 const timers: number[] = [];
 
-const coins = computed(() => userStore.coins);
-const statusText = computed(() => {
-  if (!anchor.value) return "";
-  return anchor.value.online && anchor.value.onDuty
-    ? t("chat.statusOnline")
-    : anchor.value.onDuty
-      ? t("chat.statusBusy")
-      : t("chat.statusOffline");
-});
-const statusClass = computed(() => {
-  if (!anchor.value) return "";
-  return anchor.value.online && anchor.value.onDuty ? "online" : anchor.value.onDuty ? "busy" : "offline";
+// 状态点:在线=绿 / 忙碌=黄 / 离线=灰;无状态数据(未加载)不显示,不再显示文案。
+const statusDot = computed(() => {
+  const a = anchor.value;
+  if (!a) return "";
+  if (a.inCall) return "busy";
+  return a.online ? "online" : "offline";
 });
 
 const replyPool = ["Hi 👋", "Are you there?", "Miss you~", "😊", "Tell me more", "Let's video chat tonight"];
@@ -285,6 +273,10 @@ function pickPhoto() {
   fileInput.value?.click();
 }
 
+function takePhoto() {
+  cameraInput.value?.click();
+}
+
 function onFile(e: Event) {
   const file = (e.target as HTMLInputElement).files?.[0];
   if (!file) return;
@@ -326,15 +318,6 @@ function onMicUp() {
   }
 }
 
-function sendLocation() {
-  push({
-    type: "location",
-    outgoing: true,
-    time: nowTime(),
-    location: { name: t("chat.myLocation"), address: t("chat.locationAddr") }
-  });
-  scheduleReply();
-}
 
 function playVoice(m: ChatMessage) {
   if (m.playing) return;
@@ -454,39 +437,43 @@ onUnmounted(() => {
     gap: 8px;
     min-width: 0;
   }
+  .nav-ava-wrap {
+    position: relative;
+    flex: 0 0 auto;
+  }
   .nav-avatar {
     width: 36px;
     height: 36px;
     border-radius: 50%;
     object-fit: cover;
+    display: block;
   }
-  .nav-text {
+  .nav-dot {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    border: 2px solid var(--eve-bg);
+    &.online {
+      background: var(--eve-green);
+    }
+    &.busy {
+      background: var(--eve-gold);
+    }
+    &.offline {
+      background: var(--eve-faint);
+    }
+  }
+  .nav-name {
     min-width: 0;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    gap: 2px;
-    line-height: 1.2;
-    strong {
-      font-size: 15px;
-      font-weight: 700;
-      color: #fff;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    .status {
-      font-size: 11px;
-      &.online {
-        color: var(--eve-green);
-      }
-      &.busy {
-        color: var(--eve-gold);
-      }
-      &.offline {
-        color: var(--eve-faint);
-      }
-    }
+    font-size: 15px;
+    font-weight: 700;
+    color: #fff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   .follow {
     flex: 0 0 auto;
@@ -505,33 +492,6 @@ onUnmounted(() => {
   }
 }
 
-.coin-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 6px 16px;
-  background: var(--eve-line);
-
-  .coins {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    font-size: 13px;
-    color: var(--eve-gold);
-    img {
-      width: 16px;
-      height: 16px;
-    }
-  }
-  .recharge {
-    padding: 4px 14px;
-    border-radius: 12px;
-    background: var(--eve-grad);
-    color: #fff;
-    font-size: 12px;
-  }
-}
-
 .msg-area {
   flex: 1;
   overflow-y: auto;
@@ -540,39 +500,87 @@ onUnmounted(() => {
 
 .intro-card {
   display: flex;
-  gap: 12px;
-  padding: 12px;
+  align-items: center;
+  gap: 11px;
+  padding: 11px 12px;
   margin-bottom: 14px;
-  background: var(--eve-surface);
+  background: linear-gradient(120deg, rgba(255, 42, 122, 0.14), rgba(153, 69, 255, 0.12));
+  border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 16px;
 
-  .intro-avatar {
-    width: 48px;
-    height: 48px;
-    border-radius: 50%;
-    object-fit: cover;
+  .intro-ava-wrap {
+    position: relative;
     flex: 0 0 auto;
   }
-  .intro-name {
-    font-size: 15px;
-    font-weight: 600;
-    color: #fff;
+  .intro-avatar {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    object-fit: cover;
+    display: block;
+  }
+  .intro-flag {
+    position: absolute;
+    right: -2px;
+    bottom: -2px;
+    padding: 1px 2px;
+    border-radius: 6px;
+    background: var(--eve-surface);
+    line-height: 1;
+  }
+  .intro-info {
+    flex: 1;
+    min-width: 0;
+  }
+  .intro-top {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 7px;
+  }
+  .intro-name {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #fff;
+    .nick {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
     .age {
-      font-size: 11px;
+      flex: 0 0 auto;
+      font-size: 9px;
       color: #fff;
       background: var(--eve-pink);
-      padding: 1px 7px;
-      border-radius: 10px;
+      padding: 1px 5px;
+      border-radius: 8px;
     }
   }
+  .intro-view {
+    flex: 0 0 auto;
+    height: 22px;
+    padding: 0 10px;
+    border-radius: 11px;
+    font-size: 10px;
+    font-weight: 600;
+    color: #fff;
+    background: var(--eve-grad);
+    box-shadow: 0 4px 12px rgba(255, 42, 122, 0.3);
+  }
   .intro-text {
-    margin-top: 4px;
-    font-size: 12px;
+    margin-top: 3px;
+    font-size: 11px;
     color: var(--eve-faint);
     line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
   }
 }
 
@@ -753,10 +761,39 @@ onUnmounted(() => {
 }
 
 .input-bar {
+  position: relative;
   flex: 0 0 auto;
   padding: 8px 16px calc(8px + env(safe-area-inset-bottom));
   background: var(--eve-surface);
   border-top: 1px solid var(--eve-line);
+}
+
+/* 悬浮通话按钮:浮于输入区上方右侧 */
+.call-fab {
+  position: absolute;
+  right: 16px;
+  bottom: calc(100% + 12px);
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+
+  .call-circle {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    color: #fff;
+    background: var(--eve-grad);
+    box-shadow: 0 8px 22px rgba(255, 42, 122, 0.42);
+  }
+  .call-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--eve-text);
+  }
 }
 
 .quick-row {
@@ -798,9 +835,16 @@ onUnmounted(() => {
       color: var(--eve-faint);
     }
   }
-  .send img {
-    width: 36px;
-    height: 36px;
+  .send {
+    flex: 0 0 auto;
+    width: 46px;
+    height: 40px;
+    border-radius: 12px;
+    display: grid;
+    place-items: center;
+    color: #fff;
+    background: var(--eve-grad);
+    box-shadow: 0 4px 12px rgba(255, 42, 122, 0.32);
   }
 }
 
@@ -808,21 +852,36 @@ onUnmounted(() => {
   display: flex;
   justify-content: space-around;
   align-items: center;
-  padding-top: 10px;
+  padding-top: 12px;
 
-  button {
-    color: var(--eve-muted);
-  }
-  button img {
-    width: 28px;
-    height: 28px;
+  .tool {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    &.t-img {
+      color: #a98bff;
+      background: rgba(153, 69, 255, 0.16);
+    }
+    &.t-cam {
+      color: #ffb04d;
+      background: rgba(255, 159, 67, 0.16);
+    }
+    &.t-voice {
+      color: #5b9cff;
+      background: rgba(91, 156, 255, 0.16);
+    }
+    &.t-gift {
+      color: var(--eve-pink);
+      background: rgba(255, 42, 122, 0.16);
+    }
   }
   .mic-hold {
     touch-action: none;
-    transition: color 0.15s, transform 0.15s;
+    transition: transform 0.15s;
     &.recording {
-      color: var(--eve-pink);
-      transform: scale(1.25);
+      transform: scale(1.18);
     }
   }
 }

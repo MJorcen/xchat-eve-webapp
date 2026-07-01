@@ -8,7 +8,7 @@
       <div class="profile">
         <div class="avatar-ring">
           <van-image round fit="cover" class="avatar" :src="user.avatar" lazy-load />
-          <img class="flag" :src="countryFlag(user.region)" alt="" />
+          <CountryFlag class="flag" :region="user.region" :size="16" />
         </div>
         <div class="profile-info">
           <div class="name-row">
@@ -114,8 +114,9 @@ import {
 import { eveMockApi } from "../services/eveMockApi";
 import { getVisitorList } from "../services/relation";
 import { getUserMomentsPage } from "../services/moment";
+import { getWallet } from "../services/wallet";
+import CountryFlag from "../components/CountryFlag.vue";
 import { useUserStore } from "../stores";
-import { countryFlag } from "../utils/assets";
 import type { AppLocale } from "../i18n";
 import type { CurrentUser } from "../types/eve";
 
@@ -132,6 +133,15 @@ const isVip = computed(() => userStore.isVip);
 const visitorCount = ref(0);
 const momentCount = ref(0);
 onMounted(async () => {
+  // 进页面拉真实金币余额,避免显示本地缓存旧值(充值/消费后保持一致)。
+  getWallet()
+    .then((w) => {
+      if (w.gold != null) userStore.setUser({ coins: w.gold });
+    })
+    .catch(() => {
+      /* 拉取失败保持现有显示 */
+    });
+
   try {
     visitorCount.value = (await getVisitorList(0, 1)).total;
   } catch {
@@ -213,11 +223,7 @@ function onLang(a: { value: AppLocale }) {
     position: absolute;
     right: -1px;
     bottom: 0;
-    width: 22px;
-    height: 15px;
-    border-radius: 3px;
-    object-fit: cover;
-    border: 1.5px solid var(--eve-bg);
+    line-height: 1;
   }
 }
 

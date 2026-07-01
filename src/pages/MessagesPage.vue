@@ -72,7 +72,8 @@ import ChatRow from "../components/ChatRow.vue";
 import AppSkeleton from "../components/AppSkeleton.vue";
 import { useCall } from "../composables/useCall";
 import { useI18n } from "vue-i18n";
-import { api } from "../services/api";
+import { getLiveRooms } from "../services/room";
+import { getMyCallRecords } from "../services/call";
 import { getConversations, onConversationsChanged } from "../services/im";
 import type { CallRecord, Conversation, LiveRoom } from "../types/eve";
 
@@ -98,7 +99,12 @@ async function loadConversations() {
 }
 
 onMounted(async () => {
-  [calls.value, lives.value] = await Promise.all([api.getCalls(), api.getLiveRooms()]);
+  const [callPage, l] = await Promise.all([
+    getMyCallRecords().catch(() => ({ items: [] as CallRecord[], total: 0 })),
+    getLiveRooms()
+  ]);
+  calls.value = callPage.items;
+  lives.value = l;
   await loadConversations();
   loading.value = false;
   stopConv = onConversationsChanged(loadConversations);

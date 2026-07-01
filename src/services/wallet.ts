@@ -18,9 +18,9 @@ export interface WalletData {
   cashWallet?: CashWallet;
 }
 
-/** 当前登录用户钱包余额。 */
-export function getWallet(): Promise<WalletData> {
-  return http.get<WalletData>("/user/wallet/get");
+/** 当前登录用户钱包余额。background=true 时后台增强调用失败(含 401/1008)只静默降级,不触发全局登出。 */
+export function getWallet(background = false): Promise<WalletData> {
+  return http.get<WalletData>("/user/wallet/get", undefined, { background });
 }
 
 /** 金币流水项（后端 BillRecordVo）。 */

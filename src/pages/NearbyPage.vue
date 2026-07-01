@@ -10,7 +10,7 @@
       <div v-if="me" class="me-pin">
         <van-image round fit="cover" class="me-avatar" :src="me.avatar" lazy-load />
         <i class="tail" />
-        <div class="me-label">{{ me.nickname }} <img :src="countryFlag(me.region)" alt="" /></div>
+        <div class="me-label">{{ me.nickname }} <CountryFlag :region="me.region" :size="14" /></div>
       </div>
 
       <button v-for="p in pins" :key="p.anchor.id" class="pin" :style="p.style" @click="router.push(`/anchor/${p.anchor.id}`)">
@@ -39,7 +39,7 @@ import { useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import TopBar from "../components/TopBar.vue";
 import { api } from "../services/api";
-import { countryFlag } from "../utils/assets";
+import CountryFlag from "../components/CountryFlag.vue";
 import type { Anchor, CurrentUser } from "../types/eve";
 
 const router = useRouter();
@@ -143,11 +143,6 @@ onUnmounted(() => {
     font-size: 12px;
     font-weight: 600;
     color: #fff;
-    img {
-      width: 16px;
-      height: 11px;
-      border-radius: 2px;
-    }
   }
 }
 .tail {

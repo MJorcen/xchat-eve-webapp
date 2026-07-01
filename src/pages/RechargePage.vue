@@ -49,47 +49,15 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
 import TopBar from "../components/TopBar.vue";
 import PaymentSheet from "../components/PaymentSheet.vue";
-import { getRechargeProducts } from "../services/recharge";
-import { useUserStore } from "../stores";
-import type { PaymentChannel, WalletPackage } from "../types/eve";
+import { useRecharge } from "../composables/useRecharge";
 
 const { t } = useI18n();
 const router = useRouter();
-const userStore = useUserStore();
-const packages = ref<WalletPackage[]>([]);
-const selected = ref<number>(0);
-const showSheet = ref(false);
-
-const coins = computed(() => userStore.coins);
-const selectedPkg = computed(() => packages.value.find((p) => p.id === selected.value));
-
-function goPay() {
-  if (selectedPkg.value) showSheet.value = true;
-}
-
-// 占位:支付未接真实(H5/dev 仅原生 IAP 渠道解析、第三方网关 dev 未配,无法闭环)。
-// 真实流程应为 POST /trade/recharge/create → 拿 redirectUrl 跳转支付,完成后由网关回调入账。
-function onPay(channel: PaymentChannel) {
-  const pkg = selectedPkg.value;
-  if (!pkg) return;
-  const arrival = pkg.coins + pkg.bonus;
-  userStore.addCoins(arrival);
-  showSheet.value = false;
-  router.replace({
-    path: "/payment-result",
-    query: { status: "success", coins: arrival, amount: pkg.price, method: channel.name }
-  });
-}
-
-onMounted(async () => {
-  packages.value = await getRechargeProducts().catch(() => []);
-  selected.value = packages.value.find((p) => p.selected)?.id || packages.value[0]?.id || 0;
-});
+const { packages, selected, showSheet, coins, selectedPkg, goPay, onPay } = useRecharge();
 </script>
 
 <style scoped lang="scss">

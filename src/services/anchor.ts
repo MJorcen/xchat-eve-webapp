@@ -4,7 +4,7 @@ import { getUserCard } from "./auth";
 import { isFollowing } from "./relation";
 import type { Anchor } from "@/types/eve";
 
-interface RawAnchor {
+export interface RawAnchor {
   user?: {
     id?: number;
     nickname?: string;
@@ -42,7 +42,7 @@ export function toAnchor(r: RawAnchor): Anchor {
     nickname: u.nickname ?? "",
     avatar: u.icon ?? "",
     age: ageFromBirthdate(u.birthdate),
-    region: (u.area as string) ?? "", // 平台地区码统一取 area（用户侧无 region 字段）
+    region: (u.country || u.area || "") as string, // 国旗/地区取 country（真实国家码）；area 是大区，仅作兜底
     online,
     onDuty: online,
     inCall: r.busyStatus === 1, // 忙碌(1v1 占线)
@@ -60,10 +60,13 @@ export interface AnchorPage {
   total: number;
 }
 
-/** 主播发现流分页（按地区筛选 + 在线/不忙/档位排序;area 不传则后端取当前用户地区）。 */
+/**
+ * 主播发现流分页（按地区筛选 + 在线/不忙/档位排序;region 不传则后端取当前用户地区）。
+ * 接口 2026-06-30 迁到 `/user/eve-anchor/list`（旧 `/user/anchor/list` 已下线;参数 area→region,候选取自 xc_eve_callable_anchor 中间表)。
+ */
 export function getAnchorsPage(offset = 0, limit = 20, area?: string): Promise<AnchorPage> {
   return http
-    .get<{ list?: RawAnchor[]; total?: number }>("/user/anchor/list", { area, offset, limit })
+    .get<{ list?: RawAnchor[]; total?: number }>("/user/eve-anchor/list", { region: area, offset, limit })
     .then((r) => ({
       items: (r?.list ?? []).filter((x) => x.user?.id != null).map(toAnchor),
       total: r?.total ?? 0
@@ -73,6 +76,20 @@ export function getAnchorsPage(offset = 0, limit = 20, area?: string): Promise<A
 /** 主播发现流（仅取列表;分页/总数用 getAnchorsPage）。 */
 export function getAnchors(area?: string, offset = 0, limit = 30): Promise<Anchor[]> {
   return getAnchorsPage(offset, limit, area).then((p) => p.items);
+}
+
+/**
+ * 我关注的主播列表（富卡片,供 HomePage Following tab 用）。
+ * `/facade/relation/follow/page` 返回的就是同一套 MdUser 结构（同 `/user/eve-anchor/list`）,
+ * 直接复用 toAnchor 即可拿到 age/region/intro 等字段,无需再单独定义一套“slim”映射。
+ */
+export function getFollowingAnchors(offset = 0, limit = 20): Promise<AnchorPage> {
+  return http
+    .get<{ list?: RawAnchor[]; total?: number }>("/facade/relation/follow/page", { offset, limit })
+    .then((r) => ({
+      items: (r?.list ?? []).filter((x) => x.user?.id != null).map(toAnchor),
+      total: r?.total ?? 0
+    }));
 }
 
 /** 真实大卡覆盖：详情页用，返回可叠加到 Anchor 的身份字段 + 当前关注态 relationStatus。 */

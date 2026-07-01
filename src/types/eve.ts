@@ -100,12 +100,21 @@ export type NotificationItem = {
   time: string;
 };
 
+/** 下单所需的支付渠道描述（来自商品列表 methodOptions）：三方传 paymentProviderId，原生(google/apple)传 paymentProvider。 */
+export type RechargePayInfo = {
+  paymentProviderId?: number;
+  paymentProvider?: string;
+  paymentMethod?: string;
+};
+
 export type WalletPackage = {
   id: number;
   coins: number;
   bonus: number;
   price: string;
   selected?: boolean;
+  /** 创建订单用的支付渠道（取商品列表首个可用渠道）。 */
+  pay?: RechargePayInfo;
 };
 
 export type PaymentChannel = {

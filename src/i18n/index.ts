@@ -91,7 +91,10 @@ const en = {
     bonusLabel: "Bonus",
     totalArrival: "Total arrival",
     pay: "Pay {price}",
-    more: "More options"
+    more: "More options",
+    processing: "Processing…",
+    payFailed: "Payment failed, please try again",
+    unavailableOnWeb: "This payment method is only available in the app"
   },
   paymentResult: {
     title: "Payment Result",
@@ -120,13 +123,7 @@ const en = {
     rewardClaimed: "Reward claimed!",
     balance: "Balance: {coins} coins",
     awesome: "Awesome",
-    renew: "Renew",
-    milestoneTitle: "Cumulative rewards",
-    milestoneDays: "{n} days",
-    claim: "Claim",
-    claimed: "Claimed",
-    vipReward: "{n}-day VIP",
-    milestoneProgress: "Signed {count} days in total"
+    renew: "Renew"
   },
   membership: {
     title: "Membership",
@@ -179,7 +176,11 @@ const en = {
     tabNotice: "Notice",
     actLiked: "liked your moment",
     actFollowed: "followed you",
-    actVisited: "visited your profile"
+    actVisited: "visited your profile",
+    typeGift: "Gift",
+    typeGame: "Game Win",
+    typePet: "Pet Level Up",
+    typeRankTop1: "Power Rank #1"
   },
   report: {
     title: "Block & Report",
@@ -265,6 +266,8 @@ const en = {
     sendFailed: "Failed to send",
     videoCall: "Video call {duration}",
     inputPlaceholder: "Say something…",
+    viewProfile: "View",
+    call: "Call",
     statusOnline: "Online",
     statusBusy: "Busy",
     statusOffline: "Offline",
@@ -286,8 +289,14 @@ const en = {
     online: "Online",
     busy: "Busy",
     offline: "Offline",
-    moment: "Moment",
-    more: "More",
+    gender: "Gender",
+    age: "Age",
+    location: "Location",
+    followers: "Followers",
+    medal: "Medal",
+    currentLevel: "Current level",
+    charmMedal: "Charm Medal",
+    vipOnly: "VIP Only",
     profile: "Profile",
     gifts: "Gifts",
     videoCall: "Video Call",
@@ -299,8 +308,11 @@ const en = {
     unfollowed: "Unfollowed",
     blocked: "Blocked",
     privateAlbum: "Private Album",
+    paidAlbum: "Paid Album",
     paidPicture: "Paid picture",
     unlockFor: "Unlock · {n}",
+    unlockConfirm: "Unlock this photo for {n} coins?",
+    unlocked: "Unlocked",
     height: "Height",
     weight: "Weight",
     job: "Job",
@@ -355,7 +367,7 @@ const en = {
     report: "Report"
   },
   gift: { title: "Gifts", notEnoughCoins: "Not enough coins" },
-  callModal: { freeTimes: "Free ×3", perMin: "/min", incomingHint: "invites you to a video call…", callingHint: "Calling…" }
+  callModal: { freeTimes: "Free ×3", perMin: "/min", incomingHint: "invites you to a video call…", callingHint: "Calling…", reset: "Call stuck? Reset" }
 };
 
 const zh: typeof en = {
@@ -449,7 +461,10 @@ const zh: typeof en = {
     bonusLabel: "赠送",
     totalArrival: "实际到账",
     pay: "支付 {price}",
-    more: "更多支付方式"
+    more: "更多支付方式",
+    processing: "处理中…",
+    payFailed: "支付失败，请重试",
+    unavailableOnWeb: "该支付方式仅在 App 内可用"
   },
   paymentResult: {
     title: "支付结果",
@@ -478,13 +493,7 @@ const zh: typeof en = {
     rewardClaimed: "奖励已领取！",
     balance: "余额：{coins} 金币",
     awesome: "太棒了",
-    renew: "续费",
-    milestoneTitle: "累计奖励",
-    milestoneDays: "{n} 天",
-    claim: "领取",
-    claimed: "已领取",
-    vipReward: "{n} 天 VIP",
-    milestoneProgress: "累计已签 {count} 天"
+    renew: "续费"
   },
   membership: {
     title: "会员",
@@ -537,7 +546,11 @@ const zh: typeof en = {
     tabNotice: "通知",
     actLiked: "赞了你的动态",
     actFollowed: "关注了你",
-    actVisited: "看了你的主页"
+    actVisited: "看了你的主页",
+    typeGift: "送礼",
+    typeGame: "游戏获胜",
+    typePet: "宠物升级",
+    typeRankTop1: "战力榜首"
   },
   report: {
     title: "举报与拉黑",
@@ -623,6 +636,8 @@ const zh: typeof en = {
     sendFailed: "发送失败",
     videoCall: "视频通话 {duration}",
     inputPlaceholder: "说点什么…",
+    viewProfile: "查看",
+    call: "通话",
     statusOnline: "在线",
     statusBusy: "忙碌",
     statusOffline: "离线",
@@ -644,8 +659,14 @@ const zh: typeof en = {
     online: "在线",
     busy: "忙碌",
     offline: "离线",
-    moment: "动态",
-    more: "更多",
+    gender: "性别",
+    age: "年龄",
+    location: "地区",
+    followers: "粉丝",
+    medal: "勋章",
+    currentLevel: "当前等级",
+    charmMedal: "魅力勋章",
+    vipOnly: "VIP 专属",
     profile: "资料",
     gifts: "礼物",
     videoCall: "视频通话",
@@ -657,8 +678,11 @@ const zh: typeof en = {
     unfollowed: "已取消关注",
     blocked: "已拉黑",
     privateAlbum: "私密相册",
+    paidAlbum: "付费相册",
     paidPicture: "付费图片",
     unlockFor: "解锁 · {n}",
+    unlockConfirm: "解锁这张照片需要 {n} 金币,确定解锁吗?",
+    unlocked: "已解锁",
     height: "身高",
     weight: "体重",
     job: "职业",
@@ -713,7 +737,7 @@ const zh: typeof en = {
     report: "举报"
   },
   gift: { title: "礼物", notEnoughCoins: "金币不足" },
-  callModal: { freeTimes: "免费 ×3", perMin: "/分钟", incomingHint: "邀请你视频通话…", callingHint: "正在呼叫…" }
+  callModal: { freeTimes: "免费 ×3", perMin: "/分钟", incomingHint: "邀请你视频通话…", callingHint: "正在呼叫…", reset: "通话异常?重置" }
 };
 
 export const i18n = createI18n({

@@ -58,7 +58,7 @@
     <van-popup :show="showReward" round teleport="body" class="rw-popup" :z-index="9941" :close-on-click-overlay="false">
       <div class="rw">
         <span class="rw-chest">💰</span>
-        <p class="rw-title">{{ t("callSummary.reward", { n: REWARD }) }}</p>
+        <p class="rw-title">{{ t("callSummary.reward", { n: lastReward }) }}</p>
         <button class="rw-ok" @click="showReward = false">{{ t("callSummary.ok") }}</button>
       </div>
     </van-popup>
@@ -74,6 +74,8 @@ import emitter from "../common/eventBus";
 import { api } from "../services/api";
 import { useCall } from "../composables/useCall";
 import { useUserStore } from "../stores";
+import { needToShowFeedback, submitFeedback, FEEDBACK_REASON_CODE } from "../services/eveFeedback";
+import { ApiError } from "../services/http";
 import type { Anchor } from "../types/eve";
 
 const { t } = useI18n();
@@ -82,8 +84,8 @@ const router = useRouter();
 const userStore = useUserStore();
 const { reset } = useCall();
 
-const REWARD = 50;
 const id = Number(route.params.id);
+const eveId = Number(route.query.eveId || 0);
 const duration = Number(route.query.duration || 0);
 const giftCost = Number(route.query.gift || 0);
 // 通话费取通话页透传的"实际扣费"金额(与 useCall 的分钟计费一致),不再独立重算
@@ -93,6 +95,7 @@ const anchor = ref<Anchor | null>(null);
 const followed = ref(false);
 const showReason = ref(false);
 const showReward = ref(false);
+const lastReward = ref(0);
 const selected = ref("");
 
 const isVip = computed(() => userStore.isVip);
@@ -118,19 +121,36 @@ function toggleFollow() {
   emitter.emit("toast", followed.value ? t("callSummary.followed") : t("callSummary.unfollowed"));
 }
 
-function submitReason() {
-  if (!selected.value) return;
-  showReason.value = false;
-  emitter.emit("toast", t("callSummary.submitOk"));
-  userStore.addCoins(REWARD);
-  showReward.value = true;
+async function submitReason() {
+  if (!selected.value || !eveId) return;
+  const reason = FEEDBACK_REASON_CODE[selected.value];
+  try {
+    const res = await submitFeedback(eveId, reason);
+    showReason.value = false;
+    emitter.emit("toast", t("callSummary.submitOk"));
+    if (res.coinBonus > 0) {
+      userStore.addCoins(res.coinBonus);
+      lastReward.value = res.coinBonus;
+      showReward.value = true;
+    }
+  } catch (e) {
+    showReason.value = false;
+    emitter.emit("toast", e instanceof ApiError ? e.message : t("callSummary.submitOk"));
+  }
 }
 
 onMounted(async () => {
   anchor.value = await api.getAnchor(id);
   reset(); // 结算后复位通话状态
-  // 仅在真实接通(有时长)后提示挂断原因领奖励
-  if (duration > 0) showReason.value = true;
+  // 仅在真实接通(有时长)且后端判定处于可反馈窗口内才提示挂断原因
+  if (duration > 0 && eveId) {
+    try {
+      const q = await needToShowFeedback(eveId);
+      if (q.showPrompt) showReason.value = true;
+    } catch {
+      /* 反馈接口异常不影响结算页展示 */
+    }
+  }
 });
 </script>
 

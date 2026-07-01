@@ -32,6 +32,12 @@ interface RequestOptions {
   headers?: Record<string, string>;
   /** 是否附带 Authorization 头（默认 true；登录/注册等接口传 false）。 */
   auth?: boolean;
+  /**
+   * 后台增强型请求（登录后并行拉资料/钱包/关注数等，调用方本身已 .catch(()=>null) 容错）：
+   * 401/1008 时只静默失败，不触发全局登出跳转。避免其中一路瞬时失效把刚登录成功、
+   * 其余接口都正常的会话一并清空——真正的登录失效会在用户下一次主动请求时正常触发登出。
+   */
+  background?: boolean;
 }
 
 function buildUrl(path: string, query?: Query): string {
@@ -59,7 +65,7 @@ function onUnauthorized() {
 }
 
 export async function request<T = unknown>(path: string, opts: RequestOptions = {}): Promise<T> {
-  const { method = "GET", body, query, headers = {}, auth = true } = opts;
+  const { method = "GET", body, query, headers = {}, auth = true, background = false } = opts;
 
   const store = useUserStore();
   const finalHeaders: Record<string, string> = { Accept: "application/json", ...headers };
@@ -82,7 +88,7 @@ export async function request<T = unknown>(path: string, opts: RequestOptions = 
 
   // HTTP 层登录态失效
   if (res.status === 401 || res.status === 403) {
-    onUnauthorized();
+    if (!background) onUnauthorized();
     throw new ApiError(res.status, "登录已失效，请重新登录");
   }
 
@@ -96,7 +102,9 @@ export async function request<T = unknown>(path: string, opts: RequestOptions = 
   if (env.status === 0 || env.status === 200) return env.data;
 
   // 业务层登录态失效（JWT 过期/无效/被登出）
-  if (env.status === 1008) onUnauthorized();
+  if (env.status === 1008) {
+    if (!background) onUnauthorized();
+  }
   throw new ApiError(env.status, env.msg || `请求失败 (${env.status})`);
 }
 

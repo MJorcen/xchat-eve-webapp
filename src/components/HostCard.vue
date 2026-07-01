@@ -23,7 +23,7 @@
       </span>
       <strong class="name">{{ anchor.nickname }}</strong>
       <div class="meta-row">
-        <img class="flag" :src="countryFlag(anchor.region)" alt="" />
+        <CountryFlag class="flag" :region="anchor.region" :size="14" />
         <span class="region">{{ anchor.region.toUpperCase() }}·{{ anchor.age }}</span>
       </div>
     </div>
@@ -45,7 +45,7 @@ import { useRouter } from "vue-router";
 import { Video, MessageCircle, MapPin } from "lucide-vue-next";
 import { useCall } from "../composables/useCall";
 import type { Anchor } from "../types/eve";
-import { countryFlag } from "../utils/assets";
+import CountryFlag from "./CountryFlag.vue";
 
 const props = defineProps<{ anchor: Anchor }>();
 

@@ -9,7 +9,7 @@
       <div class="anchor-pill">
         <div class="avatar-wrap">
           <van-image round fit="cover" class="avatar" :src="room.anchor.avatar" lazy-load />
-          <img class="flag" :src="countryFlag(room.anchor.region)" alt="" />
+          <CountryFlag class="flag" :region="room.anchor.region" :size="15" />
         </div>
         <div class="meta">
           <strong>{{ room.anchor.nickname }}</strong>
@@ -74,9 +74,10 @@ import { useRoute, useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import emitter from "../common/eventBus";
 import { api } from "../services/api";
+import { getLiveRooms, enterLiveRoom, leaveLiveRoom } from "../services/room";
 import { useCall } from "../composables/useCall";
 import { useUserStore } from "../stores";
-import { countryFlag } from "../utils/assets";
+import CountryFlag from "../components/CountryFlag.vue";
 import GiftPanel from "../components/GiftPanel.vue";
 import type { Anchor, Gift, LiveRoom } from "../types/eve";
 
@@ -157,13 +158,16 @@ function seedRoom() {
   pushComment({ name: rand(senders).nickname, text: rand(phrases), kind: "text" });
 }
 
-// 上下滑切换主播房间
+// 上下滑切换主播房间(真实登记在线人数:离开旧房间 + 进入新房间)
 function switchRoom(dir: number) {
   if (rooms.value.length < 2) return;
+  const prevId = room.value?.id;
   idx.value = (idx.value + dir + rooms.value.length) % rooms.value.length;
   room.value = rooms.value[idx.value];
   followed.value = false;
   seedRoom();
+  if (prevId != null) void leaveLiveRoom(prevId).catch(() => undefined);
+  if (room.value) void enterLiveRoom(room.value.id).catch(() => undefined);
 }
 function onTouchStart(e: TouchEvent) {
   touchStartY = e.touches[0].clientY;
@@ -191,7 +195,7 @@ function quickSend(g: Gift) {
 
 onMounted(async () => {
   const id = Number(route.params.id);
-  const [list, g, anchors] = await Promise.all([api.getLiveRooms(), api.getGifts(), api.getAnchors()]);
+  const [list, g, anchors] = await Promise.all([getLiveRooms(), api.getGifts(), api.getAnchors()]);
   rooms.value = list;
   gifts = g;
   quickGifts.value = g.slice(0, 5);
@@ -199,6 +203,7 @@ onMounted(async () => {
   idx.value = Math.max(0, list.findIndex((r) => r.id === id));
   room.value = list[idx.value] || list[0];
   seedRoom();
+  if (room.value) void enterLiveRoom(room.value.id).catch(() => undefined);
 
   const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
@@ -212,7 +217,6 @@ onMounted(async () => {
     emitter.emit("gift:received", { fromId: sender.id, giftId: gift.id, count: 1 });
     pushComment({ name: sender.nickname, text: gift.name, kind: "gift" });
   }, 7000));
-  timers.push(window.setInterval(() => viewers.value += Math.floor(Math.random() * 15) + 1, 4000));
   if (!reduce) timers.push(window.setInterval(() => spawnHeart(), 2500));
 });
 
@@ -220,6 +224,7 @@ onUnmounted(() => {
   timers.forEach((t) => window.clearInterval(t));
   heartTimeouts.forEach((t) => window.clearTimeout(t));
   if (bannerTimer) window.clearTimeout(bannerTimer);
+  if (room.value) void leaveLiveRoom(room.value.id).catch(() => undefined);
 });
 </script>
 
@@ -287,9 +292,7 @@ onUnmounted(() => {
     position: absolute;
     right: -2px;
     bottom: -2px;
-    width: 18px;
-    height: 13px;
-    border-radius: 3px;
+    line-height: 1;
   }
   .meta {
     strong {

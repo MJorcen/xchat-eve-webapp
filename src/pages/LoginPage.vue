@@ -24,7 +24,7 @@ import { ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { showToast } from "vant";
-import { deviceSignIn, toCurrentUser, hydrateCurrentUser } from "../services/auth";
+import { deviceSignIn, toCurrentUser } from "../services/auth";
 import { ApiError } from "../services/http";
 import { useUserStore } from "../stores";
 
@@ -44,8 +44,7 @@ async function quickSignIn() {
     // 后端返回的 authToken 自带 "Bearer " 前缀，存裸 token，发请求时再统一加 Bearer。
     const token = vo.authToken.replace(/^Bearer\s+/i, "");
     userStore.setAuth(token, toCurrentUser(vo.user), vo.neteaskAuthToken);
-    // 拉真实资料（大卡）写入 store，不阻塞跳转；失败时已有登录响应的基础信息兜底。
-    void hydrateCurrentUser();
+    // 拉真实资料（大卡）由 App.vue 监听 isLogin 变化后统一触发一次，这里不重复调用。
     const redirect = typeof route.query.redirect === "string" ? route.query.redirect : "/";
     router.replace(redirect);
   } catch (e) {

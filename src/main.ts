@@ -7,7 +7,6 @@ import { router } from "./router";
 import { pinia } from "@/stores";
 import { useUserStore } from "@/stores";
 import { i18n } from "@/i18n";
-import { realtime } from "@/services/realtime";
 import "./style.css";
 
 const app = createApp(App);
@@ -26,8 +25,8 @@ app.config.warnHandler = () => null;
 
 app.mount("#app");
 
-// 启动 mock 实时层（来电 / 新消息等推送模拟）
-realtime.start();
+// 来电/新消息已走真实网易云信(见 startCallSignals / onMessages),不再启动 mock 实时层。
+// 旧的 realtime.start() 会每 ~45s 弹假来电(Ava/Lina/Mira,eveId=0),干扰真实通话与占用锁 —— 已移除。
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {

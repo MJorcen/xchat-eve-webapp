@@ -61,7 +61,7 @@
     <button class="row" @click="showRegion = true">
       <span class="label">{{ t("editProfile.region") }}</span>
       <span class="value">
-        <img class="flag" :src="countryFlag(form.region)" alt="" />
+        <CountryFlag class="flag" :region="form.region" :size="16" />
         {{ form.region.toUpperCase() }} <van-icon name="arrow" />
       </span>
     </button>
@@ -102,7 +102,7 @@ import { updateProfile, type ProfileUpdate } from "../services/auth";
 import { uploadFile } from "../services/upload";
 import { getAlbumList, addAlbumPhoto, deleteAlbumPhoto } from "../services/album";
 import { ApiError } from "../services/http";
-import { countryFlag } from "../utils/assets";
+import CountryFlag from "../components/CountryFlag.vue";
 
 const { t } = useI18n();
 const router = useRouter();

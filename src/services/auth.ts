@@ -16,17 +16,17 @@ interface RelationPage {
   total?: number;
 }
 
-/** 我关注的人数。 */
-export function getFollowingCount(): Promise<number> {
+/** 我关注的人数。background=true 时后台增强调用失败(含 401/1008)只静默降级,不触发全局登出。 */
+export function getFollowingCount(background = false): Promise<number> {
   return http
-    .get<RelationPage>(`/facade/relation/follow/page`, { offset: 0, limit: 1 })
+    .get<RelationPage>(`/facade/relation/follow/page`, { offset: 0, limit: 1 }, { background })
     .then((r) => r?.total ?? 0);
 }
 
-/** 我的粉丝数。 */
-export function getFansCount(): Promise<number> {
+/** 我的粉丝数。background=true 时后台增强调用失败(含 401/1008)只静默降级,不触发全局登出。 */
+export function getFansCount(background = false): Promise<number> {
   return http
-    .get<RelationPage>(`/facade/relation/fans/page`, { offset: 0, limit: 1 })
+    .get<RelationPage>(`/facade/relation/fans/page`, { offset: 0, limit: 1 }, { background })
     .then((r) => r?.total ?? 0);
 }
 
@@ -73,8 +73,9 @@ export function deviceSignIn(): Promise<SignInVo> {
  * 当前登录用户的基础资料（对齐 panjoy：GET /user/info/get → MiniUser，按 JWT 取自己）。
  * 这是「我的资料」的规范接口；查看他人请用 getUserCard（大卡）。
  */
-export function getMyInfo(): Promise<MiniUser> {
-  return http.get<MiniUser>(`${USER_SVC}/info/get`);
+/** background=true 时后台增强调用失败(含 401/1008)只静默降级,不触发全局登出。 */
+export function getMyInfo(background = false): Promise<MiniUser> {
+  return http.get<MiniUser>(`${USER_SVC}/info/get`, undefined, { background });
 }
 
 /** 编辑资料请求（对齐 panjoy user/info/profile/update；后端不含地区/相册字段）。 */
@@ -160,11 +161,12 @@ export async function hydrateCurrentUser(): Promise<void> {
   const store = useUserStore();
   if (!store.user.id) return;
 
+  // 后台增强调用:任意一路失败(含后端偶发 401/1008)只按原样降级,不该清掉刚刚才建立好的登录态。
   const [me, wallet, following, followers] = await Promise.all([
-    getMyInfo().catch(() => null),
-    getWallet().catch(() => null),
-    getFollowingCount().catch(() => null),
-    getFansCount().catch(() => null)
+    getMyInfo(true).catch(() => null),
+    getWallet(true).catch(() => null),
+    getFollowingCount(true).catch(() => null),
+    getFansCount(true).catch(() => null)
   ]);
 
   const patch: Partial<CurrentUser> = {};

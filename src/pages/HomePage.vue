@@ -53,8 +53,8 @@ import { useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import HostCard from "../components/HostCard.vue";
 import AppSkeleton from "../components/AppSkeleton.vue";
-import { api } from "../services/api";
-import { getAnchorsPage } from "../services/anchor";
+import { getAnchorsPage, getFollowingAnchors } from "../services/anchor";
+import { getLiveRooms } from "../services/room";
 import type { Anchor, LiveRoom } from "../types/eve";
 
 defineOptions({ name: "HomePage" });
@@ -119,13 +119,13 @@ watch(tab, (v) => {
 });
 
 onMounted(async () => {
-  // 首屏直接加载推荐流第一页(保证有内容),后续滚动由 van-list @load 续拉;关注流/直播条走 mock
-  const [f, l, first] = await Promise.all([
-    api.getFollowing(),
-    api.getLiveRooms(),
+  // 首屏直接加载推荐流第一页(保证有内容),后续滚动由 van-list @load 续拉;直播条仍走 mock
+  const [followingPage, l, first] = await Promise.all([
+    getFollowingAnchors(0, PAGE).catch(() => ({ items: [] as Anchor[], total: 0 })),
+    getLiveRooms().catch(() => [] as LiveRoom[]),
     getAnchorsPage(0, PAGE).catch(() => ({ items: [] as Anchor[], total: 0 }))
   ]);
-  following.value = f;
+  following.value = followingPage.items;
   lives.value = l;
   recommended.value = first.items;
   recoOffset.value = first.items.length;

@@ -6,7 +6,7 @@
       <div class="who">
         <div class="name-row">
           <strong class="name">{{ moment.user.nickname }}</strong>
-          <img class="flag" :src="countryFlag(moment.user.region)" alt="" />
+          <CountryFlag class="flag" :region="moment.user.region" :size="15" />
         </div>
         <span class="sub">{{ moment.user.online ? t("momentCard.onlineNow") : t("momentCard.activeRecently") }}</span>
       </div>
@@ -66,7 +66,7 @@ import { useUserStore } from "../stores";
 import { followUser, unfollowUser, isFollowing } from "../services/relation";
 import { likePost, unlikePost } from "../services/moment";
 import type { Moment } from "../types/eve";
-import { countryFlag } from "../utils/assets";
+import CountryFlag from "./CountryFlag.vue";
 
 // showFollow 默认显示;详情动态页(单人)传 false 以免与页头关注按钮重复
 // 注意:Vue 的 Boolean prop 未传时默认 false,故必须用 withDefaults 显式置 true

@@ -20,7 +20,7 @@
         <span v-if="anchor.online" class="dot" />
         <strong class="name">{{ anchor.nickname }}</strong>
         <span class="age">{{ anchor.age }}</span>
-        <img class="flag" :src="countryFlag(anchor.region)" alt="" />
+        <CountryFlag class="flag" :region="anchor.region" :size="18" />
       </div>
       <p class="bio">{{ anchor.intro }}</p>
     </div>
@@ -50,7 +50,7 @@ import emitter from "../common/eventBus";
 import { api } from "../services/api";
 import { useCall } from "../composables/useCall";
 import { useUserStore } from "../stores";
-import { countryFlag } from "../utils/assets";
+import CountryFlag from "../components/CountryFlag.vue";
 import type { Anchor } from "../types/eve";
 
 const { t } = useI18n();

@@ -110,23 +110,39 @@ const route = useRoute();
 const router = useRouter();
 const userStore = useUserStore();
 const anim = useGiftAnimation();
-const { callState, elapsed, startOutgoing, hangup, reset, toggleMic, switchCamera, addGiftCost, getEveContext } =
+const { callState, elapsed, startOutgoing, hangup, leaveCall, toggleMic, switchCamera, addGiftCost, getEveContext } =
   useCall();
 let stopRemote: (() => void) | null = null;
 let localReady: Promise<unknown> | null = null;
+let published = false;
 
-// 入房 + 推拉流,按即构「秒开」时机:
-// 入房后先挂兜底监听 → 直接用已知 anchorStreamId 秒拉 → 本地流(已并行预采集)就绪即秒推。
-// headless 无摄像头时预采集/推流会失败(catch),真机/真实浏览器才有画面。
+// 推本端流(去重)。selfStreamId 按角色取:player→playerStreamId,anchor→anchorStreamId。
+async function publishSelf(trigger: "dial" | "invite" | "accept") {
+  if (published) return;
+  const ctx = getEveContext();
+  if (!ctx) return;
+  const selfStreamId = callState.role === "anchor" ? ctx.anchorStreamId : ctx.playerStreamId;
+  await localReady; // 等并行预采集结果
+  publishLocal(selfStreamId, trigger);
+  published = true;
+}
+
+// 入房 + 推拉流(本端=男端,秒开主体):早拉对端、推流后置(接通才推,不阻塞看对端首帧)。
+// 被叫已偷跑预入房 + 预拉 → joinRoom 幂等、playStream 直接贴预拉的 view(秒显)。
 async function joinZego() {
   const ctx = getEveContext();
   if (!ctx || stopRemote) return;
+  const out = callState.direction === "out";
+  // self/peer 按主叫(player)/被叫(anchor)选流:主叫推 playerStreamId 拉 anchorStreamId,被叫反之
+  const peerStreamId = callState.role === "anchor" ? ctx.playerStreamId : ctx.anchorStreamId;
   stopRemote = watchRoomStreams("remote-video"); // 兜底:对端真正推流(ADD)时拉
-  const ok = await joinRoom(ctx.rtcRoomId, ctx.rtcToken, String(userStore.user.id)).catch(() => false);
+  const ok = await joinRoom(ctx.rtcRoomId, ctx.rtcToken, String(userStore.user.id), out ? "dial" : "accept").catch(
+    () => false
+  );
   if (!ok) return;
-  void playStream(ctx.anchorStreamId, "remote-video"); // 秒拉:已知对端 streamId 直拉(允许拉空流时连接空挂)
-  await localReady; // 等并行预采集结果
-  publishLocal(ctx.playerStreamId); // 秒推
+  void playStream(peerStreamId, "remote-video", out ? "dial" : "invite"); // 拉对端(看)
+  // 男端(player)只看不推流(摄像头本地预览开着,但不 publish);只有女端(anchor)把自己的流推给对端看。
+  if (callState.role === "anchor") await publishSelf(out ? "dial" : "invite");
 }
 
 const id = Number(route.params.id);
@@ -212,7 +228,7 @@ function sendQuick(g: GiftType) {
 function onHangupEvent(p: { anchor: Anchor; duration: number }) {
   if (p.anchor.id === id) {
     router.replace(
-      `/call-summary/${id}?duration=${p.duration}&coins=${callState.coinCost}&gift=${callState.giftCost}&free=${callState.free ? 1 : 0}`
+      `/call-summary/${id}?duration=${p.duration}&coins=${callState.coinCost}&gift=${callState.giftCost}&free=${callState.free ? 1 : 0}&eveId=${callState.eveId}`
     );
   }
 }
@@ -239,10 +255,14 @@ async function onHangup() {
 watch(
   () => callState.phase,
   (phase, prev) => {
-    if (phase === "active" && prev !== "active" && anchor.value) {
-      pushMsg({ system: true, text: t("callPage.joined", { name: anchor.value.nickname }) });
-      greetTimers.push(window.setTimeout(() => pushMsg({ text: t("callPage.greet1"), fromSelf: false }), 2600));
-      greetTimers.push(window.setTimeout(() => pushMsg({ text: t("callPage.greet2"), fromSelf: false }), 7200));
+    if (phase === "active" && prev !== "active") {
+      // 男端(player)不推流;女端(anchor)在 joinZego 里已推。这里只做接通后的公屏寒暄。
+      if (callState.role === "anchor") void publishSelf("accept");
+      if (anchor.value) {
+        pushMsg({ system: true, text: t("callPage.joined", { name: anchor.value.nickname }) });
+        greetTimers.push(window.setTimeout(() => pushMsg({ text: t("callPage.greet1"), fromSelf: false }), 2600));
+        greetTimers.push(window.setTimeout(() => pushMsg({ text: t("callPage.greet2"), fromSelf: false }), 7200));
+      }
     }
   }
 );
@@ -255,9 +275,10 @@ onMounted(async () => {
   await nextTick(); // 等 #local-video 渲染
   // 秒开①:并行预采集本地流(与 requestCall 同时进行,接通时不再花时间采集)
   localReady = prepareLocalStream("local-video").catch(() => null);
-  // 直接进入 /call/:id(深链/去电)时若无进行中的通话,则发起去电(await 以便拿到 EveContext)
+  // 直接进入 /call/:id(深链/去电)时若无进行中的通话,则发起去电(await 以便拿到 EveContext)。
+  // 拨号目标用路由 id(真实对端),mock getAnchor 仅供展示(它对未知 id 会回退 anchors[0],不能拿来当被叫)。
   if (callState.target?.id !== id || callState.phase === "idle" || callState.phase === "ended") {
-    await startOutgoing(a);
+    await startOutgoing({ ...a, id });
   }
   // 拿到 EveContext 后入房推拉流(去电:request 后;被叫:accept 后已就绪)
   await joinZego();
@@ -271,9 +292,10 @@ onUnmounted(() => {
   greetTimers.forEach((tid) => window.clearTimeout(tid));
   stopCountdown();
   stopRemote?.();
+  // 离开通话页(返回/跳充值)= 结束本通:释放占用锁 + 通知后端结束(防后端空跑计费)+ 退 ZEGO。
+  // 已显式 hangup(phase=ended)则无副作用。
+  leaveCall();
   void leaveRoom();
-  // 离开通话页时若仍在拨号/响铃,取消(清掉 ringTimer,避免后台自动接通并继续计费)
-  if (callState.phase === "ringing" || callState.phase === "incoming") reset();
 });
 </script>
 

@@ -7,7 +7,7 @@
       <div class="info">
         <div class="name-row">
           <strong>{{ user.nickname }}</strong>
-          <img class="flag" :src="countryFlag(user.region)" alt="" />
+          <CountryFlag class="flag" :region="user.region" :size="15" />
         </div>
         <span class="id">ID: {{ user.id }}</span>
         <span class="sub">{{ user.region.toUpperCase() }} · {{ user.age }} · {{ user.followers }} {{ t("userDynamic.followers") }}</span>
@@ -35,7 +35,7 @@ import { api } from "../services/api";
 import { fetchAnchorCard } from "../services/anchor";
 import { getUserMomentsPage } from "../services/moment";
 import { followUser, unfollowUser, isFollowing } from "../services/relation";
-import { countryFlag } from "../utils/assets";
+import CountryFlag from "../components/CountryFlag.vue";
 import type { Anchor, Moment } from "../types/eve";
 
 const { t } = useI18n();

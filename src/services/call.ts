@@ -1,6 +1,9 @@
 // 1v1 通话(eve)后端编排:biz-connect-svc /connect/eve/*。
 // request/accept 返回 EveContext(ZEGO 房间+token+streamId);呼叫信令走网易 NIM(见 im.ts)。
 import { http } from "./http";
+import { toAnchor, type RawAnchor } from "./anchor";
+import { useUserStore } from "@/stores";
+import type { CallRecord, CallStatus } from "@/types/eve";
 
 export interface EveRecord {
   id: number;
@@ -54,4 +57,68 @@ export function endCall(eveId: number, optType: 2 | 3 = 2): Promise<EveContext> 
 /** 查询通话状态(断线恢复用;不含 token)。 */
 export function callStatus(eveId: number): Promise<EveContext> {
   return http.get<EveContext>(`/connect/eve/status?eveId=${eveId}`);
+}
+
+// ============ 通话记录（我的通话历史） ============
+
+interface RawEveRecord {
+  id: number;
+  fromUserId?: number;
+  toUserId?: number;
+  acceptStatus?: number; // 0 未接 1 已接 2 拒接
+  finishType?: number; // 5=主叫响铃中取消
+  seconds?: number;
+  actualPrice?: number;
+  createdAt?: number | string;
+}
+interface RawEveRecordVo {
+  record?: RawEveRecord;
+  peer?: RawAnchor;
+}
+
+function fmtDuration(sec = 0): string {
+  const m = String(Math.floor(sec / 60)).padStart(2, "0");
+  const s = String(sec % 60).padStart(2, "0");
+  return `${m}:${s}`;
+}
+
+function fmtRecordTime(ts?: number | string): string {
+  if (!ts) return "";
+  const d = new Date(ts);
+  return `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+}
+
+// acceptStatus:0 未接/1 已接/2 拒接;未接时按 finishType 区分主叫取消(5)与其余(未接来电/超时等)。
+function toCallStatus(r: RawEveRecord): CallStatus {
+  if (r.acceptStatus === 1) return "answered";
+  if (r.acceptStatus === 2) return "rejected";
+  return r.finishType === 5 ? "canceled" : "missed";
+}
+
+export interface CallRecordPage {
+  items: CallRecord[];
+  total: number;
+}
+
+/** 我的通话记录分页(按拨打时间倒序)。 */
+export function getMyCallRecords(offset = 0, limit = 20): Promise<CallRecordPage> {
+  const myId = useUserStore().user.id;
+  return http.get<{ list?: RawEveRecordVo[]; total?: number }>("/connect/eve/records", { offset, limit }).then((r) => ({
+    items: (r?.list ?? [])
+      .filter((v) => v.record?.id != null)
+      .map((v): CallRecord => {
+        const rec = v.record as RawEveRecord;
+        return {
+          id: rec.id,
+          user: v.peer ? toAnchor(v.peer) : ({ id: rec.toUserId === myId ? rec.fromUserId ?? 0 : rec.toUserId ?? 0, nickname: "", avatar: "", age: 0, region: "", online: false, onDuty: false, intro: "", followers: 0, price: 0, tags: [] }),
+          duration: fmtDuration(rec.seconds),
+          time: fmtRecordTime(rec.createdAt),
+          status: toCallStatus(rec),
+          direction: rec.fromUserId === myId ? "out" : "in",
+          durationSec: rec.seconds ?? 0,
+          coinCost: rec.actualPrice ?? 0
+        };
+      }),
+    total: r?.total ?? 0
+  }));
 }

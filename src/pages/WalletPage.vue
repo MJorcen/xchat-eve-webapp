@@ -32,7 +32,7 @@
           <img src="/assets/eve/wallet/coin_20@2x.png" alt="" />
           <strong>{{ item.coins }}</strong>
         </div>
-        <span class="pkg-bonus">{{ t("wallet.bonus", { n: item.bonus }) }}</span>
+        <span v-if="item.bonus > 0" class="pkg-bonus">{{ t("wallet.bonus", { n: item.bonus }) }}</span>
         <span class="pkg-price">{{ item.price }}</span>
       </button>
     </div>
@@ -55,45 +55,16 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
 import TopBar from "../components/TopBar.vue";
 import PaymentSheet from "../components/PaymentSheet.vue";
-import { api } from "../services/api";
-import { useUserStore } from "../stores";
-import type { PaymentChannel, WalletPackage } from "../types/eve";
+import { useRecharge } from "../composables/useRecharge";
 
 const { t } = useI18n();
 const router = useRouter();
-const userStore = useUserStore();
-const packages = ref<WalletPackage[]>([]);
-const selected = ref<number>(0);
-const showSheet = ref(false);
-
-const coins = computed(() => userStore.coins);
-const selectedPkg = computed(() => packages.value.find((p) => p.id === selected.value));
-
-function goPay() {
-  if (selectedPkg.value) showSheet.value = true;
-}
-
-function onPay(channel: PaymentChannel) {
-  const pkg = selectedPkg.value;
-  if (!pkg) return;
-  const arrival = pkg.coins + pkg.bonus;
-  userStore.addCoins(arrival);
-  showSheet.value = false;
-  router.replace({
-    path: "/payment-result",
-    query: { status: "success", coins: arrival, amount: pkg.price, method: channel.name }
-  });
-}
-
-onMounted(async () => {
-  packages.value = await api.getWalletPackages();
-  selected.value = packages.value.find((p) => p.selected)?.id || packages.value[0]?.id || 0;
-});
+// 充值流程(真实 trade 模块)与充值页共用同一套逻辑:真实产品 + 进页拉余额 + 下单入账闭环。
+const { packages, selected, showSheet, coins, selectedPkg, goPay, onPay } = useRecharge();
 </script>
 
 <style scoped lang="scss">

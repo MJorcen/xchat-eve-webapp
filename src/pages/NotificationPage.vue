@@ -28,7 +28,7 @@
       <article v-for="n in notices" :key="n.id" class="item">
         <img class="badge" src="/assets/eve/logo.png" alt="" />
         <div class="bubble">
-          <strong>{{ n.title }}</strong>
+          <strong>{{ t(n.title) }}</strong>
           <p>{{ n.content }}</p>
           <time>{{ n.time }}</time>
         </div>
@@ -45,12 +45,16 @@ import { useRouter } from "vue-router";
 import TopBar from "../components/TopBar.vue";
 import EmptyState from "../components/EmptyState.vue";
 import { api } from "../services/api";
-import type { Anchor, NotificationItem } from "../types/eve";
+import { useNotificationStore } from "../stores";
+import type { Anchor } from "../types/eve";
 
 const { t } = useI18n();
 const router = useRouter();
+const notificationStore = useNotificationStore();
 const tab = ref<"interaction" | "notice">("interaction");
-const notices = ref<NotificationItem[]>([]);
+// 系统公告经 NIM 自定义系统通知实时推送累积在本地(见 App.vue initAnnouncementListener),
+// 没有服务端历史接口,只能展示"从现在开始收到的"公告,不是完整历史。
+const notices = computed(() => notificationStore.items);
 const senders = ref<Anchor[]>([]);
 
 const interactions = computed(() =>
@@ -62,7 +66,7 @@ const interactions = computed(() =>
 );
 
 onMounted(async () => {
-  [notices.value, senders.value] = await Promise.all([api.getNotifications(), api.getVisitors()]);
+  senders.value = await api.getVisitors();
 });
 </script>
 

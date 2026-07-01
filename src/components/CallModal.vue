@@ -27,6 +27,9 @@
       </button>
     </div>
 
+    <!-- 卡死逃生:通话异常时重置占用状态 -->
+    <button class="reset-link" @click="onReset">{{ t("callModal.reset") }}</button>
+
     <audio ref="ringEl" src="/assets/eve/call.mp3" loop />
   </div>
 </template>
@@ -41,7 +44,12 @@ import type { Anchor } from "../types/eve";
 
 const { t } = useI18n();
 const router = useRouter();
-const { callState, receiveIncoming, accept, reject, reset } = useCall();
+const { callState, receiveIncoming, accept, reject, reset, resetAll } = useCall();
+
+// 卡死逃生:强清占用锁 + 复位状态机(reconcile 已在各入口自我订正,这是最后手段)。
+function onReset() {
+  resetAll();
+}
 
 const ringEl = ref<HTMLAudioElement | null>(null);
 const ringing = computed(() => callState.phase === "incoming" || callState.phase === "ringing");
@@ -195,6 +203,18 @@ onUnmounted(() => emitter.off("call:incoming", onIncoming));
 
 .decline {
   background: #4a3132;
+}
+
+.reset-link {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 28px;
+  margin: 0 auto;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.45);
+  text-decoration: underline;
+  background: transparent;
 }
 
 .accept {
