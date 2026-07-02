@@ -4,6 +4,7 @@
 
 import { useUserStore } from "@/stores";
 import { buildPayloadHeader } from "@/utils/device";
+import { parseJsonBigIntSafe } from "@/utils/safeJson";
 
 // 与网关约定的前缀（dev 下由 Vite 代理转发到真实后端）。各服务路径形如 `/user/...`、`/item/...`。
 const BASE = (import.meta.env.VITE_API_BASE as string) || "/api/v1";
@@ -38,6 +39,11 @@ interface RequestOptions {
    * 其余接口都正常的会话一并清空——真正的登录失效会在用户下一次主动请求时正常触发登出。
    */
   background?: boolean;
+  /**
+   * 用大整数安全解析响应体(把 19 位雪花 id 等 > 2^53 的整数解析成字符串,避免 JSON.parse 丢精度)。
+   * 仅对会返回大 id 的接口(如 eve 通话 /connect/eve/*，其 record.id/eveId 是雪花 id)开启。
+   */
+  losslessJson?: boolean;
 }
 
 function buildUrl(path: string, query?: Query): string {
@@ -65,7 +71,7 @@ function onUnauthorized() {
 }
 
 export async function request<T = unknown>(path: string, opts: RequestOptions = {}): Promise<T> {
-  const { method = "GET", body, query, headers = {}, auth = true, background = false } = opts;
+  const { method = "GET", body, query, headers = {}, auth = true, background = false, losslessJson = false } = opts;
 
   const store = useUserStore();
   const finalHeaders: Record<string, string> = { Accept: "application/json", ...headers };
@@ -94,7 +100,12 @@ export async function request<T = unknown>(path: string, opts: RequestOptions = 
 
   let env: ApiEnvelope<T>;
   try {
-    env = (await res.json()) as ApiEnvelope<T>;
+    if (losslessJson) {
+      const text = await res.text();
+      env = (text ? parseJsonBigIntSafe(text) : {}) as ApiEnvelope<T>;
+    } else {
+      env = (await res.json()) as ApiEnvelope<T>;
+    }
   } catch {
     throw new ApiError(res.status, `请求失败 (${res.status})`);
   }

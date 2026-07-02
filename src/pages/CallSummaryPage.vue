@@ -85,7 +85,7 @@ const userStore = useUserStore();
 const { reset } = useCall();
 
 const id = Number(route.params.id);
-const eveId = Number(route.query.eveId || 0);
+const eveId = String(route.query.eveId || ""); // 雪花 id 按字符串,勿 Number 化(丢精度)
 const duration = Number(route.query.duration || 0);
 const giftCost = Number(route.query.gift || 0);
 // 通话费取通话页透传的"实际扣费"金额(与 useCall 的分钟计费一致),不再独立重算

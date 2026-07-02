@@ -7,10 +7,11 @@ import {
   rejectCall,
   cancelCall,
   endCall,
+  callStatus,
   type EveContext,
   type EveRecord
 } from "../services/call";
-import { onEveSignal, ensureImLogin, type EveSignal } from "../services/im";
+import { onEveSignal, ensureImLogin, insertMissedCall, type EveSignal } from "../services/im";
 import { setMicEnabled, setCameraEnabled, joinRoom, prewarmPull, leaveRoom } from "../services/zego";
 import {
   initCallTelemetry,
@@ -42,7 +43,7 @@ type CallState = {
   coinCost: number;
   giftCost: number;
   endReason: string | null;
-  eveId: number; // 后端通话记录 id(0=无真实通话/兜底)
+  eveId: string; // 后端通话记录 id(雪花 19 位,按字符串存;""=无真实通话/兜底)
   role: CallRole; // 本端角色:player(男,早拉晚推)/ anchor(女,早推)
   direction: "out" | "in"; // 主叫 out / 被叫 in
 };
@@ -58,7 +59,7 @@ const state = reactive<CallState>({
   coinCost: 0,
   giftCost: 0,
   endReason: null,
-  eveId: 0,
+  eveId: "",
   role: "player",
   direction: "out"
 });
@@ -89,7 +90,7 @@ function roleFrom(rec?: EveRecord): CallRole {
   return "player"; // 主叫(默认)
 }
 function buildCommon(
-  eveId: number,
+  eveId: string,
   rtcRoomId: string,
   role: CallRole,
   direction: "out" | "in",
@@ -125,12 +126,17 @@ function trackEnd(finishType: number, by: "self" | "peer" | "system", source: "l
 let eveContext: EveContext | null = null;
 let timer: number | null = null;
 let ringGuard: number | null = null; // 振铃超时安全网(信令丢失兜底)
+let statusPoll: number | null = null; // 去电振铃期轮询 /eve/status(call_eve/accept 信令丢失时兜底接通/结束)
 let signalStop: (() => void) | null = null;
 // 占用锁令牌(本通话持有 busyLock 的 hold);CallPage 充值浮层据此 reenter。
 let lockToken: symbol | null = null;
 
 // 振铃超时:略大于后端 RING_TIMEOUT(30s),正常情况下后端 cancel 信令先到;仅信令丢失时本地兜底结束。
 const RING_GUARD_MS = 40000;
+// 去电振铃期 /eve/status 轮询间隔(call_eve/accept 信令丢/延迟时,靠轮询发现「已接通/已结束」)。
+const STATUS_POLL_MS = 3000;
+// 来电信令到达时已超过此时长(接近后端响铃超时)→ 不弹窗,直接记未接来电(弹了也来不及接)。
+const STALE_REQUEST_MS = 18000;
 
 export function getEveContext(): EveContext | null {
   return eveContext;
@@ -151,7 +157,7 @@ function finishLocal(
   finishType: number,
   by: "self" | "peer" | "system",
   source: "local" | "signal",
-  opts?: { endReason?: string; duration?: number; backend?: () => void }
+  opts?: { endReason?: string; duration?: number; backend?: () => void; silent?: boolean }
 ) {
   if (opts?.backend) {
     try {
@@ -168,10 +174,16 @@ function finishLocal(
   trackEnd(finishType, by, source);
   state.phase = "ended";
   if (opts?.endReason) state.endReason = opts.endReason;
+  // 统一跳转:任何真实终态(本端挂断 / 对端 reject/cancel/end / 超时)都发一次 call:hangup,
+  // CallPage 收到即跳结算页(通话页未挂载时——如未接来电——无监听者,自然 no-op)。
+  // 仅 leaveCall(用户主动离开通话页)传 silent=true 不跳(避免返回/跳充值时误入结算页)。
+  if (!opts?.silent && state.target) {
+    emitter.emit("call:hangup", { anchor: state.target, duration: state.seconds });
+  }
 }
 
 // 忙线/支付期收到来电 → 自动以「拒接」回掉新来电(主叫不空响;后端占线通常已拦,这是兜底)。
-function autoRejectBusy(eveId: number) {
+function autoRejectBusy(eveId: string) {
   if (eveId) rejectCall(eveId).catch(() => {});
 }
 
@@ -195,6 +207,7 @@ function clearTimers() {
     timer = null;
   }
   clearRingGuard();
+  clearStatusPoll();
 }
 
 function clearRingGuard() {
@@ -204,12 +217,63 @@ function clearRingGuard() {
   }
 }
 
+function clearStatusPoll() {
+  if (statusPoll !== null) {
+    window.clearInterval(statusPoll);
+    statusPoll = null;
+  }
+}
+
+// 去电振铃期兜底接通/结束:phase→active 或结束的唯一来源不能只是单条 call_eve/accept 信令(真机偶发丢/延迟)。
+// 两路兜底:①「见对端流即接通」(zego roomStreamUpdate ADD → rtc:remote-stream);② /eve/status 轮询。
+// connectFromFallback 把 ringing → active(主叫本就已从 request 响应拿到自己的 token/streamId,可直接推流)。
+function connectFromFallback(by: "peer_stream" | "status") {
+  if (state.phase !== "ringing") return;
+  clearStatusPoll();
+  mark("connect");
+  track("accept", { by });
+  state.phase = "active";
+  state.seconds = 0;
+  startTicking();
+}
+
+// 去电轮询 /eve/status:acceptStatus=1/status=1 → 接通;status=2(结束)/acceptStatus=2(拒接)→ 结束。
+function startStatusPoll() {
+  clearStatusPoll();
+  statusPoll = window.setInterval(async () => {
+    if (state.phase !== "ringing" || !state.eveId) {
+      clearStatusPoll();
+      return;
+    }
+    try {
+      const ctx = await callStatus(state.eveId);
+      const rec = ctx?.record;
+      if (!rec || state.phase !== "ringing") return;
+      if (rec.acceptStatus === 1 || rec.status === 1) {
+        connectFromFallback("status"); // 已接通,信令没到也接通
+      } else if (rec.acceptStatus === 2) {
+        finishLocal(6, "peer", "signal", { endReason: "rejected" }); // 已拒接(reject 信令丢的兜底)
+      } else if (rec.status === 2) {
+        finishLocal(1, "peer", "signal", { endReason: "no_answer" }); // 已结束/超时
+      }
+    } catch {
+      /* 单次轮询失败忽略,下次再试 */
+    }
+  }, STATUS_POLL_MS);
+}
+
+// zego 见到对端真正推流(ADD)→ 视为已接通(主叫兜底)。持久监听,仅 ringing 时生效。
+function onRtcRemoteStream() {
+  connectFromFallback("peer_stream");
+}
+
 // 进入 ringing/incoming 时启动:超时仍未接通则本地结束(后端 cancel 信令丢失的兜底)。
 function startRingGuard() {
   clearRingGuard();
   ringGuard = window.setTimeout(() => {
     if (state.phase !== "ringing" && state.phase !== "incoming") return;
     const ringing = state.phase === "ringing";
+    const peerId = state.target?.id; // 未接来电留痕(在 finishLocal 复位前捕获对端 id)
     finishLocal(ringing ? 1 : 5, "system", "local", {
       endReason: ringing ? "no_answer" : "missed",
       backend: () => {
@@ -218,6 +282,7 @@ function startRingGuard() {
         else rejectCall(state.eveId).catch(() => {});
       }
     });
+    if (!ringing && peerId) void insertMissedCall(peerId); // 被叫响铃超时未接 → IM 页记未接来电
   }, RING_GUARD_MS);
 }
 
@@ -241,14 +306,14 @@ function resetState() {
   state.coinCost = 0;
   state.giftCost = 0;
   state.endReason = null;
-  state.eveId = 0;
+  state.eveId = "";
   state.role = "player";
   state.direction = "out";
   endTracked = false;
 }
 
 // 来电(由 eve_invite 信令触发;也兼容外部 mock 调用)
-function receiveIncoming(anchor: Anchor, free = false, eveId = 0) {
+function receiveIncoming(anchor: Anchor, free = false, eveId = "") {
   if (state.phase !== "idle" && state.phase !== "ended") return;
   resetState();
   state.phase = "incoming";
@@ -275,11 +340,12 @@ async function startOutgoing(anchor: Anchor, free = false) {
   try {
     const ctx = await requestCall(anchor.id);
     eveContext = ctx;
-    state.eveId = ctx.record?.id ?? 0;
+    state.eveId = ctx.record?.id ?? "";
     state.role = roleFrom(ctx.record);
     initCallTelemetry(buildCommon(state.eveId, ctx.rtcRoomId, state.role, "out", anchor.id));
     mark("created", dialTs); // 拨号时刻(服务端 createdAt 更准,后端 join 校正)
     startRingGuard(); // 振铃超时兜底
+    startStatusPoll(); // call_eve/accept 信令丢/延迟的兜底:轮询 /eve/status 发现已接通/已结束
   } catch (e) {
     release(lockToken); // 发起失败 → 释放锁
     lockToken = null;
@@ -319,9 +385,7 @@ function reject() {
 }
 
 function hangup() {
-  const anchor = state.target;
-  const duration = state.seconds;
-  // ringing 阶段(对端未接)= 取消;否则 = 挂断
+  // ringing 阶段(对端未接)= 取消;否则 = 挂断。跳结算页由 finishLocal 统一发 call:hangup。
   if (state.phase === "ringing") {
     track("cancel", { optType: 5 });
     finishLocal(5, "self", "local", {
@@ -338,7 +402,6 @@ function hangup() {
       }
     });
   }
-  if (anchor) emitter.emit("call:hangup", { anchor, duration });
 }
 
 // 离开通话页但未显式挂断(返回 / 跳去充值)→ 静默结束当前通话(释放锁 + 通知后端),不跳结算页。
@@ -347,6 +410,7 @@ function leaveCall() {
   if (state.phase === "ringing") {
     finishLocal(5, "self", "local", {
       endReason: "canceled",
+      silent: true, // 主动离开页面,不跳结算页
       backend: () => {
         if (state.eveId) cancelCall(state.eveId).catch(() => {});
       }
@@ -354,6 +418,7 @@ function leaveCall() {
   } else if (state.phase === "active") {
     const optType = state.role === "anchor" ? 3 : 2;
     finishLocal(optType, "self", "local", {
+      silent: true, // 主动离开页面,不跳结算页
       backend: () => {
         if (state.eveId) endCall(state.eveId, optType).catch(() => {});
       }
@@ -367,7 +432,15 @@ function handleSignal(sig: EveSignal) {
   const s = sig.sender || {};
   switch (sig.messageType) {
     case "call_eve/request": {
-      const eveId = c.eveId || 0;
+      const eveId = c.eveId ? String(c.eveId) : ""; // 雪花 id 按字符串处理(im.ts 已 lossless 解析,这里再兜底)
+      const callerId = s.id || c.fromUserId || 0;
+      // 来电信令到达时已接近后端响铃超时(投递延迟/离线推送积压)→ 弹窗也来不及接:不弹窗,直接记未接来电 + 自动拒。
+      const age = sig.sentTs ? Date.now() - sig.sentTs : 0;
+      if (age > STALE_REQUEST_MS) {
+        autoRejectBusy(eveId);
+        void insertMissedCall(callerId);
+        return;
+      }
       // 抢锁(acquire 内部 reconcile 自我订正);忙(通话/支付中)→ 自动拒掉新来电,不打断当前
       const t = acquire({ sourceType: "call", sourceId: String(eveId), check: callAlive, onForceClear: () => void leaveRoom() });
       if (!t) {
@@ -375,7 +448,7 @@ function handleSignal(sig: EveSignal) {
         return;
       }
       const caller: Anchor = {
-        id: s.id || c.fromUserId || 0,
+        id: callerId,
         nickname: s.nickname || "",
         avatar: s.avatar || "",
         age: 0,
@@ -468,6 +541,8 @@ export async function startCallSignals(): Promise<void> {
     /* NIM 未就绪,稍后页面再登 */
   }
   signalStop = onEveSignal(handleSignal);
+  // 见对端流即接通(兜底 call_eve/accept):持久监听,connectFromFallback 内部只在 ringing 时生效。
+  emitter.on("rtc:remote-stream", onRtcRemoteStream);
 }
 
 function addGiftCost(value: number) {

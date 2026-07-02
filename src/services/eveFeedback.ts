@@ -19,16 +19,16 @@ export const FEEDBACK_REASON_CODE: Record<string, number> = {
 };
 
 /** 是否需要弹反馈提示(短时差通话挂断后处于可反馈窗口、且今日未达上限)。 */
-export function needToShowFeedback(eveId: number): Promise<FeedbackQuery> {
+export function needToShowFeedback(eveId: string): Promise<FeedbackQuery> {
   return http.get<FeedbackQuery>("/connect/eve/feedback", { eveId });
 }
 
 /** 提交反馈原因;当天前 3 条发金币奖励(返回 coinBonus,可能为 0)。 */
-export function submitFeedback(eveId: number, reason: number): Promise<FeedbackSubmitResult> {
+export function submitFeedback(eveId: string, reason: number): Promise<FeedbackSubmitResult> {
   return http.post<FeedbackSubmitResult>(`/connect/eve/feedback?eveId=${eveId}&reason=${reason}`);
 }
 
 /** 举报通话中索要联系方式(reason=100,无奖金)。 */
-export function reportFeedbackContact(eveId: number): Promise<void> {
+export function reportFeedbackContact(eveId: string): Promise<void> {
   return http.post<void>(`/connect/eve/feedback/reportContact?eveId=${eveId}`);
 }

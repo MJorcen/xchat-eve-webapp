@@ -12,6 +12,10 @@ export type AppEvents = {
   "gift:received": { fromId: number; giftId: number; count: number };
   // 新私信
   "message:new": { fromId: number; text: string };
+  // ZEGO 见到对端真正推流(roomStreamUpdate ADD)—— 状态机据此兜底接通(call_eve/accept 信令丢失时)
+  "rtc:remote-stream": { streamId: string; userId?: string };
+  // ZEGO 对端真首帧到达(videoWidth>0)—— CallPage 据此揭示对端画面(真秒开)
+  "rtc:first-frame": { streamId: string; w?: number; h?: number };
   // 全局轻提示
   "toast": string;
 };

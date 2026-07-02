@@ -1,8 +1,8 @@
 <template>
   <section v-if="anchor" class="call-screen">
-    <!-- 远端视频:ZEGO 流播到 #remote-video;未连通时主播头像铺底 -->
+    <!-- 远端视频:ZEGO 流播到 #remote-video;真首帧到达前不揭示(显示主播头像铺底,避免空流黑屏) -->
     <img class="remote" :src="anchor.avatar" alt="" />
-    <div id="remote-video" class="remote-video" />
+    <div id="remote-video" class="remote-video" :class="{ shown: remoteReady }" />
     <div class="scrim-top" />
     <div class="scrim-bottom" />
 
@@ -147,6 +147,7 @@ async function joinZego() {
 
 const id = Number(route.params.id);
 const anchor = ref<Anchor | null>(null);
+const remoteReady = ref(false); // 对端真首帧是否到达(到达才揭示 #remote-video,之前显头像占位)
 const user = ref<CurrentUser | null>(null);
 const showGift = ref(false);
 const quickGifts = ref<GiftType[]>([]);
@@ -205,6 +206,11 @@ function onMessage(p: { fromId: number; text: string }) {
   if (p.fromId === id) pushMsg({ text: p.text, fromSelf: false });
 }
 
+// 对端真首帧到达(zego bindFirstFrame 校验 videoWidth>0 后发)→ 揭示对端画面(真秒开)
+function onFirstFrame() {
+  remoteReady.value = true;
+}
+
 function sendMsg() {
   const text = draft.value.trim();
   if (!text) return;
@@ -256,14 +262,24 @@ watch(
   () => callState.phase,
   (phase, prev) => {
     if (phase === "active" && prev !== "active") {
-      // 男端(player)不推流;女端(anchor)在 joinZego 里已推。这里只做接通后的公屏寒暄。
-      if (callState.role === "anchor") void publishSelf("accept");
+      // 接通即推本端流(秒开方案「晚推自己」):男端(player)接通才推,避免响铃期点亮摄像头;
+      // 女端(anchor)已在 joinZego 早推,publishSelf 幂等(published 标志)会跳过,不会重复推。
+      void publishSelf("accept");
       if (anchor.value) {
         pushMsg({ system: true, text: t("callPage.joined", { name: anchor.value.nickname }) });
         greetTimers.push(window.setTimeout(() => pushMsg({ text: t("callPage.greet1"), fromSelf: false }), 2600));
         greetTimers.push(window.setTimeout(() => pushMsg({ text: t("callPage.greet2"), fromSelf: false }), 7200));
       }
     }
+  }
+);
+
+// EveContext 就绪兜底:onMounted 里 joinZego 可能早于 requestCall 返回(eveId 还没落) → 直接 return、整通无推拉流。
+// eveId 一旦落定(去电 request 返回 / 被叫 accept)就重跑 joinZego(内部 stopRemote/joinedRoomId 幂等,不会重复入房)。
+watch(
+  () => callState.eveId,
+  (id) => {
+    if (id) void joinZego();
   }
 );
 
@@ -284,11 +300,13 @@ onMounted(async () => {
   await joinZego();
   emitter.on("message:new", onMessage);
   emitter.on("call:hangup", onHangupEvent);
+  emitter.on("rtc:first-frame", onFirstFrame);
 });
 
 onUnmounted(() => {
   emitter.off("message:new", onMessage);
   emitter.off("call:hangup", onHangupEvent);
+  emitter.off("rtc:first-frame", onFirstFrame);
   greetTimers.forEach((tid) => window.clearTimeout(tid));
   stopCountdown();
   stopRemote?.();
@@ -316,11 +334,21 @@ onUnmounted(() => {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  z-index: 0; /* 头像铺底(最底层) */
 }
 .remote-video {
   position: absolute;
   inset: 0;
-  z-index: 1;
+  /* 远端视频作背景层:必须在头像之上、但在所有 UI(z-index:auto,DOM 在后)之下。
+     原来 z-index:1 会盖住计时/挂断/公屏/底部控件等所有 auto 层 → 一拉到流整屏被黑帧遮住。
+     置 0 后与 UI 同处 z-index:0/auto 绘制步,按 DOM 顺序:头像→视频→各 UI,UI 正常浮在视频上。 */
+  z-index: 0;
+  /* 真首帧到达前不揭示:opacity 0 → 头像占位透出;避免「允许拉空流」时的空/黑帧盖住头像。 */
+  opacity: 0;
+  transition: opacity 0.25s ease;
+  &.shown {
+    opacity: 1;
+  }
   :deep(video) {
     width: 100%;
     height: 100%;

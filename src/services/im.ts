@@ -3,6 +3,7 @@
 import NIM from "nim-web-sdk-ng";
 import { useUserStore } from "@/stores";
 import type { Anchor, Conversation, ChatMessage } from "@/types/eve";
+import { parseJsonBigIntSafe } from "@/utils/safeJson";
 
 // 与后端 message.netease.app_key 一致(dev)。
 const APP_KEY = "f054437a54d9e818aa91c9b0abb7ae64";
@@ -180,13 +181,15 @@ export interface EveSignal {
   sender?: any; // { id, nickname, avatar, gender }
   rtcInfo?: any; // request 带:{ playerToken, playerStreamId, anchorToken, anchorStreamId }(被叫偷跑用)
   rtcConfig?: any; // request 带:初始视频质量
+  sentTs?: number; // 服务端下发时刻(网易通知 timestamp);算信令到达延迟/判来电是否已超时
 }
 
 // 解析单条信令信封 → EveSignal。信封:{ meta.eventType:"operation_eve_message", data:{ messageType, content }, sender }。
 function parseEveSignal(notif: any): EveSignal | null {
   let env: any = null;
   try {
-    env = JSON.parse(notif.content);
+    // 大整数安全解析:来电信令里的 eveId 是雪花 19 位 id,原生 JSON.parse 会丢精度 → 被叫接听/上报会错位。
+    env = parseJsonBigIntSafe(notif.content);
   } catch {
     return null;
   }
@@ -198,8 +201,27 @@ function parseEveSignal(notif: any): EveSignal | null {
     senderId: notif.senderId,
     sender: env.sender,
     rtcInfo: c.rtcInfo,
-    rtcConfig: c.rtcConfig
+    rtcConfig: c.rtcConfig,
+    sentTs: notif.timestamp || env.meta?.lifecycle?.createdAtMs || 0
   };
+}
+
+/**
+ * 在与某用户的会话里本地插入一条「未接来电」消息(不发网络)。
+ * 用于:来电信令到达时已接近响铃超时(不弹窗)/ 被叫响铃超时未接 —— 在 IM 页留痕,而不是弹个来不及接的窗。
+ * insertMessageToLocal 仅写本地库并触发会话更新;失败(SDK 版本差异)静默降级(通话记录里仍有未接)。
+ */
+export async function insertMissedCall(peerUserId: number | string, text = "[未接来电]"): Promise<void> {
+  if (!peerUserId) return;
+  try {
+    const n = getNim();
+    await ensureImLogin();
+    const conversationId = n.V2NIMConversationIdUtil.p2pConversationId(String(peerUserId));
+    const msg = n.V2NIMMessageCreator.createTextMessage(text);
+    await n.V2NIMMessageService.insertMessageToLocal(msg, conversationId, String(peerUserId), Date.now());
+  } catch {
+    /* best-effort:未接来电在通话记录里也有 */
+  }
 }
 
 /** 监听 eve 通话信令(来电/接听/拒接/取消/开始/结束)。返回取消监听函数。 */

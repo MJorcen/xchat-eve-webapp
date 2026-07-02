@@ -7,7 +7,7 @@ import { http } from "./http";
 export type CallRole = "player" | "anchor";
 
 export interface CallTelemetryCommon {
-  eveId: number;
+  eveId: string; // 雪花 id,按字符串传(见 utils/safeJson);Number 化会丢精度导致埋点落错 id
   rtcRoomId: string;
   callType: "Video" | "Audio";
   scene: string;

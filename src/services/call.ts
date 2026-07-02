@@ -6,7 +6,7 @@ import { useUserStore } from "@/stores";
 import type { CallRecord, CallStatus } from "@/types/eve";
 
 export interface EveRecord {
-  id: number;
+  id: string; // 雪花 id(19 位,> 2^53):必须按字符串处理,否则 JSON.parse 丢精度导致后续按 id 调接口错位
   eveNo?: string;
   rtcRoomId?: string;
   fromUserId?: number;
@@ -31,32 +31,32 @@ export interface EveContext {
 
 /** 发起通话(toUserId=对端主播)。返回主叫的 EveContext;同时后端经 NIM 给对端发 eve_invite。 */
 export function requestCall(toUserId: number, type: "direct" | "match" = "direct"): Promise<EveContext> {
-  return http.post<EveContext>("/connect/eve/request", { toUserId, type });
+  return http.post<EveContext>("/connect/eve/request", { toUserId, type }, { losslessJson: true });
 }
 
 /** 接听(被叫)。返回被叫的 EveContext。 */
-export function acceptCall(eveId: number): Promise<EveContext> {
-  return http.post<EveContext>(`/connect/eve/accept?eveId=${eveId}`);
+export function acceptCall(eveId: string): Promise<EveContext> {
+  return http.post<EveContext>(`/connect/eve/accept?eveId=${eveId}`, undefined, { losslessJson: true });
 }
 
 /** 拒接(被叫)。 */
-export function rejectCall(eveId: number): Promise<unknown> {
+export function rejectCall(eveId: string): Promise<unknown> {
   return http.post(`/connect/eve/reject?eveId=${eveId}`);
 }
 
 /** 取消(主叫,响铃阶段)。 */
-export function cancelCall(eveId: number): Promise<unknown> {
+export function cancelCall(eveId: string): Promise<unknown> {
   return http.post(`/connect/eve/cancel?eveId=${eveId}`);
 }
 
 /** 挂断/结束。optType 2=主叫挂断 3=被叫挂断。 */
-export function endCall(eveId: number, optType: 2 | 3 = 2): Promise<EveContext> {
-  return http.post<EveContext>("/connect/eve/end", { eveId, optType });
+export function endCall(eveId: string, optType: 2 | 3 = 2): Promise<EveContext> {
+  return http.post<EveContext>("/connect/eve/end", { eveId, optType }, { losslessJson: true });
 }
 
 /** 查询通话状态(断线恢复用;不含 token)。 */
-export function callStatus(eveId: number): Promise<EveContext> {
-  return http.get<EveContext>(`/connect/eve/status?eveId=${eveId}`);
+export function callStatus(eveId: string): Promise<EveContext> {
+  return http.get<EveContext>(`/connect/eve/status?eveId=${eveId}`, undefined, { losslessJson: true });
 }
 
 // ============ 通话记录（我的通话历史） ============
