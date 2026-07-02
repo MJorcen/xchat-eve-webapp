@@ -361,6 +361,41 @@ export function watchRoomStreams(containerId: string): () => void {
   return () => g.off?.("roomStreamUpdate", handler);
 }
 
+/** 通话内互动消息(经 ZEGO 自定义命令实时下发,对齐 eve-chat 公屏消息)。 */
+export interface CallCommand {
+  t: "text" | "gift" | "ask"; // 文字 / 送礼 / 索要礼物
+  text?: string;
+  giftId?: number;
+  giftIcon?: string;
+  giftName?: string;
+  giftPrice?: number;
+  count?: number;
+}
+
+/** 通话内发送互动命令给对端(text/gift/ask)。roomId 用当前已入房间,to=对端 zego userId。 */
+export function sendCallCommand(peerUserId: number | string, cmd: CallCommand): void {
+  if (!joinedRoomId || !peerUserId) return;
+  try {
+    getZego().sendCustomCommand(joinedRoomId, JSON.stringify(cmd), [String(peerUserId)]);
+  } catch {
+    /* 命令发送失败不影响通话 */
+  }
+}
+
+/** 监听通话内互动命令(对端发来的 text/gift/ask)。返回取消监听函数。 */
+export function onCallCommand(cb: (cmd: CallCommand) => void): () => void {
+  const g = getZego();
+  const h = (_roomID: string, _fromUser: any, command: string) => {
+    try {
+      cb(JSON.parse(command) as CallCommand);
+    } catch {
+      /* 非本约定命令忽略 */
+    }
+  };
+  g.on("IMRecvCustomCommand", h);
+  return () => g.off?.("IMRecvCustomCommand", h);
+}
+
 export function setMicEnabled(on: boolean): void {
   if (localStream) getZego().mutePublishStreamAudio(localStream, !on);
 }

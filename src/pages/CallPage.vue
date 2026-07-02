@@ -55,6 +55,16 @@
       </div>
     </div>
 
+    <!-- 女端索要礼物:跳动提醒,点击去送礼 -->
+    <button v-if="askGift" class="ask-gift" @click="onAskGiftClick">
+      <span class="ask-ico">{{ askGift.giftIcon || "🎁" }}</span>
+      <span class="ask-txt">
+        <b>{{ anchor.nickname }} asks for a gift</b>
+        <small v-if="askGift.giftName"><Coins :size="11" :stroke-width="2" />{{ askGift.giftName }} · {{ askGift.giftPrice }}</small>
+      </span>
+      <span class="ask-send">Send</span>
+    </button>
+
     <!-- 快捷礼物条 -->
     <div class="quick-gifts">
       <button v-for="g in quickGifts" :key="g.id" class="qg" @click="sendQuick(g)">
@@ -98,7 +108,17 @@ import { useI18n } from "vue-i18n";
 import { Coins, PhoneOff, SwitchCamera, Mic, MicOff, VideoOff, Gift, Send } from "lucide-vue-next";
 import emitter from "../common/eventBus";
 import { api } from "../services/api";
-import { prepareLocalStream, joinRoom, publishLocal, playStream, watchRoomStreams, leaveRoom } from "../services/zego";
+import {
+  prepareLocalStream,
+  joinRoom,
+  publishLocal,
+  playStream,
+  watchRoomStreams,
+  leaveRoom,
+  sendCallCommand,
+  onCallCommand,
+  type CallCommand
+} from "../services/zego";
 import { useCall } from "../composables/useCall";
 import { useGiftAnimation } from "../composables/useGiftAnimation";
 import { useUserStore } from "../stores";
@@ -113,6 +133,7 @@ const anim = useGiftAnimation();
 const { callState, elapsed, startOutgoing, hangup, leaveCall, toggleMic, switchCamera, addGiftCost, getEveContext } =
   useCall();
 let stopRemote: (() => void) | null = null;
+let stopCommand: (() => void) | null = null;
 let localReady: Promise<unknown> | null = null;
 let published = false;
 
@@ -148,6 +169,8 @@ async function joinZego() {
 const id = Number(route.params.id);
 const anchor = ref<Anchor | null>(null);
 const remoteReady = ref(false); // 对端真首帧是否到达(到达才揭示 #remote-video,之前显头像占位)
+const askGift = ref<CallCommand | null>(null); // 女端「索要礼物」→ 显示跳动礼物提醒
+let askTimer: number | null = null;
 const user = ref<CurrentUser | null>(null);
 const showGift = ref(false);
 const quickGifts = ref<GiftType[]>([]);
@@ -202,8 +225,27 @@ function pushMsg(m: Msg) {
   });
 }
 
-function onMessage(p: { fromId: number; text: string }) {
-  if (p.fromId === id) pushMsg({ text: p.text, fromSelf: false });
+// 通话内互动命令(对端经 ZEGO 自定义命令发来):文字进公屏、送礼播动画、索要礼物弹跳动提醒。
+function onCommand(cmd: CallCommand) {
+  if (cmd.t === "text" && cmd.text) {
+    pushMsg({ text: cmd.text, fromSelf: false });
+  } else if (cmd.t === "gift") {
+    pushMsg({ gift: cmd.giftIcon || "🎁", count: cmd.count || 1, fromSelf: false });
+    if (cmd.giftIcon) {
+      anim.play({ id: cmd.giftId || 0, icon: cmd.giftIcon, name: cmd.giftName || "", price: cmd.giftPrice || 0 } as GiftType, cmd.count || 1, false);
+    }
+  } else if (cmd.t === "ask") {
+    askGift.value = cmd; // 女端索要礼物 → 跳动礼物提醒(点击去送礼)
+    if (askTimer) window.clearTimeout(askTimer);
+    askTimer = window.setTimeout(() => (askGift.value = null), 12000);
+  }
+}
+
+// 点击「索要礼物」跳动提醒 → 打开礼物面板送礼(点击可以过去)
+function onAskGiftClick() {
+  askGift.value = null;
+  if (askTimer) window.clearTimeout(askTimer);
+  showGift.value = true;
 }
 
 // 对端真首帧到达(zego bindFirstFrame 校验 videoWidth>0 后发)→ 揭示对端画面(真秒开)
@@ -215,6 +257,7 @@ function sendMsg() {
   const text = draft.value.trim();
   if (!text) return;
   pushMsg({ text, fromSelf: true });
+  sendCallCommand(id, { t: "text", text }); // 实时发给对端(女端公屏)
   draft.value = "";
 }
 
@@ -228,6 +271,7 @@ function sendQuick(g: GiftType) {
   anim.play(g, 1, true);
   addGiftCost(g.price);
   pushMsg({ gift: g.icon, count: 1, fromSelf: true });
+  sendCallCommand(id, { t: "gift", giftId: g.id, giftIcon: g.icon, giftName: g.name, giftPrice: g.price, count: 1 });
 }
 
 // 通话结束 → 结算页(携带计费明细)
@@ -242,6 +286,7 @@ function onHangupEvent(p: { anchor: Anchor; duration: number }) {
 function onGiftSent({ gift, count }: { gift: GiftType; count: number }) {
   addGiftCost(gift.price * count);
   pushMsg({ gift: gift.icon, count, fromSelf: true });
+  sendCallCommand(id, { t: "gift", giftId: gift.id, giftIcon: gift.icon, giftName: gift.name, giftPrice: gift.price, count });
 }
 
 async function onHangup() {
@@ -298,13 +343,14 @@ onMounted(async () => {
   }
   // 拿到 EveContext 后入房推拉流(去电:request 后;被叫:accept 后已就绪)
   await joinZego();
-  emitter.on("message:new", onMessage);
+  stopCommand = onCallCommand(onCommand); // 通话内互动命令(对端文字/礼物/索要礼物)
   emitter.on("call:hangup", onHangupEvent);
   emitter.on("rtc:first-frame", onFirstFrame);
 });
 
 onUnmounted(() => {
-  emitter.off("message:new", onMessage);
+  stopCommand?.();
+  if (askTimer) window.clearTimeout(askTimer);
   emitter.off("call:hangup", onHangupEvent);
   emitter.off("rtc:first-frame", onFirstFrame);
   greetTimers.forEach((tid) => window.clearTimeout(tid));
@@ -604,6 +650,62 @@ onUnmounted(() => {
     font-size: 10px;
     font-weight: 700;
     color: var(--eve-gold);
+  }
+}
+
+/* 女端索要礼物:跳动提醒 */
+.ask-gift {
+  position: absolute;
+  left: 14px;
+  bottom: 128px;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px 8px 10px;
+  border-radius: 30px;
+  background: linear-gradient(120deg, #ff2a7a, #9945ff);
+  box-shadow: var(--eve-glow-pink);
+  animation: askBounce 0.9s ease-in-out infinite;
+
+  .ask-ico {
+    font-size: 28px;
+    line-height: 1;
+  }
+  .ask-txt {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    text-align: left;
+    b {
+      font-size: 13px;
+      color: #fff;
+      font-weight: 700;
+    }
+    small {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      font-size: 11px;
+      color: rgba(255, 255, 255, 0.85);
+    }
+  }
+  .ask-send {
+    padding: 5px 14px;
+    border-radius: 16px;
+    background: #fff;
+    color: #ff2a7a;
+    font-size: 13px;
+    font-weight: 800;
+  }
+}
+@keyframes askBounce {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-7px);
   }
 }
 
