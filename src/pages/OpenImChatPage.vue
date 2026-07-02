@@ -56,6 +56,9 @@
 
     <!-- 输入栏 -->
     <footer class="input">
+      <button class="pick" :disabled="state !== 'ready' || uploading" @click="pickCamera">
+        <Camera :size="20" />
+      </button>
       <button class="pick" :disabled="state !== 'ready' || uploading" @click="pickImage">
         <ImagePlus :size="20" />
       </button>
@@ -63,6 +66,15 @@
         ref="fileEl"
         type="file"
         accept="image/*"
+        style="display: none"
+        @change="onImagePicked"
+      />
+      <!-- 拍照:capture 属性在移动端调起相机 -->
+      <input
+        ref="camEl"
+        type="file"
+        accept="image/*"
+        capture="environment"
         style="display: none"
         @change="onImagePicked"
       />
@@ -77,7 +89,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { ChevronLeft, Send, ImagePlus } from "lucide-vue-next";
+import { ChevronLeft, Send, ImagePlus, Camera } from "lucide-vue-next";
 import { showImagePreview } from "vant";
 import {
   ensureOpenImLogin,
@@ -115,6 +127,7 @@ const state = ref<"connecting" | "ready" | "error">("connecting");
 const stateText = ref("connecting…");
 const listEl = ref<HTMLElement | null>(null);
 const fileEl = ref<HTMLInputElement | null>(null);
+const camEl = ref<HTMLInputElement | null>(null);
 const uploading = ref(false);
 let stop: (() => void) | null = null;
 
@@ -134,6 +147,10 @@ function openImage(url: string) {
 
 function pickImage() {
   fileEl.value?.click();
+}
+
+function pickCamera() {
+  camEl.value?.click();
 }
 
 async function onImagePicked(e: Event) {
