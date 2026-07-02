@@ -302,18 +302,15 @@ async function onHangup() {
   hangup();
 }
 
-// 接通后公屏来点"生气"(系统进场 + 主播两句寒暄)
+// 接通即推本端流(秒开方案「晚推自己」)+ 公屏系统进场提示。寒暄改由真实跨端消息驱动(onCommand),不再 mock。
 watch(
   () => callState.phase,
   (phase, prev) => {
     if (phase === "active" && prev !== "active") {
-      // 接通即推本端流(秒开方案「晚推自己」):男端(player)接通才推,避免响铃期点亮摄像头;
-      // 女端(anchor)已在 joinZego 早推,publishSelf 幂等(published 标志)会跳过,不会重复推。
+      // 男端(player)接通才推,避免响铃期点亮摄像头;女端(anchor)已在 joinZego 早推,publishSelf 幂等会跳过。
       void publishSelf("accept");
       if (anchor.value) {
         pushMsg({ system: true, text: t("callPage.joined", { name: anchor.value.nickname }) });
-        greetTimers.push(window.setTimeout(() => pushMsg({ text: t("callPage.greet1"), fromSelf: false }), 2600));
-        greetTimers.push(window.setTimeout(() => pushMsg({ text: t("callPage.greet2"), fromSelf: false }), 7200));
       }
     }
   }
