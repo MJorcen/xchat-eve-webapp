@@ -227,7 +227,7 @@ function clearStatusPoll() {
 // 去电振铃期兜底接通/结束:phase→active 或结束的唯一来源不能只是单条 call_eve/accept 信令(真机偶发丢/延迟)。
 // 两路兜底:①「见对端流即接通」(zego roomStreamUpdate ADD → rtc:remote-stream);② /eve/status 轮询。
 // connectFromFallback 把 ringing → active(主叫本就已从 request 响应拿到自己的 token/streamId,可直接推流)。
-function connectFromFallback(by: "peer_stream" | "status") {
+function connectFromFallback(by: "peer_stream" | "status" | "start") {
   if (state.phase !== "ringing") return;
   clearStatusPoll();
   mark("connect");
@@ -487,6 +487,9 @@ function handleSignal(sig: EveSignal) {
         state.seconds = 0;
         startTicking();
       }
+      break;
+    case "call_eve/start": // 服务端「双流就绪」接通:accept 信令丢了 start 可能到 → 兜底接通(推流)
+      connectFromFallback("start");
       break;
     case "call_eve/reject":
       finishLocal(6, "peer", "signal", { endReason: "rejected" });
