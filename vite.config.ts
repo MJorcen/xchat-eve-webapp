@@ -24,6 +24,12 @@ export default defineConfig(({ mode }) => {
           target: proxyTarget,
           changeOrigin: true,
           secure: false
+        },
+        // OpenIM server API(dev 直连 support-local,绕浏览器 CORS;token 签发等)
+        "/oim-api": {
+          target: env.VITE_OPENIM_API || "http://192.168.10.10:10002",
+          changeOrigin: true,
+          rewrite: (p: string) => p.replace(/^\/oim-api/, "")
         }
       }
     }

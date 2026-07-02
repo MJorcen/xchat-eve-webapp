@@ -20,6 +20,7 @@ import WalletDetailPage from "./pages/WalletDetailPage.vue";
 import SignInPage from "./pages/SignInPage.vue";
 import LoginPage from "./pages/LoginPage.vue";
 import CompleteRegistrationPage from "./pages/CompleteRegistrationPage.vue";
+import OpenImChatPage from "./pages/OpenImChatPage.vue";
 import VisitorPage from "./pages/VisitorPage.vue";
 import FollowAndFansPage from "./pages/FollowAndFansPage.vue";
 import BlockListPage from "./pages/BlockListPage.vue";
@@ -44,6 +45,7 @@ export const router = createRouter({
     { path: "/mine", name: "Mine", component: MinePage },
     { path: "/anchor/:id", name: "Anchor", component: AnchorDetailPage },
     { path: "/chat/:id", name: "Chat", component: ChatPage },
+    { path: "/oim-chat/:peer", name: "OpenImChat", component: OpenImChatPage },
     { path: "/call/:id", name: "Call", component: CallPage },
     { path: "/live/:id", name: "LiveStream", component: LiveStreamPage },
     { path: "/call-summary/:id", name: "CallSummary", component: CallSummaryPage },
