@@ -39,7 +39,15 @@
           <span v-else class="row-ava fallback">{{ initial }}</span>
         </div>
         <div class="row-body">
-          <div class="bubble" :class="m.self ? 'mine' : 'other'">{{ m.text }}</div>
+          <img
+            v-if="m.kind === 'image'"
+            class="img-bubble"
+            :src="m.imageUrl"
+            :style="imgStyle(m)"
+            alt=""
+            @click="openImage(m.imageUrl!)"
+          />
+          <div v-else class="bubble" :class="m.self ? 'mine' : 'other'">{{ m.text }}</div>
           <small class="t">{{ m.time }}</small>
         </div>
       </div>
@@ -48,7 +56,17 @@
 
     <!-- 输入栏 -->
     <footer class="input">
-      <input v-model="draft" placeholder="Message…" @keyup.enter="send" />
+      <button class="pick" :disabled="state !== 'ready' || uploading" @click="pickImage">
+        <ImagePlus :size="20" />
+      </button>
+      <input
+        ref="fileEl"
+        type="file"
+        accept="image/*"
+        style="display: none"
+        @change="onImagePicked"
+      />
+      <input v-model="draft" :placeholder="uploading ? 'Uploading…' : 'Message…'" @keyup.enter="send" />
       <button class="send" :disabled="!draft.trim() || state !== 'ready'" @click="send">
         <Send :size="18" />
       </button>
@@ -59,10 +77,12 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { ChevronLeft, Send } from "lucide-vue-next";
+import { ChevronLeft, Send, ImagePlus } from "lucide-vue-next";
+import { showImagePreview } from "vant";
 import {
   ensureOpenImLogin,
   oimSendText,
+  oimSendImage,
   onOimMessages,
   oimHistory,
   oimMarkRead,
@@ -77,7 +97,16 @@ const router = useRouter();
 const userStore = useUserStore();
 const peerId = String(route.params.peer || "200054");
 
-type Row = { clientMsgID: string; text: string; self: boolean; time: string };
+type Row = {
+  clientMsgID: string;
+  kind: "text" | "image";
+  text: string;
+  imageUrl?: string;
+  imgW?: number;
+  imgH?: number;
+  self: boolean;
+  time: string;
+};
 type Peer = { nickname: string; avatar: string; intro: string; age: number; region: string };
 const msgs = ref<Row[]>([]);
 const peer = ref<Peer>({ nickname: peerId, avatar: "", intro: "", age: 0, region: "" });
@@ -85,7 +114,43 @@ const draft = ref("");
 const state = ref<"connecting" | "ready" | "error">("connecting");
 const stateText = ref("connecting…");
 const listEl = ref<HTMLElement | null>(null);
+const fileEl = ref<HTMLInputElement | null>(null);
+const uploading = ref(false);
 let stop: (() => void) | null = null;
+
+// 气泡里图片按原始比例约束尺寸(最大边 200)
+function imgStyle(m: Row): Record<string, string> {
+  const w = m.imgW || 0;
+  const h = m.imgH || 0;
+  if (!w || !h) return { width: "160px" };
+  const max = 200;
+  const scale = Math.min(1, max / Math.max(w, h));
+  return { width: `${Math.round(w * scale)}px`, height: `${Math.round(h * scale)}px` };
+}
+
+function openImage(url: string) {
+  showImagePreview([url]);
+}
+
+function pickImage() {
+  fileEl.value?.click();
+}
+
+async function onImagePicked(e: Event) {
+  const input = e.target as HTMLInputElement;
+  const file = input.files?.[0];
+  input.value = ""; // 允许重复选同一张
+  if (!file || state.value !== "ready") return;
+  uploading.value = true;
+  try {
+    const sent = await oimSendImage(peerId, file);
+    push(sent);
+  } catch (err) {
+    stateText.value = `image failed: ${(err as Error).message}`;
+  } finally {
+    uploading.value = false;
+  }
+}
 
 const initial = computed(() => (peer.value.nickname || peerId).slice(0, 1).toUpperCase());
 
@@ -95,20 +160,29 @@ function fmt(ms: number): string {
 }
 
 function toRow(m: MessageItem): Row | null {
-  if (m.contentType !== 101) return null;
-  let text = "";
-  try {
-    text = (m.textElem as { content?: string })?.content ?? "";
-  } catch {
-    /* ignore */
+  const self = String(m.sendID) === String(userStore.user.id);
+  // 文本(101)
+  if (m.contentType === 101) {
+    const text = (m.textElem as { content?: string })?.content ?? "";
+    if (!text) return null;
+    return { clientMsgID: m.clientMsgID, kind: "text", text, self, time: fmt(m.sendTime) };
   }
-  if (!text) return null;
-  return {
-    clientMsgID: m.clientMsgID,
-    text,
-    self: String(m.sendID) === String(userStore.user.id),
-    time: fmt(m.sendTime)
-  };
+  // 图片(102)
+  if (m.contentType === 102) {
+    const pic = (m.pictureElem as { sourcePicture?: { url?: string; width?: number; height?: number } })?.sourcePicture;
+    if (!pic?.url) return null;
+    return {
+      clientMsgID: m.clientMsgID,
+      kind: "image",
+      text: "",
+      imageUrl: pic.url,
+      imgW: pic.width || 0,
+      imgH: pic.height || 0,
+      self,
+      time: fmt(m.sendTime)
+    };
+  }
+  return null;
 }
 
 function push(m: MessageItem) {
@@ -393,6 +467,14 @@ onUnmounted(() => stop?.());
       border-bottom-right-radius: 5px;
     }
   }
+  .img-bubble {
+    border-radius: 14px;
+    object-fit: cover;
+    max-width: 200px;
+    max-height: 200px;
+    background: var(--eve-surface);
+    cursor: pointer;
+  }
   .t {
     margin-top: 3px;
     font-size: 10px;
@@ -407,11 +489,28 @@ onUnmounted(() => stop?.());
 /* 输入栏 */
 .input {
   display: flex;
+  align-items: center;
   gap: 8px;
   padding: 10px 12px calc(12px + env(safe-area-inset-bottom));
   border-top: 1px solid var(--eve-line);
 
-  input {
+  .pick {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    flex: 0 0 auto;
+    color: var(--eve-muted);
+    background: var(--eve-surface);
+    border: 1px solid var(--eve-line);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    &:disabled {
+      opacity: 0.4;
+    }
+  }
+  input[type="text"],
+  input:not([type]) {
     flex: 1;
     height: 42px;
     padding: 0 14px;

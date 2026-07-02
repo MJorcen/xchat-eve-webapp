@@ -6,6 +6,7 @@
 import { getSDK, CbEvents, ViewType } from "@openim/wasm-client-sdk";
 import type { MessageItem, WsResponse, ConversationItem } from "@openim/wasm-client-sdk";
 import { http } from "./http";
+import { uploadFile } from "./upload";
 import { useUserStore } from "@/stores";
 
 const OIM_WS = (import.meta.env.VITE_OPENIM_WS as string) || "ws://192.168.10.10:10001";
@@ -53,6 +54,50 @@ export async function oimSendText(recvID: string, text: string): Promise<Message
   await ensureOpenImLogin();
   const created: WsResponse<MessageItem> = await OpenIM.createTextMessage(text);
   const sent = await OpenIM.sendMessage({ recvID, groupID: "", message: created.data });
+  return sent.data;
+}
+
+/** 读图片像素尺寸(构造图片消息需要)。 */
+function readImageSize(file: File): Promise<{ width: number; height: number }> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      resolve({ width: img.naturalWidth, height: img.naturalHeight });
+      URL.revokeObjectURL(url);
+    };
+    img.onerror = () => {
+      resolve({ width: 0, height: 0 });
+      URL.revokeObjectURL(url);
+    };
+    img.src = url;
+  });
+}
+
+/**
+ * 发单聊图片:先 COS 直传(model=chat)拿公开 URL,再 createImageMessageByURL(不走 OpenIM 内置 MinIO)。
+ * source/big/snapshot 三档 POC 都用同一张 COS 图。
+ */
+export async function oimSendImage(recvID: string, file: File): Promise<MessageItem> {
+  await ensureOpenImLogin();
+  const [url, dim] = await Promise.all([uploadFile(file, "chat"), readImageSize(file)]);
+  const uuid = `${Date.now()}_${Math.random().toString(16).slice(2, 10)}`;
+  const pic = {
+    uuid,
+    type: file.type.split("/")[1] || "jpg",
+    size: file.size,
+    width: dim.width,
+    height: dim.height,
+    url
+  };
+  const created = await OpenIM.createImageMessageByURL({
+    sourcePath: "",
+    sourcePicture: pic,
+    bigPicture: pic,
+    snapshotPicture: pic
+  });
+  // ByURL 消息已含 COS 地址,必须用 NotOss 发送:sendMessage 会重复走 OSS 上传 → 10005
+  const sent = await OpenIM.sendMessageNotOss({ recvID, groupID: "", message: created.data });
   return sent.data;
 }
 
