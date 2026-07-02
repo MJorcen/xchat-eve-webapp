@@ -322,7 +322,9 @@ function startCall() {
     router.push("/recharge");
     return;
   }
-  startOutgoing(anchor.value);
+  // 拨号目标必须用路由 id(真实对端):anchor.value 来自 api.getAnchor,
+  // 它对未知 id 会回退 mock anchors[0](如 860120)→ 曾导致拨错人(与 CallPage 同坑)
+  startOutgoing({ ...anchor.value, id });
   router.push(`/call/${id}`);
 }
 
