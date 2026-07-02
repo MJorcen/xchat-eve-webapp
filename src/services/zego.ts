@@ -232,11 +232,12 @@ export async function prewarmPull(streamId: string): Promise<void> {
   }
 }
 
-/** 秒推:推已预采集的本地流。trigger:dial/invite(女早推)/accept(男接通后)。 */
-export function publishLocal(streamId: string, trigger: "dial" | "invite" | "accept" = "accept"): void {
-  if (!localStream) return;
+/** 秒推:推已预采集的本地流。trigger:dial/invite(女早推)/accept(男接通后)。返回是否真的推了(本地流没就绪则 false)。 */
+export function publishLocal(streamId: string, trigger: "dial" | "invite" | "accept" = "accept"): boolean {
+  if (!localStream) return false; // 本地流还没就绪 → 没推,交给调用方重试(别误标已推)
   getZego().startPublishingStream(streamId, localStream);
   track("publish_start", { streamId, trigger });
+  return true;
 }
 
 /** 拉指定 streamId 的远端流到 containerId(去重)。秒拉时直接传对端 streamId。trigger:dial/invite/stream_update。 */

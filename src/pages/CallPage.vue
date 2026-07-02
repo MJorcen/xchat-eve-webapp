@@ -136,16 +136,34 @@ let stopRemote: (() => void) | null = null;
 let stopCommand: (() => void) | null = null;
 let localReady: Promise<unknown> | null = null;
 let published = false;
+let publishing = false;
 
-// 推本端流(去重)。selfStreamId 按角色取:player→playerStreamId,anchor→anchorStreamId。
+// 推本端流(幂等 + 重试安全)。selfStreamId 按角色取:player→playerStreamId,anchor→anchorStreamId。
+// 关键:只有「真的推了」(本地流就绪)才置 published;本地流还没好时不置 → 待 localReady 就绪后补推。
+// 多重接通兜底(accept 信令 / 见对端流 / start)会多次触发本函数,publishing 并发锁避免重复推、published 幂等。
 async function publishSelf(trigger: "dial" | "invite" | "accept") {
-  if (published) return;
+  if (published || publishing) return;
   const ctx = getEveContext();
-  if (!ctx) return;
-  const selfStreamId = callState.role === "anchor" ? ctx.anchorStreamId : ctx.playerStreamId;
-  await localReady; // 等并行预采集结果
-  publishLocal(selfStreamId, trigger);
-  published = true;
+  if (!ctx || !localReady) return; // ctx/本地采集还没起 → 先不推也不置位,后续会重触发
+  publishing = true;
+  try {
+    const selfStreamId = callState.role === "anchor" ? ctx.anchorStreamId : ctx.playerStreamId;
+    const stream = await localReady; // 等并行预采集结果(拿到真实本地流才推)
+    if (!stream) return; // 采集失败(无摄像头/拒授权)→ 不置 published,允许恢复后重试
+    published = publishLocal(selfStreamId, trigger); // 只有真推了才 true
+  } finally {
+    publishing = false;
+  }
+}
+
+// 接通后「确保推流」:重试驱动 —— 单次 publishSelf 可能因 ctx/本地流/时序竞态没推成,
+// 这里在 active 且未推成时循环重试,直到真推(published=true)或通话结束。根治「间歇性男端不推流」。
+async function ensurePublished() {
+  for (let i = 0; i < 12 && !published && callState.phase === "active"; i++) {
+    await publishSelf("accept");
+    if (published) return;
+    await new Promise((r) => window.setTimeout(r, 700));
+  }
 }
 
 // 入房 + 推拉流(本端=男端,秒开主体):早拉对端、推流后置(接通才推,不阻塞看对端首帧)。
@@ -308,7 +326,7 @@ watch(
   (phase, prev) => {
     if (phase === "active" && prev !== "active") {
       // 男端(player)接通才推,避免响铃期点亮摄像头;女端(anchor)已在 joinZego 早推,publishSelf 幂等会跳过。
-      void publishSelf("accept");
+      void ensurePublished(); // 重试驱动,确保真推(修间歇性不推流)
       if (anchor.value) {
         pushMsg({ system: true, text: t("callPage.joined", { name: anchor.value.nickname }) });
       }
@@ -333,6 +351,8 @@ onMounted(async () => {
   await nextTick(); // 等 #local-video 渲染
   // 秒开①:并行预采集本地流(与 requestCall 同时进行,接通时不再花时间采集)
   localReady = prepareLocalStream("local-video").catch(() => null);
+  // 兜底:若在本地流就绪前就已接通 → 就绪后补推(ensurePublished 内部判 active + 幂等)
+  void localReady.then(() => void ensurePublished());
   // 直接进入 /call/:id(深链/去电)时若无进行中的通话,则发起去电(await 以便拿到 EveContext)。
   // 拨号目标用路由 id(真实对端),mock getAnchor 仅供展示(它对未知 id 会回退 anchors[0],不能拿来当被叫)。
   if (callState.target?.id !== id || callState.phase === "idle" || callState.phase === "ended") {
