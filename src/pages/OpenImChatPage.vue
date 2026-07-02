@@ -57,12 +57,29 @@
             <span class="v-wave"><i v-for="n in 5" :key="n" :style="{ height: 6 + ((n * 5) % 14) + 'px' }" /></span>
             <span class="v-dur">{{ m.voiceDur || 1 }}″</span>
           </button>
+          <div
+            v-else-if="m.kind === 'video'"
+            class="video-bubble"
+            :style="imgStyle({ imgW: m.coverW, imgH: m.coverH } as Row)"
+            @click="openVideo(m.videoUrl!)"
+          >
+            <img v-if="m.coverUrl" :src="m.coverUrl" alt="" />
+            <span class="play-ico">▶</span>
+          </div>
           <div v-else class="bubble" :class="m.self ? 'mine' : 'other'">{{ m.text }}</div>
           <small class="t">{{ m.time }}</small>
         </div>
       </div>
       <div class="spacer" />
     </div>
+
+    <!-- 全屏视频播放 -->
+    <div v-if="videoPlaying" class="video-overlay" @click="videoPlaying = null">
+      <video :src="videoPlaying" controls autoplay playsinline @click.stop />
+    </div>
+
+    <!-- 录音中提示 -->
+    <div v-if="recording" class="rec-hint">🎙 松开发送 · 录音中…</div>
 
     <!-- 输入栏 -->
     <footer class="input">
@@ -76,7 +93,10 @@
         class="pick"
         :class="{ recording: recording }"
         :disabled="state !== 'ready' || uploading"
-        @click="toggleRecord"
+        @pointerdown.prevent="startRec"
+        @pointerup.prevent="stopRec"
+        @pointerleave="stopRec"
+        @pointercancel="stopRec"
       >
         <Mic :size="20" />
       </button>
@@ -96,6 +116,16 @@
         style="display: none"
         @change="onImagePicked"
       />
+      <button class="pick" :disabled="state !== 'ready' || uploading" @click="pickVideo">
+        <Film :size="20" />
+      </button>
+      <input
+        ref="videoEl"
+        type="file"
+        accept="video/*"
+        style="display: none"
+        @change="onVideoPicked"
+      />
       <input v-model="draft" :placeholder="uploading ? 'Uploading…' : 'Message…'" @keyup.enter="send" />
       <button class="send" :disabled="!draft.trim() || state !== 'ready'" @click="send">
         <Send :size="18" />
@@ -107,13 +137,14 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { ChevronLeft, Send, ImagePlus, Camera, Mic } from "lucide-vue-next";
+import { ChevronLeft, Send, ImagePlus, Camera, Mic, Film } from "lucide-vue-next";
 import { showImagePreview } from "vant";
 import {
   ensureOpenImLogin,
   oimSendText,
   oimSendImage,
   oimSendVoice,
+  oimSendVideo,
   onOimMessages,
   oimHistory,
   oimMarkRead,
@@ -130,13 +161,17 @@ const peerId = String(route.params.peer || "200054");
 
 type Row = {
   clientMsgID: string;
-  kind: "text" | "image" | "voice";
+  kind: "text" | "image" | "voice" | "video";
   text: string;
   imageUrl?: string;
   imgW?: number;
   imgH?: number;
   voiceUrl?: string;
   voiceDur?: number;
+  videoUrl?: string;
+  coverUrl?: string;
+  coverW?: number;
+  coverH?: number;
   self: boolean;
   time: string;
 };
@@ -149,6 +184,8 @@ const stateText = ref("connecting…");
 const listEl = ref<HTMLElement | null>(null);
 const fileEl = ref<HTMLInputElement | null>(null);
 const camEl = ref<HTMLInputElement | null>(null);
+const videoEl = ref<HTMLInputElement | null>(null);
+const videoPlaying = ref<string | null>(null);
 const uploading = ref(false);
 const recording = ref(false);
 const playingId = ref<string | null>(null);
@@ -180,14 +217,42 @@ function pickCamera() {
   camEl.value?.click();
 }
 
-// 录音:点击开始,再点停止并发送
-async function toggleRecord() {
-  if (recording.value) {
-    mediaRecorder?.stop();
-    return;
+function pickVideo() {
+  videoEl.value?.click();
+}
+
+function openVideo(url: string) {
+  videoPlaying.value = url;
+}
+
+async function onVideoPicked(e: Event) {
+  const input = e.target as HTMLInputElement;
+  const file = input.files?.[0];
+  input.value = "";
+  if (!file || state.value !== "ready") return;
+  uploading.value = true;
+  try {
+    const sent = await oimSendVideo(peerId, file);
+    push(sent);
+  } catch (err) {
+    stateText.value = `video failed: ${(err as Error).message}`;
+  } finally {
+    uploading.value = false;
   }
+}
+
+// 录音:按住开始,松开发送(微信式)
+let recStopping = false;
+async function startRec() {
+  if (recording.value || uploading.value || state.value !== "ready") return;
   try {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    // 若按住期间已松手(异步竞态),立刻停掉不录
+    if (recStopping) {
+      stream.getTracks().forEach((t) => t.stop());
+      recStopping = false;
+      return;
+    }
     const mime = MediaRecorder.isTypeSupported("audio/mp4") ? "audio/mp4" : "audio/webm";
     mediaRecorder = new MediaRecorder(stream, { mimeType: mime });
     recChunks = [];
@@ -214,6 +279,13 @@ async function toggleRecord() {
   } catch (e) {
     stateText.value = `mic denied: ${(e as Error).message}`;
   }
+}
+function stopRec() {
+  recStopping = true;
+  if (recording.value && mediaRecorder && mediaRecorder.state === "recording") {
+    mediaRecorder.stop();
+  }
+  setTimeout(() => (recStopping = false), 100);
 }
 
 function playVoice(m: Row) {
@@ -288,6 +360,24 @@ function toRow(m: MessageItem): Row | null {
       text: "",
       voiceUrl: snd.sourceUrl,
       voiceDur: snd.duration || 0,
+      self,
+      time: fmt(m.sendTime)
+    };
+  }
+  // 视频(104)
+  if (m.contentType === 104) {
+    const vid = m.videoElem as
+      | { videoUrl?: string; snapshotUrl?: string; snapshotWidth?: number; snapshotHeight?: number }
+      | undefined;
+    if (!vid?.videoUrl) return null;
+    return {
+      clientMsgID: m.clientMsgID,
+      kind: "video",
+      text: "",
+      videoUrl: vid.videoUrl,
+      coverUrl: vid.snapshotUrl || "",
+      coverW: vid.snapshotWidth || 0,
+      coverH: vid.snapshotHeight || 0,
       self,
       time: fmt(m.sendTime)
     };
@@ -585,6 +675,31 @@ onUnmounted(() => stop?.());
     background: var(--eve-surface);
     cursor: pointer;
   }
+  .video-bubble {
+    position: relative;
+    border-radius: 14px;
+    overflow: hidden;
+    max-width: 200px;
+    max-height: 260px;
+    background: #000;
+    cursor: pointer;
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .play-ico {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 34px;
+      color: #fff;
+      text-shadow: 0 1px 6px rgba(0, 0, 0, 0.6);
+    }
+  }
   .voice-bubble {
     display: flex;
     align-items: center;
@@ -631,6 +746,28 @@ onUnmounted(() => stop?.());
 }
 
 /* 输入栏 */
+.rec-hint {
+  text-align: center;
+  padding: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #e5484d;
+}
+
+.video-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: rgba(0, 0, 0, 0.95);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  video {
+    max-width: 100%;
+    max-height: 100%;
+  }
+}
+
 .input {
   display: flex;
   align-items: center;

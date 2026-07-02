@@ -122,6 +122,70 @@ export async function oimSendVoice(recvID: string, blob: Blob, durationSec: numb
   return sent.data;
 }
 
+/** 抽视频首帧作封面 + 读时长/宽高(用 <video> 解码 seek 到 0.1s 画到 canvas)。 */
+function extractVideoCover(
+  file: File
+): Promise<{ cover: Blob; duration: number; width: number; height: number }> {
+  return new Promise((resolve, reject) => {
+    const video = document.createElement("video");
+    video.preload = "metadata";
+    video.muted = true;
+    video.playsInline = true;
+    const url = URL.createObjectURL(file);
+    const cleanup = () => URL.revokeObjectURL(url);
+    video.onloadeddata = () => {
+      video.currentTime = Math.min(0.1, video.duration || 0.1);
+    };
+    video.onseeked = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = video.videoWidth || 320;
+      canvas.height = video.videoHeight || 240;
+      canvas.getContext("2d")?.drawImage(video, 0, 0, canvas.width, canvas.height);
+      canvas.toBlob(
+        (blob) => {
+          cleanup();
+          if (blob) resolve({ cover: blob, duration: video.duration || 0, width: canvas.width, height: canvas.height });
+          else reject(new Error("cover blob null"));
+        },
+        "image/jpeg",
+        0.8
+      );
+    };
+    video.onerror = () => {
+      cleanup();
+      reject(new Error("video decode failed"));
+    };
+    video.src = url;
+  });
+}
+
+/**
+ * 发单聊视频:抽封面帧 → 视频本体 + 封面各传一次 COS → createVideoMessageByURL(contentType=104)。
+ */
+export async function oimSendVideo(recvID: string, file: File): Promise<MessageItem> {
+  await ensureOpenImLogin();
+  const { cover, duration, width, height } = await extractVideoCover(file);
+  const coverFile = new File([cover], `cover_${Date.now()}.jpg`, { type: "image/jpeg" });
+  const [videoUrl, snapshotUrl] = await Promise.all([uploadFile(file, "chat"), uploadFile(coverFile, "chat")]);
+  const now = Date.now();
+  const created = await OpenIM.createVideoMessageByURL({
+    videoPath: "",
+    duration: Math.max(1, Math.round(duration)),
+    videoType: file.type.split("/")[1] || "mp4",
+    snapshotPath: "",
+    videoUUID: `vid_${now}`,
+    videoUrl,
+    videoSize: file.size,
+    snapshotUUID: `snp_${now}`,
+    snapshotSize: cover.size,
+    snapshotUrl,
+    snapshotWidth: width,
+    snapshotHeight: height
+  });
+  const sent = await OpenIM.sendMessageNotOss({ recvID, groupID: "", message: created.data });
+  return sent.data;
+}
+
 /** 监听新消息(单聊文本)。返回取消函数。 */
 export function onOimMessages(cb: (msg: MessageItem) => void): () => void {
   const handler = ({ data }: WsResponse<MessageItem[]>) => {
