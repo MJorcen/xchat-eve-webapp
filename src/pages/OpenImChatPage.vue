@@ -29,7 +29,7 @@
 import { nextTick, onMounted, onUnmounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { ChevronLeft, Send } from "lucide-vue-next";
-import { ensureOpenImLogin, oimSendText, onOimMessages, oimHistory } from "../services/openim";
+import { ensureOpenImLogin, oimSendText, onOimMessages, oimHistory, oimMarkRead, oimSingleConversationId } from "../services/openim";
 import { useUserStore } from "../stores";
 import type { MessageItem } from "@openim/wasm-client-sdk";
 
@@ -96,18 +96,28 @@ onMounted(async () => {
     // 监听先于 login 注册(官方要求:否则可能漏掉登录后立刻同步下来的消息)
     stop = onOimMessages((m) => {
       // 只收当前对话的
-      if (String(m.sendID) === peerId || String(m.recvID) === peerId) push(m);
+      if (String(m.sendID) === peerId || String(m.recvID) === peerId) {
+        push(m);
+        if (String(m.sendID) === peerId) markReadDebounced(); // 对端发来的,停留会话页即已读
+      }
     });
     await ensureOpenImLogin();
     state.value = "ready";
     stateText.value = "online";
     const history = await oimHistory(peerId);
     history.forEach(push);
+    // 进会话即标记已读(清未读红点)
+    void oimMarkRead(oimSingleConversationId(peerId));
   } catch (e) {
     state.value = "error";
     stateText.value = (e as Error).message;
   }
 });
+
+// 收到本会话新消息后也标记已读(停留在会话页时)
+function markReadDebounced() {
+  void oimMarkRead(oimSingleConversationId(peerId));
+}
 
 onUnmounted(() => stop?.());
 </script>

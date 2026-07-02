@@ -4,7 +4,7 @@
 //   通道未启用返回 null → 前端降级报错,不再有 dev secret 进前端)。
 // - 用途:新聊天页(OpenImChatPage)收发单聊文本;后续替换云信聊天。
 import { getSDK, CbEvents, ViewType } from "@openim/wasm-client-sdk";
-import type { MessageItem, WsResponse } from "@openim/wasm-client-sdk";
+import type { MessageItem, WsResponse, ConversationItem } from "@openim/wasm-client-sdk";
 import { http } from "./http";
 import { useUserStore } from "@/stores";
 
@@ -63,6 +63,76 @@ export function onOimMessages(cb: (msg: MessageItem) => void): () => void {
   };
   OpenIM.on(CbEvents.OnRecvNewMessages, handler as never);
   return () => OpenIM.off(CbEvents.OnRecvNewMessages, handler as never);
+}
+
+/** OpenIM 会话(独立分区用,精简字段)。 */
+export type OimConversation = {
+  conversationID: string;
+  userID: string;
+  showName: string;
+  faceURL: string;
+  unreadCount: number;
+  lastText: string;
+  lastTime: number;
+};
+
+/** 解析会话 latestMsg(JSON 序列化的 MessageItem)为展示文案。 */
+function parseLatest(latestMsg: string): string {
+  if (!latestMsg) return "";
+  try {
+    const m = JSON.parse(latestMsg) as MessageItem;
+    if (m.contentType === 101) return (m.textElem as { content?: string })?.content ?? "";
+    return "[消息]";
+  } catch {
+    return "";
+  }
+}
+
+/** 拉全部单聊会话(按最近时间倒序,含未读数)。 */
+export async function oimConversations(): Promise<OimConversation[]> {
+  await ensureOpenImLogin();
+  const r = await OpenIM.getAllConversationList();
+  return ((r.data as ConversationItem[]) || [])
+    .filter((c) => c.conversationType === 1) // 只要单聊
+    .map((c) => ({
+      conversationID: c.conversationID,
+      userID: c.userID,
+      showName: c.showName || c.userID,
+      faceURL: c.faceURL,
+      unreadCount: c.unreadCount,
+      lastText: parseLatest(c.latestMsg),
+      lastTime: c.latestMsgSendTime
+    }))
+    .sort((a, b) => b.lastTime - a.lastTime);
+}
+
+/** 监听会话变更(新会话/未读变化/最后一条变化)→ 回调刷新列表。返回取消函数。 */
+export function onOimConversationsChanged(cb: () => void): () => void {
+  const h = () => cb();
+  OpenIM.on(CbEvents.OnConversationChanged, h as never);
+  OpenIM.on(CbEvents.OnNewConversation, h as never);
+  OpenIM.on(CbEvents.OnTotalUnreadMessageCountChanged, h as never);
+  return () => {
+    OpenIM.off(CbEvents.OnConversationChanged, h as never);
+    OpenIM.off(CbEvents.OnNewConversation, h as never);
+    OpenIM.off(CbEvents.OnTotalUnreadMessageCountChanged, h as never);
+  };
+}
+
+/** 标记会话已读(清未读)。conversationID = si_小id_大id。 */
+export async function oimMarkRead(conversationID: string): Promise<void> {
+  try {
+    await ensureOpenImLogin();
+    await OpenIM.markConversationMessageAsRead(conversationID);
+  } catch {
+    /* 忽略:未登录/会话不存在 */
+  }
+}
+
+/** 单聊会话 id 规则:si_小id_大id。 */
+export function oimSingleConversationId(peerID: string): string {
+  const store = useUserStore();
+  return `si_${[String(store.user.id), peerID].sort().join("_")}`;
 }
 
 /** 拉与某人的历史消息(最近 N 条,按时间正序)。 */

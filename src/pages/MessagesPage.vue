@@ -41,6 +41,27 @@
         </button>
       </div>
 
+      <!-- OpenIM 会话(独立分区,与云信并行;后续替换云信) -->
+      <section v-if="oimConvs.length" class="oim-section">
+        <h3 class="oim-title">OpenIM<span class="beta">Beta</span></h3>
+        <article
+          v-for="c in oimConvs"
+          :key="c.conversationID"
+          class="oim-row"
+          @click="router.push(`/oim-chat/${c.userID}`)"
+        >
+          <div class="oim-avatar">{{ (c.showName || c.userID).slice(0, 1).toUpperCase() }}</div>
+          <div class="oim-body">
+            <strong class="oim-name">{{ c.showName }}</strong>
+            <span class="oim-last">{{ c.lastText || "…" }}</span>
+          </div>
+          <div class="oim-meta">
+            <small class="oim-time">{{ fmtConvTime(c.lastTime) }}</small>
+            <span v-if="c.unreadCount > 0" class="oim-unread">{{ c.unreadCount > 99 ? "99+" : c.unreadCount }}</span>
+          </div>
+        </article>
+      </section>
+
       <div class="list">
         <ChatRow v-for="chat in conversations" :key="chat.id" :conversation="chat" />
       </div>
@@ -75,6 +96,7 @@ import { useI18n } from "vue-i18n";
 import { getLiveRooms } from "../services/room";
 import { getMyCallRecords } from "../services/call";
 import { getConversations, onConversationsChanged } from "../services/im";
+import { oimConversations, onOimConversationsChanged, type OimConversation } from "../services/openim";
 import type { CallRecord, Conversation, LiveRoom } from "../types/eve";
 
 defineOptions({ name: "MessagesPage" });
@@ -85,16 +107,36 @@ const { openCall } = useCall();
 const tab = ref<"message" | "call">("message");
 const loading = ref(true);
 const conversations = ref<Conversation[]>([]);
+const oimConvs = ref<OimConversation[]>([]);
 const calls = ref<CallRecord[]>([]);
 const lives = ref<LiveRoom[]>([]);
 
+// OpenIM 会话时间(今天 HH:mm,否则 MM/DD)
+function fmtConvTime(ms: number): string {
+  if (!ms) return "";
+  const d = new Date(ms);
+  const now = new Date();
+  const sameDay = d.toDateString() === now.toDateString();
+  return sameDay
+    ? `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`
+    : `${d.getMonth() + 1}/${d.getDate()}`;
+}
+
 // 会话走真实 NIM 云端会话;通话记录/直播条暂留 mock
 let stopConv: (() => void) | null = null;
+let stopOim: (() => void) | null = null;
 async function loadConversations() {
   try {
     conversations.value = await getConversations();
   } catch {
     /* NIM 未就绪/未登录时保持空 */
+  }
+}
+async function loadOimConversations() {
+  try {
+    oimConvs.value = await oimConversations();
+  } catch {
+    /* OpenIM 未就绪/通道未启用时保持空 */
   }
 }
 
@@ -108,9 +150,15 @@ onMounted(async () => {
   await loadConversations();
   loading.value = false;
   stopConv = onConversationsChanged(loadConversations);
+  // OpenIM 会话独立分区(登录 + 拉列表 + 订阅变更)
+  void loadOimConversations();
+  stopOim = onOimConversationsChanged(loadOimConversations);
 });
 
-onUnmounted(() => stopConv?.());
+onUnmounted(() => {
+  stopConv?.();
+  stopOim?.();
+});
 </script>
 
 <style scoped lang="scss">
@@ -281,6 +329,93 @@ onUnmounted(() => stopConv?.());
 
 .list {
   padding-top: 4px;
+}
+
+.oim-section {
+  padding: 4px 0 2px;
+}
+.oim-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px 4px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--eve-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+
+  .beta {
+    padding: 1px 6px;
+    border-radius: 999px;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0;
+    color: #fff;
+    background: #4e9cff;
+  }
+}
+.oim-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  cursor: pointer;
+
+  .oim-avatar {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    flex: 0 0 auto;
+    display: grid;
+    place-items: center;
+    font-size: 20px;
+    font-weight: 700;
+    color: #fff;
+    background: linear-gradient(135deg, #4e9cff, #7b61ff);
+  }
+  .oim-body {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+  .oim-name {
+    font-size: 15px;
+    font-weight: 600;
+    color: #fff;
+  }
+  .oim-last {
+    font-size: 12px;
+    color: var(--eve-faint);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .oim-meta {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 5px;
+    flex: 0 0 auto;
+  }
+  .oim-time {
+    font-size: 11px;
+    color: var(--eve-faint);
+  }
+  .oim-unread {
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 999px;
+    background: var(--eve-grad);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    display: grid;
+    place-items: center;
+  }
 }
 
 .call-row {
