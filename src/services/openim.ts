@@ -1,18 +1,17 @@
 // OpenIM 客户端封装(@openim/wasm-client-sdk,对接自部署 openim-server v3.8.3 @ support-local)。
 // - wasm 资产已拷 public/(openIM.wasm / sql-wasm.wasm / wasm_exec.js,index.html 引入 wasm_exec)
-// - dev token 签发:经 vite 代理 /oim-api 直调 server(get_admin_token → get_user_token)。
-//   ⚠️ 仅 dev POC:secret 不能进生产前端,正式方案由后端(user-svc)签发 OpenIM token 随登录下发。
+// - token 由业务后端签发:GET /user/auth/im/token?platform=5(user-svc 持 secret,自愈开户;
+//   通道未启用返回 null → 前端降级报错,不再有 dev secret 进前端)。
 // - 用途:新聊天页(OpenImChatPage)收发单聊文本;后续替换云信聊天。
 import { getSDK, CbEvents, ViewType } from "@openim/wasm-client-sdk";
 import type { MessageItem, WsResponse } from "@openim/wasm-client-sdk";
+import { http } from "./http";
 import { useUserStore } from "@/stores";
 
-const OIM_API_PROXY = "/oim-api"; // vite 代理 → http://192.168.10.10:10002
 const OIM_WS = (import.meta.env.VITE_OPENIM_WS as string) || "ws://192.168.10.10:10001";
-// SDK 内 wasm 核心自己发 API 请求(在 worker 里,走绝对地址),不经 vite 代理:
+// SDK 内 wasm 核心自己发 API 请求(在 worker 里,走绝对地址):
 const OIM_API_DIRECT = (import.meta.env.VITE_OPENIM_API as string) || "http://192.168.10.10:10002";
 const PLATFORM_WEB = 5;
-const DEV_SECRET = "openIM123"; // dev 自部署 secret(POC)
 
 export const OpenIM = getSDK({
   coreWasmPath: "/openIM.wasm",
@@ -23,31 +22,7 @@ export const OpenIM = getSDK({
 let loggedIn = false;
 let loginInFlight: Promise<void> | null = null;
 
-async function oimFetch<T = any>(path: string, body: unknown, token?: string): Promise<T> {
-  const res = await fetch(`${OIM_API_PROXY}${path}`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      operationID: `eve-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
-      ...(token ? { token } : {})
-    },
-    body: JSON.stringify(body)
-  });
-  const data = await res.json();
-  if (data.errCode !== 0) throw new Error(`openim ${path} err ${data.errCode}: ${data.errMsg || data.errDlt}`);
-  return data.data as T;
-}
-
-/** dev 签发本人 user token(admin token → get_user_token;正式改走后端)。 */
-async function devIssueToken(userID: string): Promise<string> {
-  const admin = await oimFetch<{ token: string }>("/auth/get_admin_token", { secret: DEV_SECRET, userID: "imAdmin" });
-  // 确保用户已注册(幂等:已存在会报错,忽略)
-  await oimFetch("/user/user_register", { users: [{ userID, nickname: `u${userID}`, faceURL: "" }] }, admin.token).catch(() => {});
-  const u = await oimFetch<{ token: string }>("/auth/get_user_token", { platformID: PLATFORM_WEB, userID }, admin.token);
-  return u.token;
-}
-
-/** 登录 OpenIM(幂等)。用当前登录用户 id;dev 内联签 token。 */
+/** 登录 OpenIM(幂等)。token 由业务后端按平台签发(web=5)。 */
 export async function ensureOpenImLogin(): Promise<void> {
   if (loggedIn) return;
   if (loginInFlight) return loginInFlight;
@@ -55,7 +30,8 @@ export async function ensureOpenImLogin(): Promise<void> {
     const store = useUserStore();
     const userID = String(store.user.id || "");
     if (!userID) throw new Error("openim: not signed in");
-    const token = await devIssueToken(userID);
+    const token = await http.get<string | null>("/user/auth/im/token", { platform: PLATFORM_WEB });
+    if (!token) throw new Error("openim: channel disabled (backend returned no token)");
     await OpenIM.login({
       userID,
       token,
