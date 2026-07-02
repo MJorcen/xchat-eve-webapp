@@ -101,6 +101,27 @@ export async function oimSendImage(recvID: string, file: File): Promise<MessageI
   return sent.data;
 }
 
+/**
+ * 发单聊语音:录音 Blob 直传 COS → createSoundMessageByURL(contentType=103)。
+ * webapp 录 webm/opus,host 录 m4a;播放端各自兼容(web <audio> 支持两者)。
+ */
+export async function oimSendVoice(recvID: string, blob: Blob, durationSec: number): Promise<MessageItem> {
+  await ensureOpenImLogin();
+  const ext = blob.type.includes("mp4") || blob.type.includes("m4a") ? "m4a" : "webm";
+  const file = new File([blob], `voice_${Date.now()}.${ext}`, { type: blob.type || "audio/webm" });
+  const url = await uploadFile(file, "chat");
+  const created = await OpenIM.createSoundMessageByURL({
+    uuid: `snd_${Date.now()}_${Math.random().toString(16).slice(2, 8)}`,
+    soundPath: "",
+    sourceUrl: url,
+    dataSize: blob.size,
+    duration: Math.max(1, Math.round(durationSec)),
+    soundType: ext
+  });
+  const sent = await OpenIM.sendMessageNotOss({ recvID, groupID: "", message: created.data });
+  return sent.data;
+}
+
 /** 监听新消息(单聊文本)。返回取消函数。 */
 export function onOimMessages(cb: (msg: MessageItem) => void): () => void {
   const handler = ({ data }: WsResponse<MessageItem[]>) => {

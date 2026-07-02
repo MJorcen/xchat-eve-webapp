@@ -47,6 +47,16 @@
             alt=""
             @click="openImage(m.imageUrl!)"
           />
+          <button
+            v-else-if="m.kind === 'voice'"
+            class="voice-bubble"
+            :class="m.self ? 'mine' : 'other'"
+            @click="playVoice(m)"
+          >
+            <span class="v-ico">{{ playingId === m.clientMsgID ? "⏸" : "▶" }}</span>
+            <span class="v-wave"><i v-for="n in 5" :key="n" :style="{ height: 6 + ((n * 5) % 14) + 'px' }" /></span>
+            <span class="v-dur">{{ m.voiceDur || 1 }}″</span>
+          </button>
           <div v-else class="bubble" :class="m.self ? 'mine' : 'other'">{{ m.text }}</div>
           <small class="t">{{ m.time }}</small>
         </div>
@@ -61,6 +71,14 @@
       </button>
       <button class="pick" :disabled="state !== 'ready' || uploading" @click="pickImage">
         <ImagePlus :size="20" />
+      </button>
+      <button
+        class="pick"
+        :class="{ recording: recording }"
+        :disabled="state !== 'ready' || uploading"
+        @click="toggleRecord"
+      >
+        <Mic :size="20" />
       </button>
       <input
         ref="fileEl"
@@ -89,12 +107,13 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { ChevronLeft, Send, ImagePlus, Camera } from "lucide-vue-next";
+import { ChevronLeft, Send, ImagePlus, Camera, Mic } from "lucide-vue-next";
 import { showImagePreview } from "vant";
 import {
   ensureOpenImLogin,
   oimSendText,
   oimSendImage,
+  oimSendVoice,
   onOimMessages,
   oimHistory,
   oimMarkRead,
@@ -111,11 +130,13 @@ const peerId = String(route.params.peer || "200054");
 
 type Row = {
   clientMsgID: string;
-  kind: "text" | "image";
+  kind: "text" | "image" | "voice";
   text: string;
   imageUrl?: string;
   imgW?: number;
   imgH?: number;
+  voiceUrl?: string;
+  voiceDur?: number;
   self: boolean;
   time: string;
 };
@@ -129,6 +150,12 @@ const listEl = ref<HTMLElement | null>(null);
 const fileEl = ref<HTMLInputElement | null>(null);
 const camEl = ref<HTMLInputElement | null>(null);
 const uploading = ref(false);
+const recording = ref(false);
+const playingId = ref<string | null>(null);
+let mediaRecorder: MediaRecorder | null = null;
+let recChunks: Blob[] = [];
+let recStart = 0;
+let audioEl: HTMLAudioElement | null = null;
 let stop: (() => void) | null = null;
 
 // 气泡里图片按原始比例约束尺寸(最大边 200)
@@ -151,6 +178,58 @@ function pickImage() {
 
 function pickCamera() {
   camEl.value?.click();
+}
+
+// 录音:点击开始,再点停止并发送
+async function toggleRecord() {
+  if (recording.value) {
+    mediaRecorder?.stop();
+    return;
+  }
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const mime = MediaRecorder.isTypeSupported("audio/mp4") ? "audio/mp4" : "audio/webm";
+    mediaRecorder = new MediaRecorder(stream, { mimeType: mime });
+    recChunks = [];
+    recStart = Date.now();
+    mediaRecorder.ondataavailable = (e) => e.data.size && recChunks.push(e.data);
+    mediaRecorder.onstop = async () => {
+      recording.value = false;
+      stream.getTracks().forEach((t) => t.stop());
+      const durSec = (Date.now() - recStart) / 1000;
+      const blob = new Blob(recChunks, { type: mime });
+      if (blob.size < 500 || durSec < 0.5) return; // 太短忽略
+      uploading.value = true;
+      try {
+        const sent = await oimSendVoice(peerId, blob, durSec);
+        push(sent);
+      } catch (e) {
+        stateText.value = `voice failed: ${(e as Error).message}`;
+      } finally {
+        uploading.value = false;
+      }
+    };
+    mediaRecorder.start();
+    recording.value = true;
+  } catch (e) {
+    stateText.value = `mic denied: ${(e as Error).message}`;
+  }
+}
+
+function playVoice(m: Row) {
+  if (!m.voiceUrl) return;
+  if (playingId.value === m.clientMsgID) {
+    audioEl?.pause();
+    audioEl = null;
+    playingId.value = null;
+    return;
+  }
+  audioEl?.pause();
+  audioEl = new Audio(m.voiceUrl);
+  playingId.value = m.clientMsgID;
+  audioEl.onended = () => (playingId.value = null);
+  audioEl.onerror = () => (playingId.value = null);
+  void audioEl.play();
 }
 
 async function onImagePicked(e: Event) {
@@ -195,6 +274,20 @@ function toRow(m: MessageItem): Row | null {
       imageUrl: pic.url,
       imgW: pic.width || 0,
       imgH: pic.height || 0,
+      self,
+      time: fmt(m.sendTime)
+    };
+  }
+  // 语音(103)
+  if (m.contentType === 103) {
+    const snd = m.soundElem as { sourceUrl?: string; duration?: number } | undefined;
+    if (!snd?.sourceUrl) return null;
+    return {
+      clientMsgID: m.clientMsgID,
+      kind: "voice",
+      text: "",
+      voiceUrl: snd.sourceUrl,
+      voiceDur: snd.duration || 0,
       self,
       time: fmt(m.sendTime)
     };
@@ -492,6 +585,40 @@ onUnmounted(() => stop?.());
     background: var(--eve-surface);
     cursor: pointer;
   }
+  .voice-bubble {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 90px;
+    padding: 10px 14px;
+    border-radius: 16px;
+    color: #fff;
+    &.other {
+      background: var(--eve-surface);
+      border-bottom-left-radius: 5px;
+    }
+    &.mine {
+      background: var(--eve-grad);
+      border-bottom-right-radius: 5px;
+    }
+    .v-ico {
+      font-size: 13px;
+    }
+    .v-wave {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      i {
+        width: 3px;
+        border-radius: 2px;
+        background: rgba(255, 255, 255, 0.8);
+      }
+    }
+    .v-dur {
+      font-size: 12px;
+      opacity: 0.9;
+    }
+  }
   .t {
     margin-top: 3px;
     font-size: 10px;
@@ -525,6 +652,16 @@ onUnmounted(() => stop?.());
     &:disabled {
       opacity: 0.4;
     }
+    &.recording {
+      color: #fff;
+      background: #e5484d;
+      border-color: #e5484d;
+      animation: recpulse 1s ease-in-out infinite;
+    }
+  }
+  @keyframes recpulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(229, 72, 77, 0.6); }
+    50% { box-shadow: 0 0 0 6px rgba(229, 72, 77, 0); }
   }
   input[type="text"],
   input:not([type]) {
