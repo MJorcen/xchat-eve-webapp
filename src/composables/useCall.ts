@@ -12,6 +12,7 @@ import {
   type EveRecord
 } from "../services/call";
 import { onEveSignal, ensureImLogin, insertMissedCall, type EveSignal } from "../services/im";
+import { startMqttSignals } from "../services/signaling";
 import { setMicEnabled, setCameraEnabled, joinRoom, prewarmPull, leaveRoom } from "../services/zego";
 import {
   initCallTelemetry,
@@ -426,13 +427,30 @@ function leaveCall() {
   }
 }
 
+// 双通道(EMQX 主 + 云信过渡双写)信令去重:同一 eventId 只处理一次(容量 200 的简易 LRU)。
+const seenEventIds = new Set<string>();
+function isDuplicateSignal(sig: EveSignal): boolean {
+  const key = sig.eventId || `${sig.messageType}:${sig.content?.eveId ?? ""}`;
+  if (!key) return false;
+  if (seenEventIds.has(key)) return true;
+  seenEventIds.add(key);
+  if (seenEventIds.size > 200) {
+    const first = seenEventIds.values().next().value;
+    if (first) seenEventIds.delete(first);
+  }
+  return false;
+}
+
 // eve 信令 → 状态机
 function handleSignal(sig: EveSignal) {
+  if (isDuplicateSignal(sig)) return; // EMQX 与云信双写场景:第二条静默丢弃
   const c = sig.content || {};
   const s = sig.sender || {};
   switch (sig.messageType) {
     case "call_eve/request": {
       const eveId = c.eveId ? String(c.eveId) : ""; // 雪花 id 按字符串处理(im.ts 已 lossless 解析,这里再兜底)
+      // 同一通已在响铃/通话中 → 重复 request(通道重试/双写漏网)幂等忽略,千万别 autoRejectBusy 拒掉自己这通
+      if (eveId && state.eveId === eveId && state.phase !== "idle" && state.phase !== "ended") return;
       const callerId = s.id || c.fromUserId || 0;
       // 来电信令到达时已接近后端响铃超时(投递延迟/离线推送积压)→ 弹窗也来不及接:不弹窗,直接记未接来电 + 自动拒。
       const age = sig.sentTs ? Date.now() - sig.sentTs : 0;
@@ -538,12 +556,20 @@ async function prewarmIncoming(sig: EveSignal) {
 /** 注册 eve 通话信令监听(app 启动后调一次;依赖 NIM 已登录)。 */
 export async function startCallSignals(): Promise<void> {
   if (signalStop) return;
+  // 主通道:EMQX(不依赖云信登录;新注册号云信没建好也能收信令)
+  const stopMqtt = startMqttSignals(handleSignal);
+  // 过渡通道:云信自定义通知(与 EMQX 双写,handleSignal 按 eventId 去重)
+  let stopNim: (() => void) | null = null;
   try {
     await ensureImLogin();
+    stopNim = onEveSignal(handleSignal);
   } catch {
-    /* NIM 未就绪,稍后页面再登 */
+    /* NIM 未就绪(如未完成注册/未建云信号):EMQX 主通道已可用 */
   }
-  signalStop = onEveSignal(handleSignal);
+  signalStop = () => {
+    stopMqtt();
+    stopNim?.();
+  };
   // 见对端流即接通(兜底 call_eve/accept):持久监听,connectFromFallback 内部只在 ringing 时生效。
   emitter.on("rtc:remote-stream", onRtcRemoteStream);
 }

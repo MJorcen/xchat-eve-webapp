@@ -182,14 +182,18 @@ export interface EveSignal {
   rtcInfo?: any; // request 带:{ playerToken, playerStreamId, anchorToken, anchorStreamId }(被叫偷跑用)
   rtcConfig?: any; // request 带:初始视频质量
   sentTs?: number; // 服务端下发时刻(网易通知 timestamp);算信令到达延迟/判来电是否已超时
+  eventId?: string; // 信封 meta.eventId:双通道(EMQX+云信)去重键
 }
 
-// 解析单条信令信封 → EveSignal。信封:{ meta.eventType:"operation_eve_message", data:{ messageType, content }, sender }。
-function parseEveSignal(notif: any): EveSignal | null {
+/**
+ * 解析 RtmEventEnvelope JSON → EveSignal(云信自定义通知 content 与 EMQX 消息 payload 是同一信封,共用本解析)。
+ * 信封:{ meta:{ eventType:"operation_eve_message", eventId, lifecycle }, data:{ messageType, content }, sender }。
+ */
+export function parseEveEnvelope(json: string, fallbackSentTs = 0): EveSignal | null {
   let env: any = null;
   try {
     // 大整数安全解析:来电信令里的 eveId 是雪花 19 位 id,原生 JSON.parse 会丢精度 → 被叫接听/上报会错位。
-    env = parseJsonBigIntSafe(notif.content);
+    env = parseJsonBigIntSafe(json);
   } catch {
     return null;
   }
@@ -198,12 +202,21 @@ function parseEveSignal(notif: any): EveSignal | null {
   return {
     messageType: env.data?.messageType,
     content: c,
-    senderId: notif.senderId,
+    senderId: String(env.sender?.user?.id ?? c.fromUserId ?? ""),
     sender: env.sender,
     rtcInfo: c.rtcInfo,
     rtcConfig: c.rtcConfig,
-    sentTs: notif.timestamp || env.meta?.lifecycle?.createdAtMs || 0
+    sentTs: env.meta?.lifecycle?.createdAtMs || fallbackSentTs || 0,
+    eventId: env.meta?.eventId || ""
   };
+}
+
+// 解析单条云信通知 → EveSignal(信封在 notif.content;senderId/timestamp 优先取通知层)。
+function parseEveSignal(notif: any): EveSignal | null {
+  const sig = parseEveEnvelope(notif.content, notif.timestamp || 0);
+  if (sig && notif.senderId) sig.senderId = notif.senderId;
+  if (sig && notif.timestamp) sig.sentTs = notif.timestamp;
+  return sig;
 }
 
 /**

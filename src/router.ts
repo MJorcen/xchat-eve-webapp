@@ -19,6 +19,7 @@ import MembershipPage from "./pages/MembershipPage.vue";
 import WalletDetailPage from "./pages/WalletDetailPage.vue";
 import SignInPage from "./pages/SignInPage.vue";
 import LoginPage from "./pages/LoginPage.vue";
+import CompleteRegistrationPage from "./pages/CompleteRegistrationPage.vue";
 import VisitorPage from "./pages/VisitorPage.vue";
 import FollowAndFansPage from "./pages/FollowAndFansPage.vue";
 import BlockListPage from "./pages/BlockListPage.vue";
@@ -51,6 +52,7 @@ export const router = createRouter({
     { path: "/payment", name: "Payment", component: PaymentPage },
     { path: "/payment-result", name: "PaymentResult", component: PaymentResultPage },
     { path: "/login", name: "Login", component: LoginPage },
+    { path: "/complete-registration", name: "CompleteRegistration", component: CompleteRegistrationPage },
     { path: "/notifications", name: "Notifications", component: NotificationPage },
     { path: "/visitors", name: "Visitors", component: VisitorPage },
     { path: "/block-list", name: "BlockList", component: BlockListPage },
@@ -73,9 +75,10 @@ export const router = createRouter({
 });
 
 // 登录守卫：未登录一律跳登录页（带 redirect 回跳）；已登录访问登录页则回首页。
+// 完成注册页(CompleteRegistration)在无登录态下进行(设备注册后补资料换 token),同样放行。
 router.beforeEach((to) => {
   const store = useUserStore();
-  if (!store.isLogin && to.name !== "Login") {
+  if (!store.isLogin && to.name !== "Login" && to.name !== "CompleteRegistration") {
     return { name: "Login", query: to.fullPath !== "/" ? { redirect: to.fullPath } : undefined };
   }
   if (store.isLogin && to.name === "Login") {

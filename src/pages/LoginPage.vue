@@ -24,7 +24,7 @@ import { ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { showToast } from "vant";
-import { deviceSignIn, toCurrentUser } from "../services/auth";
+import { deviceSignIn, toCurrentUser, isRegistrationIncomplete } from "../services/auth";
 import { ApiError } from "../services/http";
 import { useUserStore } from "../stores";
 
@@ -34,12 +34,19 @@ const route = useRoute();
 const userStore = useUserStore();
 const loading = ref(false);
 
-// 设备快捷登录：用持久化设备密钥换取登录态（首次自动注册），成功后回跳来源页或首页。
+// 设备快捷登录：设备未注册时后端只建「未完成注册」号(status=UNKNOWN,无 token) →
+// 跳完成注册页补资料(completeRegistration 发 token);已注册正常号则直接进入。
 async function quickSignIn() {
   if (loading.value) return;
   loading.value = true; // 登录中：按钮内联态（禁用 + 文案），避免常驻 toast 跨页关闭问题
   try {
     const vo = await deviceSignIn();
+    if (isRegistrationIncomplete(vo)) {
+      // 未完成注册 → 带上 userId 跳完成注册页(该页无登录态,守卫已放行)
+      sessionStorage.setItem("eve_pending_reg_user", String(vo.user.id));
+      router.replace({ name: "CompleteRegistration", query: route.query.redirect ? { redirect: route.query.redirect } : undefined });
+      return;
+    }
     if (!vo.authToken) throw new ApiError(-1, t("login.signInFailed"));
     // 后端返回的 authToken 自带 "Bearer " 前缀，存裸 token，发请求时再统一加 Bearer。
     const token = vo.authToken.replace(/^Bearer\s+/i, "");

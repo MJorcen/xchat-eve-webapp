@@ -69,6 +69,28 @@ export function deviceSignIn(): Promise<SignInVo> {
   );
 }
 
+/** 登录响应是否为「未完成注册」：无 authToken 且 user.status=0(UNKNOWN)。 */
+export function isRegistrationIncomplete(vo: SignInVo): boolean {
+  return !vo.authToken && vo.user?.status === 0;
+}
+
+/** 完成注册请求(对齐后端 CompleteRegistrationRequest;icon 缺省由后端兜底默认头像)。 */
+export interface CompleteRegistrationReq {
+  userId: number;
+  nickname: string;
+  gender: number; // 1 男 / 2 女
+  birthdate: string; // ISO-8601
+  icon?: string;
+}
+
+/**
+ * 完成注册:补资料 → 后端置 status=NORMAL + 云信建号 + 发 token(与三方登录同一尾段)。
+ * 设备快捷登录注册的号(status=UNKNOWN)必须走这一步才能拿到登录态。
+ */
+export function completeRegistration(req: CompleteRegistrationReq): Promise<SignInVo> {
+  return http.post<SignInVo>(`${USER_SVC}/info/profile/completeRegistration`, req, { auth: false });
+}
+
 /**
  * 当前登录用户的基础资料（对齐 panjoy：GET /user/info/get → MiniUser，按 JWT 取自己）。
  * 这是「我的资料」的规范接口；查看他人请用 getUserCard（大卡）。
